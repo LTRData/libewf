@@ -1,7 +1,7 @@
 /*
  * Hash values functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -31,13 +31,6 @@
 #if defined( __cplusplus )
 extern "C" {
 #endif
-
-enum LIBEWF_HASH_VALUES_INDEXES
-{
-	/* Value to indicate the number of hash values
-	 */
-	LIBEWF_HASH_VALUES_DEFAULT_NUMBER
-};
 
 int libewf_hash_values_initialize(
      libfvalue_table_t **hash_values,

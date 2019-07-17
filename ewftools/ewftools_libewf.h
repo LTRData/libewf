@@ -1,7 +1,7 @@
 /*
- * The internal libewf header
+ * The libewf header wrapper
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -23,13 +23,6 @@
 #define _EWFTOOLS_LIBEWF_H
 
 #include <common.h>
-
-/* If Cygwin libtool DLL support is enabled set LIBEWF_DLL_IMPORT
- * before including libewf.h
- */
-#if defined( _WIN32 ) && defined( DLL_IMPORT ) && !defined( HAVE_STATIC_EXECUTABLES )
-#define LIBEWF_DLL_IMPORT
-#endif
 
 #include <libewf.h>
 

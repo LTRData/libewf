@@ -1,7 +1,7 @@
 /*
  * Reads data from a file or device and writes it in EWF format
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -30,7 +30,11 @@
 #include <stdlib.h>
 #endif
 
+<<<<<<< HEAD
 #if defined( HAVE_IO_H )
+=======
+#if defined( HAVE_IO_H ) || defined( WINAPI )
+>>>>>>> origin/master
 #include <io.h>
 #endif
 
@@ -600,10 +604,13 @@ int ewfacquire_read_input(
 	ssize_t write_count                          = 0;
 	uint32_t chunk_size                          = 0;
 	uint8_t storage_media_buffer_mode            = 0;
-	int maximum_number_of_queued_items           = 0;
 	int number_of_read_errors                    = 0;
 	int read_error_iterator                      = 0;
 	int status                                   = PROCESS_STATUS_COMPLETED;
+
+#if defined( HAVE_MULTI_THREAD_SUPPORT )
+	int maximum_number_of_queued_items           = 0;
+#endif
 
 	if( imaging_handle == NULL )
 	{
@@ -793,7 +800,7 @@ int ewfacquire_read_input(
 #if defined( HAVE_MULTI_THREAD_SUPPORT )
 	if( imaging_handle->number_of_threads != 0 )
 	{
-		maximum_number_of_queued_items = 1 + ( ( 512 * 1024 * 1024 ) / process_buffer_size );
+		maximum_number_of_queued_items = 1 + (int) ( ( 512 * 1024 * 1024 ) / process_buffer_size );
 
 		if( libcthreads_thread_pool_create(
 		     &( imaging_handle->process_thread_pool ),
@@ -1626,7 +1633,7 @@ int main( int argc, char * const argv[] )
 	     _IONBF,
 	     &error ) != 1 )
 	{
-		ewfoutput_version_fprint(
+		ewftools_output_version_fprint(
 		 stdout,
 		 program );
 
@@ -1645,7 +1652,7 @@ int main( int argc, char * const argv[] )
 		{
 			case (system_integer_t) '?':
 			default:
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stdout,
 				 program );
 
@@ -1715,7 +1722,7 @@ int main( int argc, char * const argv[] )
 				break;
 
 			case (system_integer_t) 'h':
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stdout,
 				 program );
 
@@ -1810,11 +1817,11 @@ int main( int argc, char * const argv[] )
 				break;
 
 			case (system_integer_t) 'V':
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stdout,
 				 program );
 
-				ewfoutput_copyright_fprint(
+				ewftools_output_copyright_fprint(
 				 stdout );
 
 				return( EXIT_SUCCESS );
@@ -1837,7 +1844,7 @@ int main( int argc, char * const argv[] )
 	}
 	if( optind == argc )
 	{
-		ewfoutput_version_fprint(
+		ewftools_output_version_fprint(
 		 stdout,
 		 program );
 
@@ -1850,7 +1857,7 @@ int main( int argc, char * const argv[] )
 
 		goto on_error;
 	}
-	ewfoutput_version_fprint(
+	ewftools_output_version_fprint(
 	 stdout,
 	 program );
 
@@ -2538,6 +2545,7 @@ int main( int argc, char * const argv[] )
 	}
 	if( option_number_of_jobs != NULL )
 	{
+#if defined( HAVE_MULTI_THREAD_SUPPORT )
 		result = imaging_handle_set_number_of_threads(
 			  ewfacquire_imaging_handle,
 			  option_number_of_jobs,
@@ -2554,17 +2562,21 @@ int main( int argc, char * const argv[] )
 		else if( ( result == 0 )
 		      || ( ewfacquire_imaging_handle->number_of_threads > (int) 32 ) )
 		{
-#if defined( HAVE_MULTI_THREAD_SUPPORT )
 			ewfacquire_imaging_handle->number_of_threads = 4;
-#else
-			ewfacquire_imaging_handle->number_of_threads = 0;
-#endif
 
 			fprintf(
 			 stderr,
 			 "Unsupported number of jobs (threads) defaulting to: %d.\n",
 			 ewfacquire_imaging_handle->number_of_threads );
 		}
+#else
+		ewfacquire_imaging_handle->number_of_threads = 0;
+
+		fprintf(
+		 stderr,
+		 "Unsupported number of jobs (threads) defaulting to: %d.\n",
+		 ewfacquire_imaging_handle->number_of_threads );
+#endif
 	}
 	if( option_additional_digest_types != NULL )
 	{

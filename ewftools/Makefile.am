@@ -109,6 +109,7 @@ ewfacquirestream_SOURCES = \
 	ewftools_getopt.c ewftools_getopt.h \
 	ewftools_i18n.h \
 	ewftools_libbfio.h \
+	ewftools_libcdata.h \
 	ewftools_libcdatetime.h \
 	ewftools_libcerror.h \
 	ewftools_libcfile.h \
@@ -196,6 +197,7 @@ ewfexport_SOURCES = \
 	ewftools_glob.c ewftools_glob.h \
 	ewftools_i18n.h \
 	ewftools_libbfio.h \
+	ewftools_libcdata.h \
 	ewftools_libcdatetime.h \
 	ewftools_libcerror.h \
 	ewftools_libcfile.h \
@@ -297,6 +299,7 @@ ewfmount_SOURCES = \
 	ewftools_libcerror.h \
 	ewftools_libclocale.h \
 	ewftools_libcnotify.h \
+	ewftools_libcpath.h \
 	ewftools_libcthreads.h \
 	ewftools_libewf.h \
 	ewftools_libfvalue.h \
@@ -310,13 +313,19 @@ ewfmount_SOURCES = \
 	ewftools_system_string.c ewftools_system_string.h \
 	ewftools_unused.h \
 	guid.c guid.h \
+	mount_dokan.c mount_dokan.h \
+	mount_file_entry.c mount_file_entry.h \
+	mount_file_system.c mount_file_system.h \
+	mount_fuse.c mount_fuse.h \
 	mount_handle.c mount_handle.h \
 	platform.c platform.h
 
 ewfmount_LDADD = \
 	@LIBFUSE_LIBADD@ \
 	@LIBUUID_LIBADD@ \
+	@LIBCPATH_LIBADD@ \
 	@LIBUNA_LIBADD@ \
+	@LIBCSPLIT_LIBADD@ \
 	@LIBCNOTIFY_LIBADD@ \
 	@LIBCLOCALE_LIBADD@ \
 	../libewf/libewf.la \
@@ -336,6 +345,7 @@ ewfrecover_SOURCES = \
 	ewftools_glob.c ewftools_glob.h \
 	ewftools_i18n.h \
 	ewftools_libbfio.h \
+	ewftools_libcdata.h \
 	ewftools_libcdatetime.h \
 	ewftools_libcerror.h \
 	ewftools_libcfile.h \

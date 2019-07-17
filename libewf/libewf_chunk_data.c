@@ -1,7 +1,7 @@
 /*
  * Chunk data functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -31,10 +31,17 @@
 #include "libewf_libbfio.h"
 #include "libewf_libcerror.h"
 #include "libewf_libcnotify.h"
-#include "libewf_libfcache.h"
 #include "libewf_libfdata.h"
 #include "libewf_types.h"
 #include "libewf_unused.h"
+
+#if !defined( LIBEWF_ATTRIBUTE_FALLTHROUGH )
+#if defined( __GNUC__ ) && __GNUC__ >= 7
+#define LIBEWF_ATTRIBUTE_FALLTHROUGH	__attribute__ ((fallthrough))
+#else
+#define LIBEWF_ATTRIBUTE_FALLTHROUGH
+#endif
+#endif
 
 /* Creates chunk data
  * Make sure the value chunk_data is referencing, is set to NULL
@@ -1173,16 +1180,28 @@ int libewf_chunk_data_unpack(
 				{
 					case 7:
 						( chunk_data->data )[ --remaining_chunk_size ] = ( chunk_data->compressed_data )[ 7 ];
+
+					LIBEWF_ATTRIBUTE_FALLTHROUGH;
 					case 6:
 						( chunk_data->data )[ --remaining_chunk_size ] = ( chunk_data->compressed_data )[ 6 ];
+
+					LIBEWF_ATTRIBUTE_FALLTHROUGH;
 					case 5:
 						( chunk_data->data )[ --remaining_chunk_size ] = ( chunk_data->compressed_data )[ 5 ];
+
+					LIBEWF_ATTRIBUTE_FALLTHROUGH;
 					case 4:
 						( chunk_data->data )[ --remaining_chunk_size ] = ( chunk_data->compressed_data )[ 4 ];
+
+					LIBEWF_ATTRIBUTE_FALLTHROUGH;
 					case 3:
 						( chunk_data->data )[ --remaining_chunk_size ] = ( chunk_data->compressed_data )[ 3 ];
+
+					LIBEWF_ATTRIBUTE_FALLTHROUGH;
 					case 2:
 						( chunk_data->data )[ --remaining_chunk_size ] = ( chunk_data->compressed_data )[ 2 ];
+
+					LIBEWF_ATTRIBUTE_FALLTHROUGH;
 					case 1:
 						( chunk_data->data )[ --remaining_chunk_size ] = ( chunk_data->compressed_data )[ 1 ];
 				}
@@ -1376,9 +1395,13 @@ int libewf_chunk_data_check_for_empty_block(
 
 		return( -1 );
 	}
-	if( data_size <= 1 )
+	if( data_size == 0 )
 	{
 		return( 0 );
+	}
+	else if( data_size == 1 )
+	{
+		return( 1 );
 	}
 	data_start = (uint8_t *) data;
 	data_index = (uint8_t *) data + 1;
@@ -1946,7 +1969,7 @@ int libewf_chunk_data_read_element_data(
      libewf_io_handle_t *io_handle,
      libbfio_pool_t *file_io_pool,
      libfdata_list_element_t *element,
-     libfcache_cache_t *cache,
+     libfdata_cache_t *cache,
      int file_io_pool_entry,
      off64_t chunk_data_offset,
      size64_t chunk_data_size,

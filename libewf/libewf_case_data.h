@@ -1,7 +1,7 @@
 /*
  * Case data functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -60,7 +60,7 @@ int libewf_case_data_generate(
      uint8_t format,
      libcerror_error_t **error );
 
-int libewf_case_data_parse_string(
+int libewf_case_data_parse_utf8_string(
      const uint8_t *utf8_string,
      size_t utf8_string_size,
      libewf_media_values_t *media_values,

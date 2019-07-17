@@ -1,7 +1,7 @@
 /*
  * Shows information stored in an EWF file
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -24,12 +24,16 @@
 #include <system_string.h>
 #include <types.h>
 
+#if defined( HAVE_SYS_RESOURCE_H )
+#include <sys/resource.h>
+#endif
+
 #if defined( HAVE_STDLIB_H ) || defined( WINAPI )
 #include <stdlib.h>
 #endif
 
-#if defined( HAVE_SYS_RESOURCE_H )
-#include <sys/resource.h>
+#if defined( HAVE_IO_H ) || defined( WINAPI )
+#include <io.h>
 #endif
 
 #if defined( HAVE_GLOB_H )
@@ -159,7 +163,7 @@ int main( int argc, char * const argv[] )
 	char info_option                             = 'a';
 
 #if !defined( HAVE_GLOB_H )
-	ewftools_glob_t *glob                      = NULL;
+	ewftools_glob_t *glob                        = NULL;
 #endif
 
 	libcnotify_stream_set(
@@ -182,7 +186,7 @@ int main( int argc, char * const argv[] )
 	     _IONBF,
 	     &error ) != 1 )
 	{
-		ewfoutput_version_fprint(
+		ewftools_output_version_fprint(
 		 stderr,
 		 program );
 
@@ -201,7 +205,7 @@ int main( int argc, char * const argv[] )
 		{
 			case (system_integer_t) '?':
 			default:
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stderr,
 				 program );
 
@@ -228,7 +232,7 @@ int main( int argc, char * const argv[] )
 			case (system_integer_t) 'e':
 				if( info_option != 'a' )
 				{
-					ewfoutput_version_fprint(
+					ewftools_output_version_fprint(
 					 stderr,
 					 program );
 
@@ -253,7 +257,7 @@ int main( int argc, char * const argv[] )
 				break;
 
 			case (system_integer_t) 'h':
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stdout,
 				 program );
 
@@ -265,7 +269,7 @@ int main( int argc, char * const argv[] )
 			case (system_integer_t) 'i':
 				if( info_option != 'a' )
 				{
-					ewfoutput_version_fprint(
+					ewftools_output_version_fprint(
 					 stderr,
 					 program );
 
@@ -287,7 +291,7 @@ int main( int argc, char * const argv[] )
 			case (system_integer_t) 'm':
 				if( info_option != 'a' )
 				{
-					ewfoutput_version_fprint(
+					ewftools_output_version_fprint(
 					 stderr,
 					 program );
 
@@ -312,11 +316,11 @@ int main( int argc, char * const argv[] )
 				break;
 
 			case (system_integer_t) 'V':
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stdout,
 				 program );
 
-				ewfoutput_copyright_fprint(
+				ewftools_output_copyright_fprint(
 				 stdout );
 
 				return( EXIT_SUCCESS );
@@ -324,7 +328,7 @@ int main( int argc, char * const argv[] )
 	}
 	if( optind == argc )
 	{
-		ewfoutput_version_fprint(
+		ewftools_output_version_fprint(
 		 stderr,
 		 program );
 
@@ -352,7 +356,7 @@ int main( int argc, char * const argv[] )
 	     &ewfinfo_info_handle,
 	     &error ) != 1 )
 	{
-		ewfoutput_version_fprint(
+		ewftools_output_version_fprint(
 		 stderr,
 		 program );
 
@@ -371,7 +375,7 @@ int main( int argc, char * const argv[] )
 
 		if( result == -1 )
 		{
-			ewfoutput_version_fprint(
+			ewftools_output_version_fprint(
 			 stderr,
 			 program );
 
@@ -383,7 +387,7 @@ int main( int argc, char * const argv[] )
 		}
 		else if( result == 0 )
 		{
-			ewfoutput_version_fprint(
+			ewftools_output_version_fprint(
 			 stderr,
 			 program );
 
@@ -400,7 +404,7 @@ int main( int argc, char * const argv[] )
 		     ewfinfo_info_handle,
 		     &error ) != 1 )
 		{
-			ewfoutput_version_fprint(
+			ewftools_output_version_fprint(
 			 stderr,
 			 program );
 
@@ -413,7 +417,7 @@ int main( int argc, char * const argv[] )
 	}
 	else if( ewfinfo_info_handle->output_format == INFO_HANDLE_OUTPUT_FORMAT_TEXT )
 	{
-		ewfoutput_version_fprint(
+		ewftools_output_version_fprint(
 		 stdout,
 		 program );
 
@@ -431,7 +435,7 @@ int main( int argc, char * const argv[] )
 		{
 			if( print_header != 0 )
 			{
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stderr,
 				 program );
 
@@ -447,7 +451,7 @@ int main( int argc, char * const argv[] )
 		{
 			if( print_header != 0 )
 			{
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stderr,
 				 program );
 
@@ -469,7 +473,7 @@ int main( int argc, char * const argv[] )
 		{
 			if( print_header != 0 )
 			{
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stderr,
 				 program );
 
@@ -485,7 +489,7 @@ int main( int argc, char * const argv[] )
 		{
 			if( print_header != 0 )
 			{
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stderr,
 				 program );
 
@@ -503,7 +507,7 @@ int main( int argc, char * const argv[] )
 	{
 		if( print_header != 0 )
 		{
-			ewfoutput_version_fprint(
+			ewftools_output_version_fprint(
 			 stderr,
 			 program );
 
@@ -523,7 +527,7 @@ int main( int argc, char * const argv[] )
 	{
 		if( print_header != 0 )
 		{
-			ewfoutput_version_fprint(
+			ewftools_output_version_fprint(
 			 stderr,
 			 program );
 
@@ -587,7 +591,7 @@ int main( int argc, char * const argv[] )
 	{
 		if( print_header != 0 )
 		{
-			ewfoutput_version_fprint(
+			ewftools_output_version_fprint(
 			 stderr,
 			 program );
 
@@ -616,7 +620,7 @@ int main( int argc, char * const argv[] )
 	{
 		if( print_header != 0 )
 		{
-			ewfoutput_version_fprint(
+			ewftools_output_version_fprint(
 			 stderr,
 			 program );
 
@@ -635,7 +639,7 @@ int main( int argc, char * const argv[] )
 	{
 		if( print_header != 0 )
 		{
-			ewfoutput_version_fprint(
+			ewftools_output_version_fprint(
 			 stderr,
 			 program );
 
@@ -657,7 +661,7 @@ int main( int argc, char * const argv[] )
 		{
 			if( print_header != 0 )
 			{
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stderr,
 				 program );
 
@@ -682,7 +686,7 @@ int main( int argc, char * const argv[] )
 		{
 			if( print_header != 0 )
 			{
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stderr,
 				 program );
 
@@ -703,7 +707,7 @@ int main( int argc, char * const argv[] )
 		{
 			if( print_header != 0 )
 			{
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stderr,
 				 program );
 
@@ -724,7 +728,7 @@ int main( int argc, char * const argv[] )
 		{
 			if( print_header != 0 )
 			{
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stderr,
 				 program );
 
@@ -745,7 +749,7 @@ int main( int argc, char * const argv[] )
 		{
 			if( print_header != 0 )
 			{
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stderr,
 				 program );
 
@@ -770,7 +774,7 @@ int main( int argc, char * const argv[] )
 		{
 			if( print_header != 0 )
 			{
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stderr,
 				 program );
 
@@ -792,7 +796,7 @@ int main( int argc, char * const argv[] )
 	{
 		if( print_header != 0 )
 		{
-			ewfoutput_version_fprint(
+			ewftools_output_version_fprint(
 			 stderr,
 			 program );
 
@@ -815,7 +819,7 @@ int main( int argc, char * const argv[] )
 		{
 			if( print_header != 0 )
 			{
-				ewfoutput_version_fprint(
+				ewftools_output_version_fprint(
 				 stderr,
 				 program );
 
@@ -835,7 +839,7 @@ on_abort:
 	{
 		if( print_header != 0 )
 		{
-			ewfoutput_version_fprint(
+			ewftools_output_version_fprint(
 			 stderr,
 			 program );
 
@@ -852,7 +856,7 @@ on_abort:
 	{
 		if( print_header != 0 )
 		{
-			ewfoutput_version_fprint(
+			ewftools_output_version_fprint(
 			 stderr,
 			 program );
 
@@ -873,7 +877,7 @@ on_abort:
 	{
 		if( print_header != 0 )
 		{
-			ewfoutput_version_fprint(
+			ewftools_output_version_fprint(
 			 stderr,
 			 program );
 
@@ -889,7 +893,7 @@ on_abort:
 	{
 		if( print_header != 0 )
 		{
-			ewfoutput_version_fprint(
+			ewftools_output_version_fprint(
 			 stderr,
 			 program );
 

@@ -1,7 +1,7 @@
 /*
  * User input functions for the ewftools
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -1718,7 +1718,7 @@ int ewfinput_get_fixed_string_variable(
 
 	system_character_t *end_of_input  = NULL;
 	system_character_t *result_string = NULL;
-	static char *function             = "ewfinput_get_fixed_value";
+	static char *function             = "ewfinput_get_fixed_string_variable";
 	size_t value_length               = 0;
 	ssize_t input_length              = 0;
 	uint8_t value_iterator            = 0;
