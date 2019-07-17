@@ -42,7 +42,7 @@ int libewf_date_time_localtime(
      struct tm *time_elements,
      libcerror_error_t **error )
 {
-#if ( defined( HAVE_LOCALTIME ) && !defined( HAVE_LOCALTIME_R ) ) || ( defined( WINAPI ) && !defined( _MSC_VER ) )
+#if ( defined( HAVE_LOCALTIME ) && !defined( HAVE_LOCALTIME_R ) ) || ( defined( WINAPI ) && (!defined( _MSC_VER ) || _MSC_VER <= 1900) )
 	struct tm *static_time_elements = NULL;
 #endif
 	static char *function           = "libewf_date_time_localtime";
@@ -69,7 +69,7 @@ int libewf_date_time_localtime(
 
 		return( -1 );
 	}
-#if defined( _MSC_VER )
+#if defined( _MSC_VER ) && _MSC_VER > 1900
 	if( localtime_s(
 	     time_elements,
 	     timestamp ) != 0 )

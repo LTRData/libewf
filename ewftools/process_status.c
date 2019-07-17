@@ -495,7 +495,7 @@ int process_status_update(
 				process_status_bytes_per_second_fprint(
 				 process_status->output_stream,
 				 bytes_total,
-				 total_number_of_seconds );
+                    (time_t)total_number_of_seconds );
 
 				fprintf(
 				 process_status->output_stream,
@@ -620,7 +620,7 @@ int process_status_update_unknown_total(
 			process_status_bytes_per_second_fprint(
 			 process_status->output_stream,
 			 bytes_read,
-			 number_of_seconds );
+                (time_t)number_of_seconds );
 
 			fprintf(
 			 process_status->output_stream,
@@ -761,7 +761,7 @@ int process_status_stop(
 			process_status_bytes_per_second_fprint(
 			 process_status->output_stream,
 			 bytes_total,
-			 total_number_of_seconds );
+			 (time_t)total_number_of_seconds );
 
 			fprintf(
 			 process_status->output_stream,

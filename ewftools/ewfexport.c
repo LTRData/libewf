@@ -40,6 +40,10 @@
 #include <fcntl.h>
 #endif
 
+#if defined( HAVE_IO_H )
+#include <io.h>
+#endif
+
 #include "byte_size_string.h"
 #include "ewfcommon.h"
 #include "ewfinput.h"

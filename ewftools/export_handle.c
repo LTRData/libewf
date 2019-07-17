@@ -26,6 +26,10 @@
 #include <types.h>
 #include <wide_string.h>
 
+#if defined( HAVE_STDIO_H )
+#include <stdio.h>
+#endif
+
 #if defined( HAVE_UNISTD_H )
 #include <unistd.h>
 #endif
@@ -35,6 +39,10 @@
 
 #elif defined( HAVE_UUID_UUID_H )
 #include <uuid/uuid.h>
+#endif
+
+#if defined( HAVE_IO_H )
+#include <io.h>
 #endif
 
 #include "byte_size_string.h"
@@ -195,8 +203,12 @@ int export_handle_initialize(
 	( *export_handle )->sectors_per_chunk        = 64;
 	( *export_handle )->header_codepage          = LIBEWF_CODEPAGE_ASCII;
 	( *export_handle )->process_buffer_size      = EWFCOMMON_PROCESS_BUFFER_SIZE;
-	( *export_handle )->number_of_threads        = 4;
-	( *export_handle )->notify_stream            = EXPORT_HANDLE_NOTIFY_STREAM;
+#if !defined( HAVE_MULTI_THREAD_SUPPORT )
+    (*export_handle)->number_of_threads = 0;
+#else
+    (*export_handle)->number_of_threads = 4;
+#endif
+    ( *export_handle )->notify_stream            = EXPORT_HANDLE_NOTIFY_STREAM;
 
 	return( 1 );
 
@@ -1155,7 +1167,7 @@ ssize_t export_handle_write_storage_media_buffer(
 			write_count = _write(
 			               1,
 				       storage_media_buffer->raw_buffer,
-				       write_size );
+				       (unsigned int)write_size );
 #else
 			write_count = write(
 			               1,
@@ -5109,7 +5121,7 @@ int export_handle_export_input(
 	if( export_handle->number_of_threads != 0 )
 	{
 		libcerror_error_set(
-		 &error,
+		 error,
 		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 		 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
 		 "%s: multi-threading not supported.",
@@ -5273,6 +5285,8 @@ int export_handle_export_input(
 			goto on_error;
 		}
 	}
+#else
+    maximum_number_of_queued_items;
 #endif
 	export_handle->swap_byte_pairs = swap_byte_pairs;
 

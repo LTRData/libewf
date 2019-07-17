@@ -65,7 +65,7 @@
 /* If not controlled by config.h enable multi-thread support
  */
 #if !defined( HAVE_CONFIG_H ) && !defined( HAVE_MULTI_THREAD_SUPPORT )
-#define HAVE_MULTI_THREAD_SUPPORT	1
+//#define HAVE_MULTI_THREAD_SUPPORT	1
 #endif
 
 #endif /* defined( WINAPI ) */

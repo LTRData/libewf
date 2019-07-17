@@ -1550,17 +1550,18 @@ int libewf_handle_open_wide(
 
 	if( result != 1 )
 	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_IO,
-		 LIBCERROR_IO_ERROR_OPEN_FAILED,
-		 "%s: unable to open handle using a file IO pool.",
-		 function );
+		//libcerror_error_set(
+		// error,
+		// LIBCERROR_ERROR_DOMAIN_IO,
+		// LIBCERROR_IO_ERROR_OPEN_FAILED,
+		// "%s: unable to open handle using a file IO pool.",
+		// function );
 	}
 	else
 	{
 		internal_handle->file_io_pool_created_in_library = 1;
 	}
+
 #if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
 	result = libcthreads_read_write_lock_release_for_write(
 	          internal_handle->read_write_lock,

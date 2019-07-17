@@ -30,6 +30,10 @@
 #include <stdlib.h>
 #endif
 
+#if defined( HAVE_IO_H )
+#include <io.h>
+#endif
+
 #include "byte_size_string.h"
 #include "device_handle.h"
 #include "ewfcommon.h"
@@ -649,7 +653,7 @@ int ewfacquire_read_input(
 	if( imaging_handle->number_of_threads != 0 )
 	{
 		libcerror_error_set(
-		 &error,
+		 error,
 		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 		 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
 		 "%s: multi-threading not supported.",
@@ -858,6 +862,8 @@ int ewfacquire_read_input(
 			goto on_error;
 		}
 	}
+#else
+    maximum_number_of_queued_items;
 #endif
 	if( imaging_handle_initialize_integrity_hash(
 	     imaging_handle,

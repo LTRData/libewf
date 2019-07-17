@@ -27,6 +27,25 @@
 #include "ewftools_libewf.h"
 #include "storage_media_buffer.h"
 
+#ifndef LIBCTHREADS_VERSION
+ /* The comparison function definitions
+ */
+enum LIBCTHREADS_COMPARE_DEFINITIONS
+{
+    /* The first value is less than the second value
+    */
+    LIBCTHREADS_COMPARE_LESS,
+
+    /* The first and second values are equal
+    */
+    LIBCTHREADS_COMPARE_EQUAL,
+
+    /* The first value is greater than the second value
+    */
+    LIBCTHREADS_COMPARE_GREATER
+};
+#endif
+
 /* Creates a storage media buffer
  * Make sure the value buffer is referencing, is set to NULL
  * Returns 1 if successful or -1 on error

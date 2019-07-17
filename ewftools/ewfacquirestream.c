@@ -38,6 +38,10 @@
 #include <fcntl.h>
 #endif
 
+#if defined( HAVE_IO_H )
+#include <io.h>
+#endif
+
 #include "byte_size_string.h"
 #include "ewfcommon.h"
 #include "ewfinput.h"
@@ -358,7 +362,7 @@ ssize_t ewfacquirestream_read_chunk(
 			input_read_count = _read(
 			                    input_file_descriptor,
 			                    &( ( storage_media_buffer->raw_buffer )[ buffer_offset ] ),
-			                    input_read_size );
+			                    (unsigned int)input_read_size );
 #else
 			input_read_count = read(
 			                    input_file_descriptor,
@@ -546,7 +550,7 @@ int ewfacquirestream_read_input(
 	if( imaging_handle->number_of_threads != 0 )
 	{
 		libcerror_error_set(
-		 &error,
+		 error,
 		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 		 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
 		 "%s: multi-threading not supported.",
@@ -669,6 +673,8 @@ int ewfacquirestream_read_input(
 			goto on_error;
 		}
 	}
+#else
+    maximum_number_of_queued_items;
 #endif
 	if( imaging_handle_initialize_integrity_hash(
 	     imaging_handle,

@@ -34,6 +34,10 @@
 #include <glob.h>
 #endif
 
+#if defined( HAVE_IO_H )
+#include <io.h>
+#endif
+
 #include "ewfinput.h"
 #include "ewftools_getopt.h"
 #include "ewftools_glob.h"

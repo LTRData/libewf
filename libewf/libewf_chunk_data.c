@@ -1918,12 +1918,15 @@ ssize_t libewf_chunk_data_read_from_file_io_pool(
 
 	if( read_count != (ssize_t) chunk_data_size )
 	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_IO,
-		 LIBCERROR_IO_ERROR_READ_FAILED,
-		 "%s: unable to read chunk data.",
-		 function );
+        if (read_count >= 0)
+        {
+            libcerror_error_set(
+                error,
+                LIBCERROR_ERROR_DOMAIN_IO,
+                LIBCERROR_IO_ERROR_READ_FAILED,
+                "%s: unable to read chunk data.",
+                function);
+        }
 
 		return( -1 );
 	}
@@ -2027,12 +2030,12 @@ int libewf_chunk_data_read_element_data(
 
 	if( read_count < 0 )
 	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_IO,
-		 LIBCERROR_IO_ERROR_READ_FAILED,
-		 "%s: unable to read chunk data.",
-		 function );
+		//libcerror_error_set(
+		// error,
+		// LIBCERROR_ERROR_DOMAIN_IO,
+		// LIBCERROR_IO_ERROR_READ_FAILED,
+		// "%s: unable to read chunk data.",
+		// function );
 
 		goto on_error;
 	}

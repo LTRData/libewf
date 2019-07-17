@@ -28,6 +28,10 @@
 #include <stdlib.h>
 #endif
 
+#if defined( HAVE_IO_H )
+#include <io.h>
+#endif
+
 #if defined( HAVE_SYS_RESOURCE_H )
 #include <sys/resource.h>
 #endif
