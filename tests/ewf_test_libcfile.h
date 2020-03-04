@@ -1,7 +1,7 @@
 /*
- * The internal libcfile header
+ * The libcfile header wrapper
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -19,8 +19,8 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if !defined( _EWF_TOOLS_LIBCFILE_H )
-#define _EWF_TOOLS_LIBCFILE_H
+#if !defined( _EWF_TEST_LIBCFILE_H )
+#define _EWF_TEST_LIBCFILE_H
 
 #include <common.h>
 
@@ -44,7 +44,7 @@
 
 #include <libcfile.h>
 
-#endif
+#endif /* defined( HAVE_LOCAL_LIBCFILE ) */
 
-#endif
+#endif /* !defined( _EWF_TEST_LIBCFILE_H ) */
 

@@ -10,8 +10,9 @@
   <ItemDefinitionGroup>
     <ClCompile />
     <ClCompile>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;HAVE_V1_API;vsnprintf=_vsnprintf;open=_open;read=_read;close=_close;write=_write;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;OLD_MSC_INT;HAVE_SYS_TYPES_H;HAVE_V1_API;vsnprintf=_vsnprintf;open=_open;read=_read;close=_close;write=_write;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>false</ExceptionHandling>
+      <DisableSpecificWarnings>4100;4189;4702</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SetChecksum>true</SetChecksum>

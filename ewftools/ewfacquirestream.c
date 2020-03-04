@@ -38,11 +38,7 @@
 #include <fcntl.h>
 #endif
 
-<<<<<<< HEAD
-#if defined( HAVE_IO_H )
-=======
 #if defined( HAVE_IO_H ) || defined( WINAPI )
->>>>>>> origin/master
 #include <io.h>
 #endif
 
@@ -366,11 +362,7 @@ ssize_t ewfacquirestream_read_chunk(
 			input_read_count = _read(
 			                    input_file_descriptor,
 			                    &( ( storage_media_buffer->raw_buffer )[ buffer_offset ] ),
-<<<<<<< HEAD
-			                    (unsigned int)input_read_size );
-=======
 			                    (unsigned int) input_read_size );
->>>>>>> origin/master
 #else
 			input_read_count = read(
 			                    input_file_descriptor,
@@ -684,8 +676,6 @@ int ewfacquirestream_read_input(
 			goto on_error;
 		}
 	}
-#else
-    maximum_number_of_queued_items;
 #endif
 	if( imaging_handle_initialize_integrity_hash(
 	     imaging_handle,

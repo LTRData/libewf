@@ -1,7 +1,7 @@
 /*
  * Expert Witness Compression Format (EWF) library truncate program
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 
+#include "ewf_test_libcerror.h"
 #include "ewf_test_libcfile.h"
 #include "ewf_test_libcnotify.h"
 

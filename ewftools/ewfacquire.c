@@ -30,11 +30,7 @@
 #include <stdlib.h>
 #endif
 
-<<<<<<< HEAD
-#if defined( HAVE_IO_H )
-=======
 #if defined( HAVE_IO_H ) || defined( WINAPI )
->>>>>>> origin/master
 #include <io.h>
 #endif
 
@@ -869,8 +865,6 @@ int ewfacquire_read_input(
 			goto on_error;
 		}
 	}
-#else
-    maximum_number_of_queued_items;
 #endif
 	if( imaging_handle_initialize_integrity_hash(
 	     imaging_handle,

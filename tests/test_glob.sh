@@ -1,19 +1,11 @@
 #!/bin/bash
 # Library glob testing script
 #
-# Version: 20160327
+# Version: 20180317
 
 EXIT_SUCCESS=0;
 EXIT_FAILURE=1;
 EXIT_IGNORE=77;
-
-TEST_PREFIX=`dirname ${PWD}`;
-TEST_PREFIX=`basename ${TEST_PREFIX} | sed 's/^lib\([^-]*\)/\1/'`;
-
-TEST_PROFILE="lib${TEST_PREFIX}";
-
-TEST_TOOL_DIRECTORY=".";
-TEST_TOOL="${TEST_PREFIX}_test_glob";
 
 chr()
 {
@@ -56,20 +48,28 @@ test_glob_sequence2()
 	rm -rf ${TMPDIR};
 	mkdir ${TMPDIR};
 
-	FILENAMES=`echo ${FILENAMES} | sed "s?^?${TMPDIR}/?" | sed "s? ? ${TMPDIR}/?g"`;
-
+	if test "${OSTYPE}" = "msys";
+	then
+		TEST_PATH="${TMPDIR}\\${BASENAME}";
+		FILENAMES=`echo ${FILENAMES} | sed "s?^?${TMPDIR}\\\\\\\\?" | sed "s? ? ${TMPDIR}\\\\\\\\?g"`;
+	else
+		TEST_PATH="${TMPDIR}/${BASENAME}";
+		FILENAMES=`echo ${FILENAMES} | sed "s?^?${TMPDIR}/?" | sed "s? ? ${TMPDIR}/?g"`;
+	fi
 	echo ${FILENAMES} > ${TMPDIR}/input;
 
 	touch ${FILENAMES};
 
 	TEST_DESCRIPTION="";
 
-	run_test_with_arguments "${TEST_DESCRIPTION}" "${TEST_EXECUTABLE}" "${TMPDIR}/${BASENAME}" > ${TMPDIR}/output;
+	run_test_with_arguments "${TEST_DESCRIPTION}" "${TEST_EXECUTABLE}" "${TEST_PATH}" > ${TMPDIR}/output;
 
 	RESULT=$?;
 
 	if test ${RESULT} -eq ${EXIT_SUCCESS};
 	then
+		sed 's/\r\n/\n/' -i ${TMPDIR}/output;
+
 		if ! cmp -s ${TMPDIR}/input ${TMPDIR}/output;
 		then
 			RESULT=${EXIT_FAILURE};
@@ -227,20 +227,28 @@ test_glob_sequence3()
 	rm -rf ${TMPDIR};
 	mkdir ${TMPDIR};
 
-	FILENAMES=`echo ${FILENAMES} | sed "s?^?${TMPDIR}/?" | sed "s? ? ${TMPDIR}/?g"`;
-
+	if test "${OSTYPE}" = "msys";
+	then
+		TEST_PATH="${TMPDIR}\\${BASENAME}";
+		FILENAMES=`echo ${FILENAMES} | sed "s?^?${TMPDIR}\\\\\\\\?" | sed "s? ? ${TMPDIR}\\\\\\\\?g"`;
+	else
+		TEST_PATH="${TMPDIR}/${BASENAME}";
+		FILENAMES=`echo ${FILENAMES} | sed "s?^?${TMPDIR}/?" | sed "s? ? ${TMPDIR}/?g"`;
+	fi
 	echo ${FILENAMES} > ${TMPDIR}/input;
 
 	touch ${FILENAMES};
 
 	TEST_DESCRIPTION="";
 
-	run_test_with_arguments "${TEST_DESCRIPTION}" "${TEST_EXECUTABLE}" "${TMPDIR}/${BASENAME}" > ${TMPDIR}/output;
+	run_test_with_arguments "${TEST_DESCRIPTION}" "${TEST_EXECUTABLE}" "${TEST_PATH}" > ${TMPDIR}/output;
 
 	RESULT=$?;
 
 	if test ${RESULT} -eq ${EXIT_SUCCESS};
 	then
+		sed 's/\r\n/\n/' -i ${TMPDIR}/output;
+
 		if ! cmp -s ${TMPDIR}/input ${TMPDIR}/output;
 		then
 			RESULT=${EXIT_FAILURE};
@@ -365,20 +373,28 @@ test_glob_sequence4()
 	rm -rf ${TMPDIR};
 	mkdir ${TMPDIR};
 
-	FILENAMES=`echo ${FILENAMES} | sed "s?^?${TMPDIR}/?" | sed "s? ? ${TMPDIR}/?g"`;
-
+	if test "${OSTYPE}" = "msys";
+	then
+		TEST_PATH="${TMPDIR}\\${BASENAME}";
+		FILENAMES=`echo ${FILENAMES} | sed "s?^?${TMPDIR}\\\\\\\\?" | sed "s? ? ${TMPDIR}\\\\\\\\?g"`;
+	else
+		TEST_PATH="${TMPDIR}/${BASENAME}";
+		FILENAMES=`echo ${FILENAMES} | sed "s?^?${TMPDIR}/?" | sed "s? ? ${TMPDIR}/?g"`;
+	fi
 	echo ${FILENAMES} > ${TMPDIR}/input;
 
 	touch ${FILENAMES};
 
 	TEST_DESCRIPTION="";
 
-	run_test_with_arguments "${TEST_DESCRIPTION}" "${TEST_EXECUTABLE}" "${TMPDIR}/${BASENAME}" > ${TMPDIR}/output;
+	run_test_with_arguments "${TEST_DESCRIPTION}" "${TEST_EXECUTABLE}" "${TEST_PATH}" > ${TMPDIR}/output;
 
 	RESULT=$?;
 
 	if test ${RESULT} -eq ${EXIT_SUCCESS};
 	then
+		sed 's/\r\n/\n/' -i ${TMPDIR}/output;
+
 		if ! cmp -s ${TMPDIR}/input ${TMPDIR}/output;
 		then
 			RESULT=${EXIT_FAILURE};
@@ -403,11 +419,20 @@ then
 	exit ${EXIT_IGNORE};
 fi
 
-TEST_EXECUTABLE="${TEST_TOOL_DIRECTORY}/${TEST_TOOL}";
+OPERATING_SYSTEM=`uname -o 2> /dev/null`;
+
+if test "${OPERATING_SYSTEM}" = "Cygwin" || test "${OPERATING_SYSTEM}" = "Msys";
+then
+	# The glob tests run very slow on Cygwin and Msys.
+
+	exit ${EXIT_IGNORE};
+fi
+
+TEST_EXECUTABLE="./ewf_test_glob";
 
 if ! test -x "${TEST_EXECUTABLE}";
 then
-	TEST_EXECUTABLE="${TEST_TOOL_DIRECTORY}/${TEST_TOOL}.exe";
+	TEST_EXECUTABLE="ewf_test_glob.exe";
 fi
 
 if ! test -x "${TEST_EXECUTABLE}";

@@ -1,5 +1,5 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
@@ -21,17 +21,17 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{85005D62-6AA7-4D8A-86CB-4061B23D7C6C}</ProjectGuid>
     <RootNamespace>libfvalue</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='VSDebug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v90</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='VSDebug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v90</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -65,7 +65,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
+    <_ProjectFileVersion>16.0.28916.169</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
@@ -124,7 +124,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\include;..\..\common;..\..\libcerror;..\..\libcthreads;..\..\libcdata;..\..\libcnotify;..\..\libuna;..\..\libfguid;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;HAVE_LOCAL_LIBCERROR;HAVE_LOCAL_LIBCTHREADS;HAVE_LOCAL_LIBCDATA;HAVE_LOCAL_LIBCNOTIFY;HAVE_LOCAL_LIBUNA;HAVE_LOCAL_LIBFGUID;HAVE_LOCAL_LIBFVALUE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_LOCAL_LIBCERROR;HAVE_LOCAL_LIBCTHREADS;HAVE_LOCAL_LIBCDATA;HAVE_LOCAL_LIBCNOTIFY;HAVE_LOCAL_LIBUNA;HAVE_LOCAL_LIBFGUID;HAVE_LOCAL_LIBFVALUE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <SmallerTypeCheck>true</SmallerTypeCheck>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -142,7 +142,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\include;..\..\common;..\..\libcerror;..\..\libcthreads;..\..\libcdata;..\..\libcnotify;..\..\libuna;..\..\libfguid;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;HAVE_LOCAL_LIBCERROR;HAVE_LOCAL_LIBCTHREADS;HAVE_LOCAL_LIBCDATA;HAVE_LOCAL_LIBCNOTIFY;HAVE_LOCAL_LIBUNA;HAVE_LOCAL_LIBFGUID;HAVE_LOCAL_LIBFVALUE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_LOCAL_LIBCERROR;HAVE_LOCAL_LIBCTHREADS;HAVE_LOCAL_LIBCDATA;HAVE_LOCAL_LIBCNOTIFY;HAVE_LOCAL_LIBUNA;HAVE_LOCAL_LIBFGUID;HAVE_LOCAL_LIBFVALUE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <SmallerTypeCheck>true</SmallerTypeCheck>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -164,10 +164,13 @@
     <ClCompile Include="..\..\libfvalue\libfvalue_filetime.c" />
     <ClCompile Include="..\..\libfvalue\libfvalue_floating_point.c" />
     <ClCompile Include="..\..\libfvalue\libfvalue_integer.c" />
-    <ClCompile Include="..\..\libfvalue\libfvalue_split_string.c" />
+    <ClCompile Include="..\..\libfvalue\libfvalue_split_utf16_string.c" />
+    <ClCompile Include="..\..\libfvalue\libfvalue_split_utf8_string.c" />
     <ClCompile Include="..\..\libfvalue\libfvalue_string.c" />
     <ClCompile Include="..\..\libfvalue\libfvalue_support.c" />
     <ClCompile Include="..\..\libfvalue\libfvalue_table.c" />
+    <ClCompile Include="..\..\libfvalue\libfvalue_utf16_string.c" />
+    <ClCompile Include="..\..\libfvalue\libfvalue_utf8_string.c" />
     <ClCompile Include="..\..\libfvalue\libfvalue_value.c" />
     <ClCompile Include="..\..\libfvalue\libfvalue_value_entry.c" />
     <ClCompile Include="..\..\libfvalue\libfvalue_value_type.c" />
@@ -189,41 +192,18 @@
     <ClInclude Include="..\..\libfvalue\libfvalue_libfguid.h" />
     <ClInclude Include="..\..\libfvalue\libfvalue_libfwnt.h" />
     <ClInclude Include="..\..\libfvalue\libfvalue_libuna.h" />
-    <ClInclude Include="..\..\libfvalue\libfvalue_split_string.h" />
+    <ClInclude Include="..\..\libfvalue\libfvalue_split_utf16_string.h" />
+    <ClInclude Include="..\..\libfvalue\libfvalue_split_utf8_string.h" />
     <ClInclude Include="..\..\libfvalue\libfvalue_string.h" />
     <ClInclude Include="..\..\libfvalue\libfvalue_support.h" />
     <ClInclude Include="..\..\libfvalue\libfvalue_table.h" />
     <ClInclude Include="..\..\libfvalue\libfvalue_types.h" />
     <ClInclude Include="..\..\libfvalue\libfvalue_unused.h" />
+    <ClInclude Include="..\..\libfvalue\libfvalue_utf16_string.h" />
+    <ClInclude Include="..\..\libfvalue\libfvalue_utf8_string.h" />
     <ClInclude Include="..\..\libfvalue\libfvalue_value.h" />
     <ClInclude Include="..\..\libfvalue\libfvalue_value_entry.h" />
     <ClInclude Include="..\..\libfvalue\libfvalue_value_type.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\libcdata\libcdata.vcxproj">
-      <Project>{b9332dc8-7594-47df-80c1-38922e0f4dfb}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\libcerror\libcerror.vcxproj">
-      <Project>{bd3a95fa-a3de-4b79-a889-a7e5eca4b69c}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\libcnotify\libcnotify.vcxproj">
-      <Project>{5304ad69-d449-4589-b2c9-e4607e56a51d}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\libcthreads\libcthreads.vcxproj">
-      <Project>{8afaa2c6-e025-4b45-b96f-a27d04c6115a}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\libfguid\libfguid.vcxproj">
-      <Project>{95f707ba-7f1d-4ee0-bdc1-71ac6bef7048}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\libuna\libuna.vcxproj">
-      <Project>{bc27ff34-c859-4a1a-95d6-fc89952e1910}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

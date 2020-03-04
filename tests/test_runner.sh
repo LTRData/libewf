@@ -1,7 +1,10 @@
 #!/bin/bash
 # Bash functions to run an executable for testing.
 #
-# Version: 20161115
+# Version: 20190223
+#
+# When CHECK_WITH_ASAN is set to a non-empty value the test executable
+# is run with asan, otherwise it is run without.
 #
 # When CHECK_WITH_GDB is set to a non-empty value the test executable
 # is run with gdb, otherwise it is run without.
@@ -79,7 +82,7 @@ assert_availability_binaries()
 check_for_directory_in_ignore_list()
 {
 	local INPUT_DIRECTORY=$1;
-	local IGNORE_LIST=$@;
+	local IGNORE_LIST=$2;
 
 	local INPUT_BASENAME=`basename ${INPUT_DIRECTORY}`;
 
@@ -366,6 +369,7 @@ read_option_file()
 # Runs the test with optional arguments.
 #
 # Globals:
+#   CHECK_WITH_ASAN
 #   CHECK_WITH_GDB
 #   CHECK_WITH_STDERR
 #   CHECK_WITH_VALGRIND
@@ -384,7 +388,7 @@ run_test_with_arguments()
 	local TEST_DESCRIPTION=$1;
 	local TEST_EXECUTABLE=$2;
 	shift 2;
-	local ARGUMENTS=$@;
+	local ARGUMENTS=("$@");
 
 	if ! test -f "${TEST_EXECUTABLE}";
 	then
@@ -393,7 +397,7 @@ run_test_with_arguments()
 
 		return ${EXIT_FAILURE};
 	fi
-	local PLATFORM=`uname -s`;
+	local PLATFORM=`uname -s | sed 's/-.*$//'`;
 
 	# Note that the behavior of `file -bi` is not helpful on Mac OS X.
 	local EXECUTABLE_TYPE=`file -b ${TEST_EXECUTABLE}`;
@@ -417,7 +421,74 @@ run_test_with_arguments()
 	fi
 	local RESULT=0;
 
-	if test -n "${CHECK_WITH_GDB}";
+	if test -n "${CHECK_WITH_ASAN}";
+	then
+		local TEST_EXECUTABLE=$( find_binary_executable ${TEST_EXECUTABLE} );
+		local LIBRARY_PATH=$( find_binary_library_path ${TEST_EXECUTABLE} );
+		local PYTHON_MODULE_PATH=$( find_binary_python_module_path ${TEST_EXECUTABLE} );
+
+		local LSAN_SUPPRESSIONS="lsan.suppressions";
+
+		if ! test -f ${LSAN_SUPPRESSIONS};
+		then
+			LSAN_SUPPRESSIONS="../lsan.suppressions";
+		fi
+		if test "${PLATFORM}" = "Darwin";
+		then
+			if test ${IS_PYTHON_SCRIPT} -eq 0;
+			then
+				LSAN_OPTIONS=suppressions="${LSAN_SUPPRESSIONS}" DYLD_LIBRARY_PATH="${LIBRARY_PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]};
+				RESULT=$?;
+			else
+				LSAN_OPTIONS=suppressions="${LSAN_SUPPRESSIONS}" DYLD_LIBRARY_PATH="${LIBRARY_PATH}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]};
+				RESULT=$?;
+			fi
+		else
+			local CONFIG_LOG="../config.log";
+
+			if ! test -f ${CONFIG_LOG};
+			then
+				CONFIG_LOG="../../config.log";
+			fi
+			local CC=`cat ${CONFIG_LOG} | grep -e "^CC=" | sed "s/CC='\\(.*\\)'/\1/"`;
+			local LIBASAN="";
+
+			if test -z ${CC} || test ${CC} != "clang";
+			then
+				local LDCONFIG=`which ldconfig 2> /dev/null`;
+
+				if test -z ${LDCONFIG} || ! test -x ${LDCONFIG};
+				then
+					LDCONFIG="/sbin/ldconfig";
+				fi
+				if test -z ${LDCONFIG} || ! test -x ${LDCONFIG};
+				then
+					echo "Missing binary: ldconfig";
+					echo "";
+
+					exit ${EXIT_FAILURE};
+				fi
+				LIBASAN=`${LDCONFIG} -p | grep libasan | sed 's/^.* => //' | sort | tail -n 1`;
+
+				if ! test -f ${LIBASAN};
+				then
+					echo "Missing library: ${BINARY}";
+					echo "";
+
+					exit ${EXIT_FAILURE};
+				fi
+			fi
+			if test ${IS_PYTHON_SCRIPT} -eq 0;
+			then
+				LSAN_OPTIONS=suppressions="${LSAN_SUPPRESSIONS}" LD_PRELOAD="${LIBASAN}" LD_LIBRARY_PATH="${LIBRARY_PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]};
+				RESULT=$?;
+			else
+				LSAN_OPTIONS=suppressions="${LSAN_SUPPRESSIONS}" LD_PRELOAD="${LIBASAN}" LD_LIBRARY_PATH="${LIBRARY_PATH}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]};
+				RESULT=$?;
+			fi
+		fi
+
+	elif test -n "${CHECK_WITH_GDB}";
 	then
 		local TEST_EXECUTABLE=$( find_binary_executable ${TEST_EXECUTABLE} );
 		local LIBRARY_PATH=$( find_binary_library_path ${TEST_EXECUTABLE} );
@@ -433,6 +504,18 @@ run_test_with_arguments()
 				DYLD_LIBRARY_PATH="${LIBRARY_PATH}" gdb -ex "set non-stop on" -ex "run" -ex "quit" --args "${TEST_EXECUTABLE}" ${ARGUMENTS[@]};
 				RESULT=$?;
 			fi
+
+		elif test "${PLATFORM}" = "CYGWIN_NT";
+		then
+			if test ${IS_PYTHON_SCRIPT} -eq 0;
+			then
+				PATH="${LIBRARY_PATH}:${PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" gdb -ex "set non-stop on" -ex "run" -ex "quit" --args "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]};
+				RESULT=$?;
+			else
+				PATH="${LIBRARY_PATH}:${PATH}" gdb -ex "set non-stop on" -ex "run" -ex "quit" --args "${TEST_EXECUTABLE}" ${ARGUMENTS[@]};
+				RESULT=$?;
+			fi
+
 		else
 			if test ${IS_PYTHON_SCRIPT} -eq 0;
 			then
@@ -463,6 +546,18 @@ run_test_with_arguments()
 				DYLD_LIBRARY_PATH="${LIBRARY_PATH}" valgrind ${VALGRIND_OPTIONS[@]} "${TEST_EXECUTABLE}" ${ARGUMENTS[@]};
 				RESULT=$?;
 			fi
+
+		elif test "${PLATFORM}" = "CYGWIN_NT";
+		then
+			if test ${IS_PYTHON_SCRIPT} -eq 0;
+			then
+				PATH="${LIBRARY_PATH}:${PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" valgrind ${VALGRIND_OPTIONS[@]} "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]};
+				RESULT=$?;
+			else
+				PATH="${LIBRARY_PATH}:${PATH}" valgrind ${VALGRIND_OPTIONS[@]} "${TEST_EXECUTABLE}" ${ARGUMENTS[@]};
+				RESULT=$?;
+			fi
+
 		else
 			if test ${IS_PYTHON_SCRIPT} -eq 0;
 			then
@@ -537,6 +632,18 @@ run_test_with_arguments()
 				DYLD_LIBRARY_PATH="${LIBRARY_PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} 2> /dev/null;
 				RESULT=$?;
 			fi
+
+		elif test "${PLATFORM}" = "CYGWIN_NT";
+		then
+			if test -n "${CHECK_WITH_STDERR}";
+			then
+				PATH="${LIBRARY_PATH}:${PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]};
+				RESULT=$?;
+			else
+				PATH="${LIBRARY_PATH}:${PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} 2> /dev/null;
+				RESULT=$?;
+			fi
+
 		else
 			if test -n "${CHECK_WITH_STDERR}";
 			then
@@ -582,6 +689,7 @@ run_test_with_arguments()
 # Runs the test with an input file and optional arguments.
 #
 # Globals:
+#   CHECK_WITH_ASAN
 #   CHECK_WITH_GDB
 #   CHECK_WITH_STDERR
 #   CHECK_WITH_VALGRIND
@@ -600,7 +708,7 @@ run_test_with_input_and_arguments()
 	local TEST_EXECUTABLE=$1;
 	local INPUT_FILE=$2;
 	shift 2;
-	local ARGUMENTS=$@;
+	local ARGUMENTS=("$@");
 
 	if ! test -f "${TEST_EXECUTABLE}";
 	then
@@ -609,7 +717,7 @@ run_test_with_input_and_arguments()
 
 		return ${EXIT_FAILURE};
 	fi
-	local PLATFORM=`uname -s`;
+	local PLATFORM=`uname -s | sed 's/-.*$//'`;
 
 	# Note that the behavior of `file -bi` is not helpful on Mac OS X.
 	local EXECUTABLE_TYPE=`file -b ${TEST_EXECUTABLE}`;
@@ -633,7 +741,75 @@ run_test_with_input_and_arguments()
 	fi
 	local RESULT=0;
 
-	if test -n "${CHECK_WITH_GDB}";
+	if test -n "${CHECK_WITH_ASAN}";
+	then
+		local TEST_EXECUTABLE=$( find_binary_executable ${TEST_EXECUTABLE} );
+		local LIBRARY_PATH=$( find_binary_library_path ${TEST_EXECUTABLE} );
+		local PYTHON_MODULE_PATH=$( find_binary_python_module_path ${TEST_EXECUTABLE} );
+
+		local LSAN_SUPPRESSIONS="lsan.suppressions";
+
+		if ! test -f ${LSAN_SUPPRESSIONS};
+		then
+			LSAN_SUPPRESSIONS="../lsan.suppressions";
+		fi
+		if test "${PLATFORM}" = "Darwin";
+		then
+			# TODO DYLD_INSERT_LIBRARIES=/Library/Developer/CommandLineTools/usr/lib/clang/8.1.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib
+			if test ${IS_PYTHON_SCRIPT} -eq 0;
+			then
+				LSAN_OPTIONS=suppressions="${LSAN_SUPPRESSIONS}" DYLD_LIBRARY_PATH="${LIBRARY_PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} "${INPUT_FILE}";
+				RESULT=$?;
+			else
+				LSAN_OPTIONS=suppressions="${LSAN_SUPPRESSIONS}" DYLD_LIBRARY_PATH="${LIBRARY_PATH}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} "${INPUT_FILE}";
+				RESULT=$?;
+			fi
+		else
+			local CONFIG_LOG="../config.log";
+
+			if ! test -f ${CONFIG_LOG};
+			then
+				CONFIG_LOG="../../config.log";
+			fi
+			local CC=`cat ${CONFIG_LOG} | grep -e "^CC=" | sed "s/CC='\\(.*\\)'/\1/"`;
+			local LIBASAN="";
+
+			if test -z ${CC} || test ${CC} != "clang";
+			then
+				local LDCONFIG=`which ldconfig 2> /dev/null`;
+
+				if test -z ${LDCONFIG} || ! test -x ${LDCONFIG};
+				then
+					LDCONFIG="/sbin/ldconfig";
+				fi
+				if test -z ${LDCONFIG} || ! test -x ${LDCONFIG};
+				then
+					echo "Missing binary: ldconfig";
+					echo "";
+
+					exit ${EXIT_FAILURE};
+				fi
+				LIBASAN=`${LDCONFIG} -p | grep libasan | sed 's/^.* => //' | sort | tail -n 1`;
+
+				if ! test -f ${LIBASAN};
+				then
+					echo "Missing library: ${BINARY}";
+					echo "";
+
+					exit ${EXIT_FAILURE};
+				fi
+			fi
+			if test ${IS_PYTHON_SCRIPT} -eq 0;
+			then
+				LSAN_OPTIONS=suppressions="${LSAN_SUPPRESSIONS}" LD_PRELOAD="${LIBASAN}" LD_LIBRARY_PATH="${LIBRARY_PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} "${INPUT_FILE}";
+				RESULT=$?;
+			else
+				LSAN_OPTIONS=suppressions="${LSAN_SUPPRESSIONS}" LD_PRELOAD="${LIBASAN}" LD_LIBRARY_PATH="${LIBRARY_PATH}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} "${INPUT_FILE}";
+				RESULT=$?;
+			fi
+		fi
+
+	elif test -n "${CHECK_WITH_GDB}";
 	then
 		local TEST_EXECUTABLE=$( find_binary_executable ${TEST_EXECUTABLE} );
 		local LIBRARY_PATH=$( find_binary_library_path ${TEST_EXECUTABLE} );
@@ -649,6 +825,18 @@ run_test_with_input_and_arguments()
 				DYLD_LIBRARY_PATH="${LIBRARY_PATH}" gdb -ex "set non-stop on" -ex "run" -ex "quit" --args "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} "${INPUT_FILE}";
 				RESULT=$?;
 			fi
+
+		elif test "${PLATFORM}" = "CYGWIN_NT";
+		then
+			if test ${IS_PYTHON_SCRIPT} -eq 0;
+			then
+				PATH="${LIBRARY_PATH}:${PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" gdb -ex "set non-stop on" -ex "run" -ex "quit" --args "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} "${INPUT_FILE}";
+				RESULT=$?;
+			else
+				PATH="${LIBRARY_PATH}:${PATH}" gdb -ex "set non-stop on" -ex "run" -ex "quit" --args "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} "${INPUT_FILE}";
+				RESULT=$?;
+			fi
+
 		else
 			if test ${IS_PYTHON_SCRIPT} -eq 0;
 			then
@@ -679,6 +867,18 @@ run_test_with_input_and_arguments()
 				DYLD_LIBRARY_PATH="${LIBRARY_PATH}" valgrind ${VALGRIND_OPTIONS[@]} "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} "${INPUT_FILE}";
 				RESULT=$?;
 			fi
+
+		elif test "${PLATFORM}" = "CYGWIN_NT";
+		then
+			if test ${IS_PYTHON_SCRIPT} -eq 0;
+			then
+				PATH="${LIBRARY_PATH}:${PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" valgrind ${VALGRIND_OPTIONS[@]} "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} "${INPUT_FILE}";
+				RESULT=$?;
+			else
+				PATH="${LIBRARY_PATH}:${PATH}" valgrind ${VALGRIND_OPTIONS[@]} "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} "${INPUT_FILE}";
+				RESULT=$?;
+			fi
+
 		else
 			if test ${IS_PYTHON_SCRIPT} -eq 0;
 			then
@@ -753,6 +953,18 @@ run_test_with_input_and_arguments()
 				DYLD_LIBRARY_PATH="${LIBRARY_PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} "${INPUT_FILE}" 2> /dev/null;
 				RESULT=$?;
 			fi
+
+		elif test "${PLATFORM}" = "CYGWIN_NT";
+		then
+			if test -n "${CHECK_WITH_STDERR}";
+			then
+				PATH="${LIBRARY_PATH}:${PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} "${INPUT_FILE}";
+				RESULT=$?;
+			else
+				PATH="${LIBRARY_PATH}:${PATH}" PYTHONPATH="${PYTHON_MODULE_PATH}" "${PYTHON}" "${TEST_EXECUTABLE}" ${ARGUMENTS[@]} "${INPUT_FILE}" 2> /dev/null;
+				RESULT=$?;
+			fi
+
 		else
 			if test -n "${CHECK_WITH_STDERR}";
 			then
@@ -810,7 +1022,7 @@ run_test_on_input_file()
 	local TEST_EXECUTABLE=$5;
 	local INPUT_FILE=$6;
 	shift 6;
-	local ARGUMENTS=$@;
+	local ARGUMENTS=("$@");
 
 	local INPUT_NAME=`basename "${INPUT_FILE}"`;
 	local OPTIONS=();
@@ -832,7 +1044,7 @@ run_test_on_input_file()
 
 	if test "${TEST_MODE}" = "with_callback";
 	then
-		test_callback "${TMPDIR}" "${TEST_SET_DIRECTORY}" "${TEST_OUTPUT}" "${TEST_EXECUTABLE}" "${TEST_INPUT}" ${ARGUMENTS[@]} ${OPTIONS[@]};
+		test_callback "${TMPDIR}" "${TEST_SET_DIRECTORY}" "${TEST_OUTPUT}" "${TEST_EXECUTABLE}" "${TEST_INPUT}" ${ARGUMENTS[@]} "${OPTIONS[@]}";
 		RESULT=$?;
 
 	elif test "${TEST_MODE}" = "with_stdout_reference";
@@ -849,7 +1061,7 @@ run_test_on_input_file()
 		local INPUT_FILE_FULL_PATH=$( readlink_f "${INPUT_FILE}" );
 		local TEST_LOG="${TEST_OUTPUT}.log";
 
-		(cd ${TMPDIR} && run_test_with_input_and_arguments "${TEST_EXECUTABLE}" "${INPUT_FILE_FULL_PATH}" ${ARGUMENTS[@]} ${OPTIONS[@]} | sed '1,2d' > "${TEST_LOG}");
+		(cd ${TMPDIR} && run_test_with_input_and_arguments "${TEST_EXECUTABLE}" "${INPUT_FILE_FULL_PATH}" ${ARGUMENTS[@]} "${OPTIONS[@]}" | sed '1,2d' > "${TEST_LOG}");
 		RESULT=$?;
 
 		local TEST_RESULTS="${TMPDIR}/${TEST_LOG}";
@@ -868,7 +1080,7 @@ run_test_on_input_file()
 		fi
 
 	else
-		run_test_with_input_and_arguments "${TEST_EXECUTABLE}" "${INPUT_FILE}" ${ARGUMENTS[@]} ${OPTIONS[@]};
+		run_test_with_input_and_arguments "${TEST_EXECUTABLE}" "${INPUT_FILE}" ${ARGUMENTS[@]} "${OPTIONS[@]}";
 		RESULT=$?;
 	fi
 
@@ -876,11 +1088,13 @@ run_test_on_input_file()
 
 	if test -n "${TEST_DESCRIPTION}";
 	then
-		if test -z "${OPTION_SET}";
+		OPTIONS=`echo "${OPTIONS[*]}" | tr '\n' ' ' | sed 's/[ ]\$//'`;
+
+		if test -z "${OPTIONS}";
 		then
 			echo -n "${TEST_DESCRIPTION} with input: ${INPUT_FILE}";
 		else
-			echo -n "${TEST_DESCRIPTION} with option: ${OPTION_SET} and input: ${INPUT_FILE}";
+			echo -n "${TEST_DESCRIPTION} with options: '${OPTIONS}' and input: ${INPUT_FILE}";
 		fi
 
 		if test ${RESULT} -ne ${EXIT_SUCCESS};
@@ -919,7 +1133,7 @@ run_test_on_input_file_with_options()
 	local TEST_EXECUTABLE=$5;
 	local INPUT_FILE=$6;
 	shift 6;
-	local ARGUMENTS=$@;
+	local ARGUMENTS=("$@");
 
 	local RESULT=${EXIT_SUCCESS};
 	local TESTED_WITH_OPTIONS=0;
@@ -948,129 +1162,6 @@ run_test_on_input_file_with_options()
 		run_test_on_input_file "${TEST_SET_DIRECTORY}" "${TEST_DESCRIPTION}" "${TEST_MODE}" "" "${TEST_EXECUTABLE}" "${INPUT_FILE}" ${ARGUMENTS[@]};
 		RESULT=$?;
 	fi
-	return ${RESULT};
-}
-
-# Runs the test on the input directory.
-#
-# Globals:
-#   CHECK_WITH_GDB
-#   CHECK_WITH_VALGRIND
-#
-# Arguments:
-#   a string containing the name of the test profile
-#   a string containing the description of the test
-#   a string containing the test mode, supported tests modes are:
-#     default: the test executable should be be run without any test
-#              conditions.
-#     with_callback: the test executable should be run and the callback
-#                    function should be called afterwards. The name of the
-#                    callback function is "test_callback".
-#     with_stdout_reference: the test executable should be run and its output
-#                            to stdout, except for the first 2 lines, should
-#                            be compared to a reference file, if available.
-#     Note the globals override the test mode.
-#   a string containing the name of the option sets
-#   a string containing the path of the test executable
-#   a string containing the path of the test input directory
-#   a string containing the input glob
-#   an array containing the arguments for the test executable
-#
-# Returns:
-#   an integer containg the exit status of the test executable
-#
-run_test_on_input_directory()
-{
-	local TEST_PROFILE=$1;
-	local TEST_DESCRIPTION=$2;
-	local TEST_MODE=$3;
-	local OPTION_SETS=$4;
-	local TEST_EXECUTABLE=$5;
-	local TEST_INPUT_DIRECTORY=$6;
-	local INPUT_GLOB=$7;
-	shift 7;
-	local ARGUMENTS=$@;
-
-	assert_availability_binaries;
-
-	if ! test "${TEST_MODE}" = "default" && test "${TEST_MODE}" != "with_callback" && ! test "${TEST_MODE}" = "with_stdout_reference";
-	then
-		echo "Unsupported test mode: ${TEST_MODE}";
-		echo "";
-
-		return ${EXIT_FAILURE};
-	fi
-
-	if ! test -f "${TEST_EXECUTABLE}";
-	then
-		echo "Missing test executable: ${TEST_EXECUTABLE}";
-		echo "";
-
-		return ${EXIT_FAILURE};
-	fi
-
-	if ! test -d "${TEST_INPUT_DIRECTORY}";
-	then
-		echo "Test input directory: ${TEST_INPUT_DIRECTORY} not found.";
-
-		return ${EXIT_IGNORE};
-	fi
-	local RESULT=`ls ${TEST_INPUT_DIRECTORY}/* | tr ' ' '\n' | wc -l`;
-
-	if test ${RESULT} -eq ${EXIT_SUCCESS};
-	then
-		echo "No files or directories found in the test input directory: ${TEST_INPUT_DIRECTORY}";
-
-		return ${EXIT_IGNORE};
-	fi
-
-	local TEST_PROFILE_DIRECTORY=$(get_test_profile_directory "${TEST_INPUT_DIRECTORY}" "${TEST_PROFILE}");
-
-	local IGNORE_LIST=$(read_ignore_list "${TEST_PROFILE_DIRECTORY}");
-
-	RESULT=${EXIT_SUCCESS};
-
-	for TEST_SET_INPUT_DIRECTORY in ${TEST_INPUT_DIRECTORY}/*;
-	do
-		if ! test -d "${TEST_SET_INPUT_DIRECTORY}";
-		then
-			continue;
-		fi
-		if check_for_directory_in_ignore_list "${TEST_SET_INPUT_DIRECTORY}" "${IGNORE_LIST}";
-		then
-			continue;
-		fi
-
-		local TEST_SET_DIRECTORY=$(get_test_set_directory "${TEST_PROFILE_DIRECTORY}" "${TEST_SET_INPUT_DIRECTORY}");
-
-		local INPUT_FILES="";
-		if test -f "${TEST_SET_DIRECTORY}/files";
-		then
-			while read -r INPUT_FILE;
-			do
-				run_test_on_input_file_with_options "${TEST_SET_DIRECTORY}" "${TEST_DESCRIPTION}" "${TEST_MODE}" "${OPTION_SETS}" "${TEST_EXECUTABLE}" "${INPUT_FILE}" ${ARGUMENTS[@]};
-				RESULT=$?;
-
-				if test ${RESULT} -ne ${EXIT_SUCCESS};
-				then
-					return ${RESULT};
-				fi
-			done < <(cat ${TEST_SET_DIRECTORY}/files | sed "s?^?${TEST_SET_INPUT_DIRECTORY}/?");
-		else
-			while read -r INPUT_FILE;
-			do
-				run_test_on_input_file_with_options "${TEST_SET_DIRECTORY}" "${TEST_DESCRIPTION}" "${TEST_MODE}" "${OPTION_SETS}" "${TEST_EXECUTABLE}" "${INPUT_FILE}" ${ARGUMENTS[@]};
-				RESULT=$?;
-
-				if test ${RESULT} -ne ${EXIT_SUCCESS};
-				then
-					return ${RESULT};
-				fi
-			done < <(ls -1 ${TEST_SET_INPUT_DIRECTORY}/${INPUT_GLOB});
-		fi
-
-	done
-
 	return ${RESULT};
 }
 

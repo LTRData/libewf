@@ -1,7 +1,7 @@
 /*
  * Low level writing functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -42,6 +42,7 @@
 #include "libewf_filename.h"
 #include "libewf_header_sections.h"
 #include "libewf_header_values.h"
+#include "libewf_io_handle.h"
 #include "libewf_libbfio.h"
 #include "libewf_libcdata.h"
 #include "libewf_libcerror.h"
@@ -67,6 +68,7 @@
  */
 int libewf_write_io_handle_initialize(
      libewf_write_io_handle_t **write_io_handle,
+     libewf_io_handle_t *io_handle,
      libcerror_error_t **error )
 {
 	static char *function = "libewf_write_io_handle_initialize";
@@ -89,6 +91,17 @@ int libewf_write_io_handle_initialize(
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_VALUE_ALREADY_SET,
 		 "%s: invalid write IO handle value already set.",
+		 function );
+
+		return( -1 );
+	}
+	if( io_handle == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid IO handle.",
 		 function );
 
 		return( -1 );
@@ -128,7 +141,7 @@ int libewf_write_io_handle_initialize(
 	}
 	if( libewf_chunk_group_initialize(
 	     &( ( *write_io_handle )->chunk_group ),
-	     NULL,
+	     io_handle,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -903,25 +916,25 @@ int libewf_write_io_handle_initialize_resume(
      off64_t *current_offset,
      libcerror_error_t **error )
 {
-	libewf_section_t *previous_section       = NULL;
-	libewf_section_t *section                = NULL;
-	libewf_segment_file_t *segment_file      = NULL;
-	libfcache_cache_t *sections_cache        = NULL;
-	static char *function                    = "libewf_write_io_handle_initialize_resume";
-	size64_t segment_file_size               = 0;
-	size64_t storage_media_size              = 0;
-	size64_t unusable_storage_media_size     = 0;
-	uint64_t unusable_number_of_chunks       = 0;
-	uint32_t number_of_segments              = 0;
-	uint32_t segment_number                  = 0;
-	uint8_t backtrack_to_last_chunks_section = 0;
-	uint8_t reopen_segment_file              = 0;
-	int file_io_pool_entry                   = 0;
-	int number_of_sections                   = 0;
-	int previous_section_index               = 0;
-	int result                               = 0;
-	int section_index                        = 0;
-	int supported_section                    = 0;
+	libewf_section_descriptor_t *previous_section = NULL;
+	libewf_section_descriptor_t *section          = NULL;
+	libewf_segment_file_t *segment_file           = NULL;
+	libfcache_cache_t *sections_cache             = NULL;
+	static char *function                         = "libewf_write_io_handle_initialize_resume";
+	size64_t segment_file_size                    = 0;
+	size64_t storage_media_size                   = 0;
+	size64_t unusable_storage_media_size          = 0;
+	uint64_t unusable_number_of_chunks            = 0;
+	uint32_t number_of_segments                   = 0;
+	uint32_t segment_number                       = 0;
+	uint8_t backtrack_to_last_chunks_section      = 0;
+	uint8_t reopen_segment_file                   = 0;
+	int file_io_pool_entry                        = 0;
+	int number_of_sections                        = 0;
+	int previous_section_index                    = 0;
+	int result                                    = 0;
+	int section_index                             = 0;
+	int supported_section                         = 0;
 
 	if( write_io_handle == NULL )
 	{
@@ -1197,7 +1210,7 @@ int libewf_write_io_handle_initialize_resume(
 			if( libfdata_list_get_element_value_by_index(
 			     segment_file->sections_list,
 			     (intptr_t *) file_io_pool,
-			     sections_cache,
+			     (libfdata_cache_t *) sections_cache,
 			     section_index,
 			     (intptr_t **) &section,
 			     0,
@@ -1313,7 +1326,7 @@ int libewf_write_io_handle_initialize_resume(
 			if( libfdata_list_get_element_value_by_index(
 			     segment_file->sections_list,
 			     (intptr_t *) file_io_pool,
-			     sections_cache,
+			     (libfdata_cache_t *) sections_cache,
 			     previous_section_index,
 			     (intptr_t **) &previous_section,
 			     0,
@@ -1381,7 +1394,7 @@ int libewf_write_io_handle_initialize_resume(
 			if( libfdata_list_get_element_value_by_index(
 			     segment_file->sections_list,
 			     (intptr_t *) file_io_pool,
-			     sections_cache,
+			     (libfdata_cache_t *) sections_cache,
 			     previous_section_index,
 			     (intptr_t **) &previous_section,
 			     0,
@@ -1429,7 +1442,7 @@ int libewf_write_io_handle_initialize_resume(
 			if( libfdata_list_get_element_value_by_index(
 			     segment_file->sections_list,
 			     (intptr_t *) file_io_pool,
-			     sections_cache,
+			     (libfdata_cache_t *) sections_cache,
 			     previous_section_index,
 			     (intptr_t **) &previous_section,
 			     0,

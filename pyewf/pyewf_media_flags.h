@@ -1,7 +1,7 @@
 /*
  * Python object definition of the libewf media flags
  *
- * Copyright (C) 2008-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -50,14 +50,14 @@ PyObject *pyewf_media_flags_new(
            void );
 
 int pyewf_media_flags_init(
-     pyewf_media_flags_t *pyewf_media_flags );
+     pyewf_media_flags_t *definitions_object );
 
 void pyewf_media_flags_free(
-      pyewf_media_flags_t *pyewf_media_flags );
+      pyewf_media_flags_t *definitions_object );
 
 #if defined( __cplusplus )
 }
 #endif
 
-#endif
+#endif /* !defined( _PYEWF_MEDIA_FLAGS_H ) */
 

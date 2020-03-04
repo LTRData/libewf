@@ -207,16 +207,12 @@ int export_handle_initialize(
 	( *export_handle )->sectors_per_chunk        = 64;
 	( *export_handle )->header_codepage          = LIBEWF_CODEPAGE_ASCII;
 	( *export_handle )->process_buffer_size      = EWFCOMMON_PROCESS_BUFFER_SIZE;
-<<<<<<< HEAD
 #if !defined( HAVE_MULTI_THREAD_SUPPORT )
     (*export_handle)->number_of_threads = 0;
 #else
     (*export_handle)->number_of_threads = 4;
 #endif
     ( *export_handle )->notify_stream            = EXPORT_HANDLE_NOTIFY_STREAM;
-=======
-	( *export_handle )->notify_stream            = EXPORT_HANDLE_NOTIFY_STREAM;
->>>>>>> origin/master
 
 #if defined( HAVE_MULTI_THREAD_SUPPORT )
 	( *export_handle )->number_of_threads        = 4;
@@ -1178,11 +1174,7 @@ ssize_t export_handle_write_storage_media_buffer(
 			write_count = _write(
 			               1,
 				       storage_media_buffer->raw_buffer,
-<<<<<<< HEAD
 				       (unsigned int)write_size );
-=======
-				       (unsigned int) write_size );
->>>>>>> origin/master
 #else
 			write_count = write(
 			               1,

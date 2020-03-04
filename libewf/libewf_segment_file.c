@@ -1,7 +1,7 @@
 /*
  * Segment file reading/writing functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -39,6 +39,8 @@
 #include "libewf_debug.h"
 #include "libewf_definitions.h"
 #include "libewf_device_information.h"
+#include "libewf_digest_section.h"
+#include "libewf_error2_section.h"
 #include "libewf_hash_values.h"
 #include "libewf_header_values.h"
 #include "libewf_io_handle.h"
@@ -50,11 +52,16 @@
 #include "libewf_libfdata.h"
 #include "libewf_libfguid.h"
 #include "libewf_libfvalue.h"
+#include "libewf_md5_hash_section.h"
 #include "libewf_section.h"
+#include "libewf_section_descriptor.h"
 #include "libewf_segment_file.h"
 #include "libewf_segment_table.h"
+#include "libewf_session_section.h"
+#include "libewf_sha1_hash_section.h"
 #include "libewf_single_files.h"
 #include "libewf_unused.h"
+#include "libewf_volume_section.h"
 
 #include "ewf_file_header.h"
 #include "ewf_section.h"
@@ -148,7 +155,7 @@ int libewf_segment_file_initialize(
 	     (intptr_t *) *segment_file,
 	     NULL,
 	     NULL,
-	     (int (*)(intptr_t *, intptr_t *, libfdata_list_element_t *, libfcache_cache_t *, int, off64_t, size64_t, uint32_t, uint8_t, libcerror_error_t **)) &libewf_segment_file_read_section_element_data,
+	     (int (*)(intptr_t *, intptr_t *, libfdata_list_element_t *, libfdata_cache_t *, int, off64_t, size64_t, uint32_t, uint8_t, libcerror_error_t **)) &libewf_segment_file_read_section_element_data,
 	     NULL,
 	     LIBFDATA_DATA_HANDLE_FLAG_NON_MANAGED,
 	     error ) != 1 )
@@ -167,7 +174,7 @@ int libewf_segment_file_initialize(
 	     (intptr_t *) *segment_file,
 	     NULL,
 	     NULL,
-	     (int (*)(intptr_t *, intptr_t *, libfdata_list_element_t *, libfcache_cache_t *, int, off64_t, size64_t, uint32_t, uint8_t, libcerror_error_t **)) &libewf_segment_file_read_chunk_group_element_data,
+	     (int (*)(intptr_t *, intptr_t *, libfdata_list_element_t *, libfdata_cache_t *, int, off64_t, size64_t, uint32_t, uint8_t, libcerror_error_t **)) &libewf_segment_file_read_chunk_group_element_data,
 	     NULL,
 	     LIBFDATA_DATA_HANDLE_FLAG_NON_MANAGED,
 	     error ) != 1 )
@@ -445,7 +452,7 @@ int libewf_segment_file_get_section_by_index(
      int section_index,
      libbfio_pool_t *file_io_pool,
      libfcache_cache_t *sections_cache,
-     libewf_section_t **section,
+     libewf_section_descriptor_t **section_descriptor,
      libcerror_error_t **error )
 {
 	static char *function = "libewf_segment_file_get_section_by_index";
@@ -464,9 +471,9 @@ int libewf_segment_file_get_section_by_index(
 	if( libfdata_list_get_element_value_by_index(
 	     segment_file->sections_list,
 	     (intptr_t *) file_io_pool,
-	     sections_cache,
+	     (libfdata_cache_t *) sections_cache,
 	     section_index,
-	     (intptr_t **) section,
+	     (intptr_t **) section_descriptor,
 	     0,
 	     error ) != 1 )
 	{
@@ -1196,7 +1203,7 @@ off64_t libewf_segment_file_seek_offset(
  */
 ssize_t libewf_segment_file_read_table_section(
          libewf_segment_file_t *segment_file,
-         libewf_section_t *section,
+         libewf_section_descriptor_t *section_descriptor,
          libbfio_pool_t *file_io_pool,
          int file_io_pool_entry,
          size32_t chunk_size,
@@ -1239,7 +1246,7 @@ ssize_t libewf_segment_file_read_table_section(
 
 		return( -1 );
 	}
-	if( section == NULL )
+	if( section_descriptor == NULL )
 	{
 		libcerror_error_set(
 		 error,
@@ -1253,7 +1260,7 @@ ssize_t libewf_segment_file_read_table_section(
 	segment_file->previous_last_chunk_filled = segment_file->last_chunk_filled;
 
 	read_count = libewf_section_table_read(
-	              section,
+	              section_descriptor,
 	              segment_file->io_handle,
 	              file_io_pool,
 	              file_io_pool_entry,
@@ -1288,15 +1295,15 @@ ssize_t libewf_segment_file_read_table_section(
 		 * because the section descriptor is need to determine the chunk data
 		 * offset and size values
 		 */
-		chunk_group_data_offset = section->start_offset;
-		chunk_group_data_size   = (size64_t) section->size;
+		chunk_group_data_offset = section_descriptor->start_offset;
+		chunk_group_data_size   = (size64_t) section_descriptor->size;
 	}
 	else if( segment_file->major_version == 2 )
 	{
 		/* For EWF version 2 the table (section data) is considered the group
 		 */
-		chunk_group_data_offset = section->start_offset;
-		chunk_group_data_size   = (size64_t) section->data_size;
+		chunk_group_data_offset = section_descriptor->start_offset;
+		chunk_group_data_size   = (size64_t) section_descriptor->data_size;
 
 		if( segment_file->last_chunk_filled == -1 )
 		{
@@ -1366,7 +1373,7 @@ on_error:
  */
 ssize_t libewf_segment_file_read_table2_section(
          libewf_segment_file_t *segment_file,
-         libewf_section_t *section,
+         libewf_section_descriptor_t *section_descriptor,
          libbfio_pool_t *file_io_pool,
          int file_io_pool_entry,
          libcerror_error_t **error )
@@ -1422,7 +1429,7 @@ ssize_t libewf_segment_file_read_table2_section(
 
 		return( -1 );
 	}
-	if( section == NULL )
+	if( section_descriptor == NULL )
 	{
 		libcerror_error_set(
 		 error,
@@ -1445,7 +1452,7 @@ ssize_t libewf_segment_file_read_table2_section(
 		return( -1 );
 	}
 	read_count = libewf_section_table_read(
-	              section,
+	              section_descriptor,
 	              segment_file->io_handle,
 	              file_io_pool,
 	              file_io_pool_entry,
@@ -1547,8 +1554,8 @@ ssize_t libewf_segment_file_read_table2_section(
 			 * because the section descriptor is need to determine the chunk data
 			 * offset and size values
 			 */
-			chunk_group_data_offset = section->start_offset;
-			chunk_group_data_size   = (size64_t) section->size;
+			chunk_group_data_offset = section_descriptor->start_offset;
+			chunk_group_data_size   = (size64_t) section_descriptor->size;
 
 #if defined( HAVE_DEBUG_OUTPUT )
 			if( libcnotify_verbose != 0 )
@@ -1620,7 +1627,7 @@ on_error:
  */
 ssize_t libewf_segment_file_read_volume_section(
          libewf_segment_file_t *segment_file,
-         libewf_section_t *section,
+         libewf_section_descriptor_t *section_descriptor,
          libbfio_pool_t *file_io_pool,
          int file_io_pool_entry,
          libewf_media_values_t *media_values,
@@ -1640,7 +1647,7 @@ ssize_t libewf_segment_file_read_volume_section(
 
 		return( -1 );
 	}
-	if( section == NULL )
+	if( section_descriptor == NULL )
 	{
 		libcerror_error_set(
 		 error,
@@ -1662,17 +1669,17 @@ ssize_t libewf_segment_file_read_volume_section(
 
 		return( -1 );
 	}
-	if( section->data_size == (size64_t) sizeof( ewf_volume_t ) )
+	if( section_descriptor->data_size == (size64_t) sizeof( ewf_volume_t ) )
 	{
-		read_count = libewf_section_volume_e01_read(
-		              section,
+		read_count = libewf_volume_section_e01_read(
+		              section_descriptor,
 		              segment_file->io_handle,
 		              file_io_pool,
 		              file_io_pool_entry,
 		              media_values,
 		              error );
 
-		if( read_count != (ssize_t) section->data_size )
+		if( read_count != (ssize_t) section_descriptor->data_size )
 		{
 			libcerror_error_set(
 			 error,
@@ -1684,17 +1691,17 @@ ssize_t libewf_segment_file_read_volume_section(
 			return( -1 );
 		}
 	}
-	else if( section->data_size == (size64_t) sizeof( ewf_volume_smart_t ) )
+	else if( section_descriptor->data_size == (size64_t) sizeof( ewf_volume_smart_t ) )
 	{
-		read_count = libewf_section_volume_s01_read(
-		              section,
+		read_count = libewf_volume_section_s01_read(
+		              section_descriptor,
 		              segment_file->io_handle,
 		              file_io_pool,
 		              file_io_pool_entry,
 		              media_values,
 		              error );
 
-		if( read_count != (ssize_t) section->data_size )
+		if( read_count != (ssize_t) section_descriptor->data_size )
 		{
 			libcerror_error_set(
 			 error,
@@ -1736,10 +1743,10 @@ ssize_t libewf_segment_file_write_device_information_section(
          libfvalue_table_t *header_values,
          libcerror_error_t **error )
 {
-	libewf_section_t *section = NULL;
-	static char *function     = "libewf_segment_file_write_device_information_section";
-	ssize_t write_count       = 0;
-	int element_index         = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	static char *function                           = "libewf_segment_file_write_device_information_section";
+	ssize_t write_count                             = 0;
+	int element_index                               = 0;
 
 	if( segment_file == NULL )
 	{
@@ -1804,15 +1811,15 @@ ssize_t libewf_segment_file_write_device_information_section(
 			goto on_error;
 		}
 	}
-	if( libewf_section_initialize(
-	     &section,
+	if( libewf_section_descriptor_initialize(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section.",
+		 "%s: unable to create section descriptor.descriptor.",
 		 function );
 
 		goto on_error;
@@ -1820,7 +1827,7 @@ ssize_t libewf_segment_file_write_device_information_section(
 	/* Do not include the end of string character in the compressed data
 	 */
 	write_count = libewf_section_write_compressed_string(
-	               section,
+	               section_descriptor,
 	               segment_file->io_handle,
 	               file_io_pool,
 	               file_io_pool_entry,
@@ -1849,8 +1856,8 @@ ssize_t libewf_segment_file_write_device_information_section(
 	}
 	segment_file->current_offset += write_count;
 
-	if( libewf_section_free(
-	     &section,
+	if( libewf_section_descriptor_free(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -1883,10 +1890,10 @@ ssize_t libewf_segment_file_write_device_information_section(
 	return( write_count );
 
 on_error:
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	return( -1 );
@@ -1906,10 +1913,10 @@ ssize_t libewf_segment_file_write_case_data_section(
          time_t timestamp,
          libcerror_error_t **error )
 {
-	libewf_section_t *section = NULL;
-	static char *function     = "libewf_segment_file_write_case_data_section";
-	ssize_t write_count       = 0;
-	int element_index         = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	static char *function                           = "libewf_segment_file_write_case_data_section";
+	ssize_t write_count                             = 0;
+	int element_index                               = 0;
 
 	if( segment_file == NULL )
 	{
@@ -1976,15 +1983,15 @@ ssize_t libewf_segment_file_write_case_data_section(
 			goto on_error;
 		}
 	}
-	if( libewf_section_initialize(
-	     &section,
+	if( libewf_section_descriptor_initialize(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section.",
+		 "%s: unable to create section descriptor.descriptor.",
 		 function );
 
 		goto on_error;
@@ -1992,7 +1999,7 @@ ssize_t libewf_segment_file_write_case_data_section(
 	/* Do not include the end of string character in the compressed data
 	 */
 	write_count = libewf_section_write_compressed_string(
-	               section,
+	               section_descriptor,
 	               segment_file->io_handle,
 	               file_io_pool,
 	               file_io_pool_entry,
@@ -2021,8 +2028,8 @@ ssize_t libewf_segment_file_write_case_data_section(
 	}
 	segment_file->current_offset += write_count;
 
-	if( libewf_section_free(
-	     &section,
+	if( libewf_section_descriptor_free(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -2055,10 +2062,10 @@ ssize_t libewf_segment_file_write_case_data_section(
 	return( write_count );
 
 on_error:
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	return( -1 );
@@ -2075,10 +2082,10 @@ ssize_t libewf_segment_file_write_header_section(
          int8_t compression_level,
          libcerror_error_t **error )
 {
-	libewf_section_t *section = NULL;
-	static char *function     = "libewf_segment_file_write_header_section";
-	ssize_t write_count       = 0;
-	int element_index         = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	static char *function                           = "libewf_segment_file_write_header_section";
+	ssize_t write_count                             = 0;
+	int element_index                               = 0;
 
 	if( segment_file == NULL )
 	{
@@ -2125,15 +2132,15 @@ ssize_t libewf_segment_file_write_header_section(
 
 		return( -1 );
 	}
-	if( libewf_section_initialize(
-	     &section,
+	if( libewf_section_descriptor_initialize(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section.",
+		 "%s: unable to create section descriptor.descriptor.",
 		 function );
 
 		goto on_error;
@@ -2141,7 +2148,7 @@ ssize_t libewf_segment_file_write_header_section(
 	/* Do not include the end of string character in the compressed data
 	 */
 	write_count = libewf_section_write_compressed_string(
-	               section,
+	               section_descriptor,
 	               segment_file->io_handle,
 	               file_io_pool,
 	               file_io_pool_entry,
@@ -2188,8 +2195,8 @@ ssize_t libewf_segment_file_write_header_section(
 	}
 	segment_file->current_offset += write_count;
 
-	if( libewf_section_free(
-	     &section,
+	if( libewf_section_descriptor_free(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -2226,10 +2233,10 @@ ssize_t libewf_segment_file_write_header_section(
 	return( write_count );
 
 on_error:
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	return( -1 );
@@ -2245,10 +2252,10 @@ ssize_t libewf_segment_file_write_header2_section(
          libewf_header_sections_t *header_sections,
          libcerror_error_t **error )
 {
-	libewf_section_t *section = NULL;
-	static char *function     = "libewf_segment_file_write_header2_section";
-	ssize_t write_count       = 0;
-	int element_index         = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	static char *function                           = "libewf_segment_file_write_header2_section";
+	ssize_t write_count                             = 0;
+	int element_index                               = 0;
 
 	if( segment_file == NULL )
 	{
@@ -2295,15 +2302,15 @@ ssize_t libewf_segment_file_write_header2_section(
 
 		return( -1 );
 	}
-	if( libewf_section_initialize(
-	     &section,
+	if( libewf_section_descriptor_initialize(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section.",
+		 "%s: unable to create section descriptor.descriptor.",
 		 function );
 
 		goto on_error;
@@ -2311,7 +2318,7 @@ ssize_t libewf_segment_file_write_header2_section(
 	/* Do not include the end of string character in the compressed data
 	 */
 	write_count = libewf_section_write_compressed_string(
-	               section,
+	               section_descriptor,
 	               segment_file->io_handle,
 	               file_io_pool,
 	               file_io_pool_entry,
@@ -2358,8 +2365,8 @@ ssize_t libewf_segment_file_write_header2_section(
 	}
 	segment_file->current_offset += write_count;
 
-	if( libewf_section_free(
-	     &section,
+	if( libewf_section_descriptor_free(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -2396,10 +2403,10 @@ ssize_t libewf_segment_file_write_header2_section(
 	return( write_count );
 
 on_error:
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	return( -1 );
@@ -2415,10 +2422,10 @@ ssize_t libewf_segment_file_write_xheader_section(
          libewf_header_sections_t *header_sections,
          libcerror_error_t **error )
 {
-	libewf_section_t *section = NULL;
-	static char *function     = "libewf_segment_file_write_xheader_section";
-	ssize_t write_count       = 0;
-	int element_index         = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	static char *function                           = "libewf_segment_file_write_xheader_section";
+	ssize_t write_count                             = 0;
+	int element_index                               = 0;
 
 	if( segment_file == NULL )
 	{
@@ -2465,15 +2472,15 @@ ssize_t libewf_segment_file_write_xheader_section(
 
 		return( -1 );
 	}
-	if( libewf_section_initialize(
-	     &section,
+	if( libewf_section_descriptor_initialize(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section.",
+		 "%s: unable to create section descriptor.descriptor.",
 		 function );
 
 		goto on_error;
@@ -2481,7 +2488,7 @@ ssize_t libewf_segment_file_write_xheader_section(
 	/* Do not include the end of string character in the compressed data
 	 */
 	write_count = libewf_section_write_compressed_string(
-	               section,
+	               section_descriptor,
 	               segment_file->io_handle,
 	               file_io_pool,
 	               file_io_pool_entry,
@@ -2528,8 +2535,8 @@ ssize_t libewf_segment_file_write_xheader_section(
 	}
 	segment_file->current_offset += write_count;
 
-	if( libewf_section_free(
-	     &section,
+	if( libewf_section_descriptor_free(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -2566,10 +2573,10 @@ ssize_t libewf_segment_file_write_xheader_section(
 	return( write_count );
 
 on_error:
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	return( -1 );
@@ -2905,15 +2912,15 @@ ssize_t libewf_segment_file_write_last_section(
          int last_segment_file,
          libcerror_error_t **error )
 {
-	libewf_section_t *section           = NULL;
-	uint8_t *section_type_string        = NULL;
-	static char *function               = "libewf_segment_file_write_last_section";
-	size_t section_descriptor_data_size = 0;
-	size_t section_size                 = 0;
-	size_t section_type_string_length   = 0;
-	ssize_t write_count                 = 0;
-	uint32_t section_type               = 0;
-	int element_index                   = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	uint8_t *section_type_string                    = NULL;
+	static char *function                           = "libewf_segment_file_write_last_section";
+	size_t section_descriptor_data_size             = 0;
+	size_t section_size                             = 0;
+	size_t section_type_string_length               = 0;
+	ssize_t write_count                             = 0;
+	uint32_t section_type                           = 0;
+	int element_index                               = 0;
 
 	if( segment_file == NULL )
 	{
@@ -2956,21 +2963,21 @@ ssize_t libewf_segment_file_write_last_section(
 	}
 	/* Write next or done section
 	 */
-	if( libewf_section_initialize(
-	     &section,
+	if( libewf_section_descriptor_initialize(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section.",
+		 "%s: unable to create section descriptor.",
 		 function );
 
 		goto on_error;
 	}
 	if( libewf_section_set_values(
-	     section,
+	     section_descriptor,
 	     section_type,
 	     section_type_string,
 	     section_type_string_length,
@@ -2990,7 +2997,7 @@ ssize_t libewf_segment_file_write_last_section(
 		goto on_error;
 	}
 	write_count = libewf_section_descriptor_write(
-	               section,
+	               section_descriptor,
 	               file_io_pool,
 	               file_io_pool_entry,
 	               segment_file->major_version,
@@ -3027,8 +3034,8 @@ ssize_t libewf_segment_file_write_last_section(
 	}
 	segment_file->current_offset += write_count;
 
-	if( libewf_section_free(
-	     &section,
+	if( libewf_section_descriptor_free(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -3043,10 +3050,10 @@ ssize_t libewf_segment_file_write_last_section(
 	return( write_count );
 
 on_error:
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	return( -1 );
@@ -3063,17 +3070,17 @@ ssize_t libewf_segment_file_write_start(
          size_t *case_data_size,
          uint8_t **device_information,
          size_t *device_information_size,
-         ewf_data_t **data_section,
+         ewf_data_t **data_section_descriptor,
          libewf_media_values_t *media_values,
          libfvalue_table_t *header_values,
          time_t timestamp,
          libcerror_error_t **error )
 {
-	libewf_section_t *section = NULL;
-	static char *function     = "libewf_segment_file_write_start";
-	ssize_t total_write_count = 0;
-	ssize_t write_count       = 0;
-	int element_index         = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	static char *function                           = "libewf_segment_file_write_start";
+	ssize_t total_write_count                       = 0;
+	ssize_t write_count                             = 0;
+	int element_index                               = 0;
 
 	if( segment_file == NULL )
 	{
@@ -3131,15 +3138,15 @@ ssize_t libewf_segment_file_write_start(
 			}
 			total_write_count += write_count;
 		}
-		if( libewf_section_initialize(
-		     &section,
+		if( libewf_section_descriptor_initialize(
+		     &section_descriptor,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-			 "%s: unable to create section.",
+			 "%s: unable to create section descriptor.",
 			 function );
 
 			goto on_error;
@@ -3150,8 +3157,8 @@ ssize_t libewf_segment_file_write_start(
 
 			if( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1 )
 			{
-				write_count = libewf_section_volume_e01_write(
-					       section,
+				write_count = libewf_volume_section_e01_write(
+					       section_descriptor,
 					       segment_file->io_handle,
 					       file_io_pool,
 					       file_io_pool_entry,
@@ -3161,8 +3168,8 @@ ssize_t libewf_segment_file_write_start(
 			}
 			else if( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1_SMART )
 			{
-				write_count = libewf_section_volume_s01_write(
-					       section,
+				write_count = libewf_volume_section_s01_write(
+					       section_descriptor,
 					       segment_file->io_handle,
 					       file_io_pool,
 					       file_io_pool_entry,
@@ -3185,13 +3192,13 @@ ssize_t libewf_segment_file_write_start(
 		else if( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1 )
 		{
 			write_count = libewf_section_data_write(
-				       section,
+				       section_descriptor,
 				       segment_file->io_handle,
 				       file_io_pool,
 				       file_io_pool_entry,
 				       segment_file->current_offset,
 				       media_values,
-				       data_section,
+				       data_section_descriptor,
 			               error );
 
 			if( write_count == -1 )
@@ -3233,8 +3240,8 @@ ssize_t libewf_segment_file_write_start(
 			segment_file->current_offset += write_count;
 			total_write_count            += write_count;
 		}
-		if( libewf_section_free(
-		     &section,
+		if( libewf_section_descriptor_free(
+		     &section_descriptor,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
@@ -3299,10 +3306,10 @@ ssize_t libewf_segment_file_write_start(
 	return( total_write_count );
 
 on_error:
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	return( -1 );
@@ -3323,9 +3330,9 @@ ssize_t libewf_segment_file_write_chunks_section_start(
          uint64_t number_of_chunks_written,
          libcerror_error_t **error )
 {	
-	libewf_section_t *section = NULL;
-	static char *function     = "libewf_segment_file_write_chunks_section_start";
-	ssize_t write_count       = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	static char *function                           = "libewf_segment_file_write_chunks_section_start";
+	ssize_t write_count                             = 0;
 
 	if( segment_file == NULL )
 	{
@@ -3362,15 +3369,15 @@ ssize_t libewf_segment_file_write_chunks_section_start(
 
 		return( -1 );
 	}
-	if( libewf_section_initialize(
-	     &section,
+	if( libewf_section_descriptor_initialize(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section.",
+		 "%s: unable to create section descriptor.",
 		 function );
 
 		goto on_error;
@@ -3381,7 +3388,7 @@ ssize_t libewf_segment_file_write_chunks_section_start(
 		/* Write table section descriptor
 		 */
 		write_count = libewf_section_table_write(
-		               section,
+		               section_descriptor,
 		               segment_file->io_handle,
 		               file_io_pool,
 		               file_io_pool_entry,
@@ -3416,7 +3423,7 @@ ssize_t libewf_segment_file_write_chunks_section_start(
 	      || ( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1_LOGICAL ) )
 	{
 		write_count = libewf_section_sectors_write(
-		               section,
+		               section_descriptor,
 		               file_io_pool,
 		               file_io_pool_entry,
 		               1,
@@ -3439,8 +3446,8 @@ ssize_t libewf_segment_file_write_chunks_section_start(
 	}
 	segment_file->current_offset += write_count;
 
-	if( libewf_section_free(
-	     &section,
+	if( libewf_section_descriptor_free(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -3455,10 +3462,10 @@ ssize_t libewf_segment_file_write_chunks_section_start(
 	return( write_count );
 
 on_error:
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	return( -1 );
@@ -3484,12 +3491,12 @@ ssize_t libewf_segment_file_write_chunks_section_end(
          uint64_t base_offset,
          libcerror_error_t **error )
 {
-	libewf_section_t *section = NULL;
-	static char *function     = "libewf_segment_file_write_chunks_section_end";
-	ssize_t total_write_count = 0;
-	ssize_t write_count       = 0;
-	int element_index         = 0;
-	int result                = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	static char *function                           = "libewf_segment_file_write_chunks_section_end";
+	ssize_t total_write_count                       = 0;
+	ssize_t write_count                             = 0;
+	int element_index                               = 0;
+	int result                                      = 0;
 
 	if( segment_file == NULL )
 	{
@@ -3544,15 +3551,15 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 			return( -1 );
 		}
 	}
-	if( libewf_section_initialize(
-	     &section,
+	if( libewf_section_descriptor_initialize(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section.",
+		 "%s: unable to create section descriptor.",
 		 function );
 
 		goto on_error;
@@ -3608,7 +3615,7 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 			/* Rewrite table section descriptor
 			 */
 			write_count = libewf_section_table_write(
-				       section,
+				       section_descriptor,
 				       segment_file->io_handle,
 				       file_io_pool,
 				       file_io_pool_entry,
@@ -3653,7 +3660,7 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 			}
 #endif
 			write_count = libewf_section_sectors_write(
-				       section,
+				       section_descriptor,
 				       file_io_pool,
 				       file_io_pool_entry,
 				       1,
@@ -3721,7 +3728,7 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 	else
 	{
 		write_count = libewf_section_sectors_write(
-		               section,
+		               section_descriptor,
 		               file_io_pool,
 		               file_io_pool_entry,
 		               2,
@@ -3763,8 +3770,8 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 			goto on_error;
 		}
 	}
-	if( libewf_section_free(
-	     &section,
+	if( libewf_section_descriptor_free(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -3779,21 +3786,21 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 	if( ( segment_file->type != LIBEWF_SEGMENT_FILE_TYPE_EWF1_SMART )
 	 && ( segment_file->io_handle->format != LIBEWF_FORMAT_ENCASE1 ) )
 	{
-		if( libewf_section_initialize(
-		     &section,
+		if( libewf_section_descriptor_initialize(
+		     &section_descriptor,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-			 "%s: unable to create section.",
+			 "%s: unable to create section descriptor.",
 			 function );
 
 			goto on_error;
 		}
 		write_count = libewf_section_table_write(
-		               section,
+		               section_descriptor,
 		               segment_file->io_handle,
 		               file_io_pool,
 		               file_io_pool_entry,
@@ -3859,8 +3866,8 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 
 			goto on_error;
 		}
-		if( libewf_section_free(
-		     &section,
+		if( libewf_section_descriptor_free(
+		     &section_descriptor,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
@@ -3877,21 +3884,21 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 	  ||  ( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1_LOGICAL ) )
 	 && ( segment_file->io_handle->format != LIBEWF_FORMAT_ENCASE1 ) )
 	{
-		if( libewf_section_initialize(
-		     &section,
+		if( libewf_section_descriptor_initialize(
+		     &section_descriptor,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-			 "%s: unable to create section.",
+			 "%s: unable to create section descriptor.",
 			 function );
 
 			goto on_error;
 		}
 		write_count = libewf_section_table_write(
-		               section,
+		               section_descriptor,
 		               segment_file->io_handle,
 		               file_io_pool,
 		               file_io_pool_entry,
@@ -3942,8 +3949,8 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 		segment_file->current_offset += write_count;
 		total_write_count            += write_count;
 
-		if( libewf_section_free(
-		     &section,
+		if( libewf_section_descriptor_free(
+		     &section_descriptor,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
@@ -3959,10 +3966,10 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 	return( total_write_count );
 
 on_error:
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	return( -1 );
@@ -4177,12 +4184,12 @@ ssize_t libewf_segment_file_write_hash_sections(
          libfvalue_table_t *hash_values,
          libcerror_error_t **error )
 {
-	libewf_section_t *section = NULL;
-	static char *function     = "libewf_segment_file_write_hash_sections";
-	ssize_t total_write_count = 0;
-	ssize_t write_count       = 0;
-	int element_index         = 0;
-	int result                = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	static char *function                           = "libewf_segment_file_write_hash_sections";
+	ssize_t total_write_count                       = 0;
+	ssize_t write_count                             = 0;
+	int element_index                               = 0;
+	int result                                      = 0;
 
 	if( segment_file == NULL )
 	{
@@ -4226,21 +4233,21 @@ ssize_t libewf_segment_file_write_hash_sections(
 		 */
 		if( hash_sections->sha1_digest_set != 0 )
 		{
-			if( libewf_section_initialize(
-			     &section,
+			if( libewf_section_descriptor_initialize(
+			     &section_descriptor,
 			     error ) != 1 )
 			{
 				libcerror_error_set(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 				 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-				 "%s: unable to create section.",
+				 "%s: unable to create section descriptor.",
 				 function );
 
 				goto on_error;
 			}
-			write_count = libewf_section_digest_write(
-				       section,
+			write_count = libewf_digest_section_write(
+				       section_descriptor,
 				       segment_file->io_handle,
 				       file_io_pool,
 				       file_io_pool_entry,
@@ -4280,8 +4287,8 @@ ssize_t libewf_segment_file_write_hash_sections(
 			segment_file->current_offset += write_count;
 			total_write_count            += write_count;
 
-			if( libewf_section_free(
-			     &section,
+			if( libewf_section_descriptor_free(
+			     &section_descriptor,
 			     error ) != 1 )
 			{
 				libcerror_error_set(
@@ -4299,21 +4306,21 @@ ssize_t libewf_segment_file_write_hash_sections(
 	 */
 	if( hash_sections->md5_hash_set != 0 )
 	{
-		if( libewf_section_initialize(
-		     &section,
+		if( libewf_section_descriptor_initialize(
+		     &section_descriptor,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-			 "%s: unable to create section.",
+			 "%s: unable to create section descriptor.",
 			 function );
 
 			goto on_error;
 		}
-		write_count = libewf_section_md5_hash_write(
-			       section,
+		write_count = libewf_md5_hash_section_write(
+			       section_descriptor,
 			       segment_file->io_handle,
 			       file_io_pool,
 			       file_io_pool_entry,
@@ -4369,8 +4376,8 @@ ssize_t libewf_segment_file_write_hash_sections(
 
 			goto on_error;
 		}
-		if( libewf_section_free(
-		     &section,
+		if( libewf_section_descriptor_free(
+		     &section_descriptor,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
@@ -4389,21 +4396,21 @@ ssize_t libewf_segment_file_write_hash_sections(
 		 */
 		if( hash_sections->sha1_hash_set != 0 )
 		{
-			if( libewf_section_initialize(
-			     &section,
+			if( libewf_section_descriptor_initialize(
+			     &section_descriptor,
 			     error ) != 1 )
 			{
 				libcerror_error_set(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 				 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-				 "%s: unable to create section.",
+				 "%s: unable to create section descriptor.",
 				 function );
 
 				goto on_error;
 			}
-			write_count = libewf_section_sha1_hash_write(
-				       section,
+			write_count = libewf_sha1_hash_section_write(
+				       section_descriptor,
 				       segment_file->io_handle,
 				       file_io_pool,
 				       file_io_pool_entry,
@@ -4459,8 +4466,8 @@ ssize_t libewf_segment_file_write_hash_sections(
 
 				goto on_error;
 			}
-			if( libewf_section_free(
-			     &section,
+			if( libewf_section_descriptor_free(
+			     &section_descriptor,
 			     error ) != 1 )
 			{
 				libcerror_error_set(
@@ -4528,15 +4535,15 @@ ssize_t libewf_segment_file_write_hash_sections(
 			}
 		}
 #endif
-		if( libewf_section_initialize(
-		     &section,
+		if( libewf_section_descriptor_initialize(
+		     &section_descriptor,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-			 "%s: unable to create section.",
+			 "%s: unable to create section descriptor.",
 			 function );
 
 			goto on_error;
@@ -4544,7 +4551,7 @@ ssize_t libewf_segment_file_write_hash_sections(
 		/* Do not include the end of string character in the compressed data
 		 */
 		write_count = libewf_section_write_compressed_string(
-			       section,
+			       section_descriptor,
 			       segment_file->io_handle,
 			       file_io_pool,
 			       file_io_pool_entry,
@@ -4592,8 +4599,8 @@ ssize_t libewf_segment_file_write_hash_sections(
 		segment_file->current_offset += write_count;
 		total_write_count            += write_count;
 
-		if( libewf_section_free(
-		     &section,
+		if( libewf_section_descriptor_free(
+		     &section_descriptor,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
@@ -4609,10 +4616,10 @@ ssize_t libewf_segment_file_write_hash_sections(
 	return( total_write_count );
 
 on_error:
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	return( -1 );
@@ -4633,17 +4640,17 @@ ssize_t libewf_segment_file_write_close(
          libcdata_array_t *sessions,
          libcdata_array_t *tracks,
          libcdata_range_list_t *acquiry_errors,
-         ewf_data_t **data_section,
+         ewf_data_t **data_section_descriptor,
 	 libcerror_error_t **error )
 {
-	libewf_section_t *section    = NULL;
-	static char *function        = "libewf_segment_file_write_close";
-	ssize_t total_write_count    = 0;
-	ssize_t write_count          = 0;
-	int element_index            = 0;
-	int number_of_acquiry_errors = 0;
-	int number_of_sessions       = 0;
-	int result                   = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	static char *function                           = "libewf_segment_file_write_close";
+	ssize_t total_write_count                       = 0;
+	ssize_t write_count                             = 0;
+	int element_index                               = 0;
+	int number_of_acquiry_errors                    = 0;
+	int number_of_sessions                          = 0;
+	int result                                      = 0;
 
 	if( segment_file == NULL )
 	{
@@ -4708,27 +4715,27 @@ ssize_t libewf_segment_file_write_close(
 		{
 			if( segment_file->segment_number == 1 )
 			{
-				if( libewf_section_initialize(
-				     &section,
+				if( libewf_section_descriptor_initialize(
+				     &section_descriptor,
 				     error ) != 1 )
 				{
 					libcerror_error_set(
 					 error,
 					 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 					 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-					 "%s: unable to create section.",
+					 "%s: unable to create section descriptor.",
 					 function );
 
 					goto on_error;
 				}
 				write_count = libewf_section_data_write(
-					       section,
+					       section_descriptor,
 					       segment_file->io_handle,
 					       file_io_pool,
 					       file_io_pool_entry,
 					       segment_file->current_offset,
 					       media_values,
-					       data_section,
+					       data_section_descriptor,
 					       error );
 
 				if( write_count == -1 )
@@ -4763,8 +4770,8 @@ ssize_t libewf_segment_file_write_close(
 				segment_file->current_offset += write_count;
 				total_write_count            += write_count;
 
-				if( libewf_section_free(
-				     &section,
+				if( libewf_section_descriptor_free(
+				     &section_descriptor,
 				     error ) != 1 )
 				{
 					libcerror_error_set(
@@ -4805,21 +4812,21 @@ ssize_t libewf_segment_file_write_close(
 			}
 			if( number_of_sessions > 0 )
 			{
-				if( libewf_section_initialize(
-				     &section,
+				if( libewf_section_descriptor_initialize(
+				     &section_descriptor,
 				     error ) != 1 )
 				{
 					libcerror_error_set(
 					 error,
 					 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 					 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-					 "%s: unable to create section.",
+					 "%s: unable to create section descriptor.",
 					 function );
 
 					goto on_error;
 				}
 				write_count = libewf_section_session_write(
-					       section,
+					       section_descriptor,
 					       segment_file->io_handle,
 					       file_io_pool,
 					       file_io_pool_entry,
@@ -4876,8 +4883,8 @@ ssize_t libewf_segment_file_write_close(
 
 					goto on_error;
 				}
-				if( libewf_section_free(
-				     &section,
+				if( libewf_section_descriptor_free(
+				     &section_descriptor,
 				     error ) != 1 )
 				{
 					libcerror_error_set(
@@ -4920,21 +4927,21 @@ ssize_t libewf_segment_file_write_close(
 			}
 			if( number_of_acquiry_errors > 0 )
 			{
-				if( libewf_section_initialize(
-				     &section,
+				if( libewf_section_descriptor_initialize(
+				     &section_descriptor,
 				     error ) != 1 )
 				{
 					libcerror_error_set(
 					 error,
 					 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 					 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-					 "%s: unable to create section.",
+					 "%s: unable to create section descriptor.",
 					 function );
 
 					goto on_error;
 				}
 				write_count = libewf_section_error_write(
-					       section,
+					       section_descriptor,
 					       segment_file->io_handle,
 					       file_io_pool,
 					       file_io_pool_entry,
@@ -4990,8 +4997,8 @@ ssize_t libewf_segment_file_write_close(
 
 					goto on_error;
 				}
-				if( libewf_section_free(
-				     &section,
+				if( libewf_section_descriptor_free(
+				     &section_descriptor,
 				     error ) != 1 )
 				{
 					libcerror_error_set(
@@ -5091,10 +5098,10 @@ ssize_t libewf_segment_file_write_close(
 	return( total_write_count );
 
 on_error:
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	return( -1 );
@@ -5111,10 +5118,10 @@ int libewf_segment_file_reopen(
      libfcache_cache_t *sections_cache,
      libcerror_error_t **error )
 {
-	libewf_section_t *last_section = NULL;
-	static char *function          = "libewf_segment_file_reopen";
-	size64_t storage_media_size    = 0;
-	uint64_t number_of_chunks      = 0;
+	libewf_section_descriptor_t *last_section = NULL;
+	static char *function                     = "libewf_segment_file_reopen";
+	size64_t storage_media_size               = 0;
+	uint64_t number_of_chunks                 = 0;
 
 	if( segment_file == NULL )
 	{
@@ -5152,7 +5159,7 @@ int libewf_segment_file_reopen(
 	if( libfdata_list_get_element_value_by_index(
 	     segment_file->sections_list,
 	     (intptr_t *) file_io_pool,
-	     sections_cache,
+	     (libfdata_cache_t *) sections_cache,
 	     last_section_index,
 	     (intptr_t **) &last_section,
 	     0,
@@ -5310,17 +5317,17 @@ int libewf_segment_file_write_sections_correction(
      size_t *case_data_size,
      uint8_t **device_information,
      size_t *device_information_size,
-     ewf_data_t **data_section,
+     ewf_data_t **data_section_descriptor,
      libcerror_error_t **error )
 {
-	libewf_section_t *section         = NULL;
-	libfcache_cache_t *sections_cache = NULL;
-	static char *function             = "libewf_segment_file_write_sections_correction";
-	off64_t next_section_start_offset = 0;
-	ssize_t write_count               = 0;
-	int correct_last_next_section     = 0;
-	int number_of_sections            = 0;
-	int section_index                 = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	libfcache_cache_t *sections_cache               = NULL;
+	static char *function                           = "libewf_segment_file_write_sections_correction";
+	ssize_t write_count                             = 0;
+	off64_t next_section_start_offset               = 0;
+	int correct_last_next_section                   = 0;
+	int number_of_sections                          = 0;
+	int section_index                               = 0;
 
 	if( segment_file == NULL )
 	{
@@ -5408,7 +5415,7 @@ int libewf_segment_file_write_sections_correction(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create sections cache.",
+		 "%s: unable to create section descriptor. cache.",
 		 function );
 
 		goto on_error;
@@ -5443,9 +5450,9 @@ int libewf_segment_file_write_sections_correction(
 		if( libfdata_list_get_element_value_by_index(
 		     segment_file->sections_list,
 		     (intptr_t *) file_io_pool,
-		     sections_cache,
+		     (libfdata_cache_t *) sections_cache,
 		     section_index,
-		     (intptr_t **) &section,
+		     (intptr_t **) &section_descriptor,
 		     0,
 		     error ) != 1 )
 		{
@@ -5459,7 +5466,7 @@ int libewf_segment_file_write_sections_correction(
 
 			goto on_error;
 		}
-		if( section == NULL )
+		if( section_descriptor == NULL )
 		{
 			libcerror_error_set(
 			 error,
@@ -5471,9 +5478,9 @@ int libewf_segment_file_write_sections_correction(
 
 			goto on_error;
 		}
-		if( section->type != 0 )
+		if( section_descriptor->type != 0 )
 		{
-			switch( section->type )
+			switch( section_descriptor->type )
 			{
 				case LIBEWF_SECTION_TYPE_DEVICE_INFORMATION:
 					if( *device_information == NULL )
@@ -5506,7 +5513,7 @@ int libewf_segment_file_write_sections_correction(
 					if( libbfio_pool_seek_offset(
 					     file_io_pool,
 					     file_io_pool_entry,
-					     section->start_offset,
+					     section_descriptor->start_offset,
 					     SEEK_SET,
 					     error ) == -1 )
 					{
@@ -5519,12 +5526,12 @@ int libewf_segment_file_write_sections_correction(
 
 						goto on_error;
 					}
-					segment_file->current_offset = section->start_offset;
+					segment_file->current_offset = section_descriptor->start_offset;
 
 					/* Do not include the end of string character in the compressed data
 					 */
 					write_count = libewf_section_write_compressed_string(
-						       section,
+						       section_descriptor,
 						       segment_file->io_handle,
 						       file_io_pool,
 						       file_io_pool_entry,
@@ -5532,12 +5539,12 @@ int libewf_segment_file_write_sections_correction(
 						       LIBEWF_SECTION_TYPE_DEVICE_INFORMATION,
 						       NULL,
 						       0,
-						       section->start_offset,
+						       section_descriptor->start_offset,
 						       segment_file->io_handle->compression_method,
 						       LIBEWF_COMPRESSION_DEFAULT,
 						       *device_information,
 						       *device_information_size - 2,
-						       (size_t) section->data_size,
+						       (size_t) section_descriptor->data_size,
 						       error );
 
 					if( write_count == -1 )
@@ -5588,7 +5595,7 @@ int libewf_segment_file_write_sections_correction(
 					if( libbfio_pool_seek_offset(
 					     file_io_pool,
 					     file_io_pool_entry,
-					     section->start_offset,
+					     section_descriptor->start_offset,
 					     SEEK_SET,
 					     error ) == -1 )
 					{
@@ -5601,12 +5608,12 @@ int libewf_segment_file_write_sections_correction(
 
 						goto on_error;
 					}
-					segment_file->current_offset = section->start_offset;
+					segment_file->current_offset = section_descriptor->start_offset;
 
 					/* Do not include the end of string character in the compressed data
 					 */
 					write_count = libewf_section_write_compressed_string(
-						       section,
+						       section_descriptor,
 						       segment_file->io_handle,
 						       file_io_pool,
 						       file_io_pool_entry,
@@ -5614,12 +5621,12 @@ int libewf_segment_file_write_sections_correction(
 						       LIBEWF_SECTION_TYPE_CASE_DATA,
 						       NULL,
 						       0,
-						       section->start_offset,
+						       section_descriptor->start_offset,
 						       segment_file->io_handle->compression_method,
 						       LIBEWF_COMPRESSION_DEFAULT,
 						       *case_data,
 						       *case_data_size - 2,
-						       (size_t) section->data_size,
+						       (size_t) section_descriptor->data_size,
 						       error );
 
 					if( write_count == -1 )
@@ -5643,15 +5650,15 @@ int libewf_segment_file_write_sections_correction(
 					if( last_segment_file != 0 )
 					{
 						correct_last_next_section = 1;
-						next_section_start_offset = section->start_offset;
+						next_section_start_offset = section_descriptor->start_offset;
 					}
 					break;
 			}
 		}
-		else if( section->type_string_length == 6 )
+		else if( section_descriptor->type_string_length == 6 )
 		{
 			if( memory_compare(
-			     section->type_string,
+			     section_descriptor->type_string,
 			     "volume",
 			     6 ) == 0 )
 			{
@@ -5666,7 +5673,7 @@ int libewf_segment_file_write_sections_correction(
 				if( libbfio_pool_seek_offset(
 				     file_io_pool,
 				     file_io_pool_entry,
-				     section->start_offset,
+				     section_descriptor->start_offset,
 				     SEEK_SET,
 				     error ) == -1 )
 				{
@@ -5679,27 +5686,27 @@ int libewf_segment_file_write_sections_correction(
 
 					goto on_error;
 				}
-				segment_file->current_offset = section->start_offset;
+				segment_file->current_offset = section_descriptor->start_offset;
 
 				if( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1 )
 				{
-					write_count = libewf_section_volume_e01_write(
-						       section,
+					write_count = libewf_volume_section_e01_write(
+						       section_descriptor,
 						       segment_file->io_handle,
 						       file_io_pool,
 						       file_io_pool_entry,
-						       section->start_offset,
+						       section_descriptor->start_offset,
 						       media_values,
 						       error );
 				}
 				else if( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1_SMART )
 				{
-					write_count = libewf_section_volume_s01_write(
-						       section,
+					write_count = libewf_volume_section_s01_write(
+						       section_descriptor,
 						       segment_file->io_handle,
 						       file_io_pool,
 						       file_io_pool_entry,
-						       section->start_offset,
+						       section_descriptor->start_offset,
 						       media_values,
 						       error );
 				}
@@ -5721,10 +5728,10 @@ int libewf_segment_file_write_sections_correction(
 				segment_file->current_offset += write_count;
 			}
 		}
-		else if( section->type_string_length == 4 )
+		else if( section_descriptor->type_string_length == 4 )
 		{
 			if( memory_compare(
-			     section->type_string,
+			     section_descriptor->type_string,
 			     "data",
 			     4 ) == 0 )
 			{
@@ -5739,7 +5746,7 @@ int libewf_segment_file_write_sections_correction(
 				if( libbfio_pool_seek_offset(
 				     file_io_pool,
 				     file_io_pool_entry,
-				     section->start_offset,
+				     section_descriptor->start_offset,
 				     SEEK_SET,
 				     error ) == -1 )
 				{
@@ -5752,16 +5759,16 @@ int libewf_segment_file_write_sections_correction(
 
 					goto on_error;
 				}
-				segment_file->current_offset = section->start_offset;
+				segment_file->current_offset = section_descriptor->start_offset;
 
 				write_count = libewf_section_data_write(
-					       section,
+					       section_descriptor,
 					       segment_file->io_handle,
 					       file_io_pool,
 					       file_io_pool_entry,
-					       section->start_offset,
+					       section_descriptor->start_offset,
 					       media_values,
-					       data_section,
+					       data_section_descriptor,
 					       error );
 
 				if( write_count == -1 )
@@ -5837,7 +5844,7 @@ int libewf_segment_file_write_sections_correction(
 			       sessions,
 			       tracks,
 			       acquiry_errors,
-			       data_section,
+			       data_section_descriptor,
 			       error );
 
 		if( write_count == -1 )
@@ -5885,7 +5892,7 @@ int libewf_segment_file_read_element_data(
      libewf_io_handle_t *io_handle,
      libbfio_pool_t *file_io_pool,
      libfdata_list_element_t *element,
-     libfcache_cache_t *segment_file_cache,
+     libfdata_cache_t *segment_file_cache,
      int file_io_pool_entry,
      off64_t segment_file_offset,
      size64_t segment_file_size,
@@ -5893,17 +5900,17 @@ int libewf_segment_file_read_element_data(
      uint8_t read_flags LIBEWF_ATTRIBUTE_UNUSED,
      libcerror_error_t **error )
 {
-	libfcache_cache_t *sections_cache   = NULL;
-	libewf_section_t *section           = NULL;
-	libewf_segment_file_t *segment_file = NULL;
-	static char *function               = "libewf_segment_file_read_element_data";
-	off64_t section_data_offset         = 0;
-	ssize_t read_count                  = 0;
-	int element_index                   = 0;
-	int last_section                    = 0;
-	int number_of_sections              = 0;
-	int result                          = 0;
-	int section_index                   = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	libewf_segment_file_t *segment_file             = NULL;
+	libfcache_cache_t *sections_cache               = NULL;
+	static char *function                           = "libewf_segment_file_read_element_data";
+	ssize_t read_count                              = 0;
+	off64_t section_data_offset                     = 0;
+	int element_index                               = 0;
+	int last_section                                = 0;
+	int number_of_sections                          = 0;
+	int result                                      = 0;
+	int section_index                               = 0;
 
 	LIBEWF_UNREFERENCED_PARAMETER( element_flags )
 	LIBEWF_UNREFERENCED_PARAMETER( read_flags )
@@ -6012,15 +6019,15 @@ int libewf_segment_file_read_element_data(
 	}
 	last_section = 0;
 
-	if( libewf_section_initialize(
-	     &section,
+	if( libewf_section_descriptor_initialize(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section.",
+		 "%s: unable to create section descriptor.",
 		 function );
 
 		goto on_error;
@@ -6029,7 +6036,7 @@ int libewf_segment_file_read_element_data(
 	    && ( (size64_t) segment_file_offset < segment_file_size ) )
 	{
 		read_count = libewf_section_descriptor_read(
-			      section,
+			      section_descriptor,
 			      file_io_pool,
 			      file_io_pool_entry,
 			      segment_file_offset,
@@ -6067,11 +6074,11 @@ int libewf_segment_file_read_element_data(
 
 		if( segment_file->major_version == 1 )
 		{
-			if( section->type == LIBEWF_SECTION_TYPE_NEXT )
+			if( section_descriptor->type == LIBEWF_SECTION_TYPE_NEXT )
 			{
 				last_section = 1;
 			}
-			else if( section->type == LIBEWF_SECTION_TYPE_DONE )
+			else if( section_descriptor->type == LIBEWF_SECTION_TYPE_DONE )
 			{
 				last_section = 1;
 
@@ -6097,33 +6104,33 @@ int libewf_segment_file_read_element_data(
 
 				goto on_error;
 			}
-			segment_file_offset += section->size;
+			segment_file_offset += section_descriptor->size;
 
 /* TODO move into section descriptor read ? */
 			if( ( last_section != 0 )
-			 && ( section->size == 0 ) )
+			 && ( section_descriptor->size == 0 ) )
 			{
 				segment_file_offset += sizeof( ewf_section_descriptor_v1_t );
 			}
 		}
 		else if( segment_file->major_version == 2 )
 		{
-			if( section->type == LIBEWF_SECTION_TYPE_DEVICE_INFORMATION )
+			if( section_descriptor->type == LIBEWF_SECTION_TYPE_DEVICE_INFORMATION )
 			{
 				segment_file->device_information_section_index = section_index;
 			}
-			if( section->type == LIBEWF_SECTION_TYPE_ENCRYPTION_KEYS )
+			if( section_descriptor->type == LIBEWF_SECTION_TYPE_ENCRYPTION_KEYS )
 			{
 				segment_file->flags |= LIBEWF_SEGMENT_FILE_FLAG_IS_ENCRYPTED;
 /* TODO get key info ? */
 			}
 			if( segment_file->last_section_offset == 0 )
 			{
-				if( section->type == LIBEWF_SECTION_TYPE_NEXT )
+				if( section_descriptor->type == LIBEWF_SECTION_TYPE_NEXT )
 				{
 					last_section = 1;
 				}
-				else if( section->type == LIBEWF_SECTION_TYPE_DONE )
+				else if( section_descriptor->type == LIBEWF_SECTION_TYPE_DONE )
 				{
 					last_section = 1;
 
@@ -6149,7 +6156,7 @@ int libewf_segment_file_read_element_data(
 
 				goto on_error;
 			}
-			segment_file_offset -= section->size;
+			segment_file_offset -= section_descriptor->size;
 		}
 		section_index++;
 
@@ -6161,8 +6168,8 @@ int libewf_segment_file_read_element_data(
 	}
 	number_of_sections = section_index;
 
-	if( libewf_section_free(
-	     &section,
+	if( libewf_section_descriptor_free(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -6248,7 +6255,7 @@ int libewf_segment_file_read_element_data(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-			 "%s: unable to create sections cache.",
+			 "%s: unable to create section descriptor cache.",
 			 function );
 
 			goto on_error;
@@ -6260,9 +6267,9 @@ int libewf_segment_file_read_element_data(
 			if( libfdata_list_get_element_value_by_index(
 			     segment_file->sections_list,
 			     (intptr_t *) file_io_pool,
-			     sections_cache,
+			     (libfdata_cache_t *) sections_cache,
 			     section_index,
-			     (intptr_t **) &section,
+			     (intptr_t **) &section_descriptor,
 			     0,
 			     error ) != 1 )
 			{
@@ -6277,7 +6284,7 @@ int libewf_segment_file_read_element_data(
 				goto on_error;
 			}
 			result = libewf_section_get_data_offset(
-			          section,
+			          section_descriptor,
 			          segment_file->major_version,
 			          &section_data_offset,
 			          error );
@@ -6294,7 +6301,7 @@ int libewf_segment_file_read_element_data(
 
 				goto on_error;
 			}
-			if( section->type == LIBEWF_SECTION_TYPE_SECTOR_TABLE )
+			if( section_descriptor->type == LIBEWF_SECTION_TYPE_SECTOR_TABLE )
 			{
 				if( result == 0 )
 				{
@@ -6328,7 +6335,7 @@ int libewf_segment_file_read_element_data(
 				}
 				read_count = libewf_segment_file_read_table_section(
 					      segment_file,
-					      section,
+					      section_descriptor,
 					      file_io_pool,
 					      file_io_pool_entry,
 					      io_handle->chunk_size,
@@ -6342,17 +6349,17 @@ int libewf_segment_file_read_element_data(
 					 LIBCERROR_IO_ERROR_READ_FAILED,
 					 "%s: unable to read section: 0x%08" PRIx32 ".",
 					 function,
-					 section->type );
+					 section_descriptor->type );
 
-					section = NULL;
+					section_descriptor = NULL;
 
 					goto on_error;
 				}
 			}
 			else if( ( segment_file->major_version == 1 )
-			      && ( ( section->type_string_length == 6 )
+			      && ( ( section_descriptor->type_string_length == 6 )
 			      && ( memory_compare(
-			            (void *) section->type_string,
+			            (void *) section_descriptor->type_string,
 			            (void *) "table2",
 			            6 ) == 0 ) ) )
 			{
@@ -6388,7 +6395,7 @@ int libewf_segment_file_read_element_data(
 				}
 				read_count = libewf_segment_file_read_table2_section(
 					      segment_file,
-					      section,
+					      section_descriptor,
 					      file_io_pool,
 					      file_io_pool_entry,
 					      error );
@@ -6401,14 +6408,14 @@ int libewf_segment_file_read_element_data(
 					 LIBCERROR_IO_ERROR_READ_FAILED,
 					 "%s: unable to read section: %s.",
 					 function,
-					 section->type_string );
+					 section_descriptor->type_string );
 
-					section = NULL;
+					section_descriptor = NULL;
 
 					goto on_error;
 				}
 			}
-			section = NULL;
+			section_descriptor = NULL;
 		}
 		if( libfcache_cache_free(
 		     &sections_cache,
@@ -6427,7 +6434,7 @@ int libewf_segment_file_read_element_data(
 	if( libfdata_list_element_set_element_value(
 	     element,
 	     (intptr_t *) file_io_pool,
-	     segment_file_cache,
+	     (libfdata_cache_t *) segment_file_cache,
 	     (intptr_t *) segment_file,
 	     (int (*)(intptr_t **, libcerror_error_t **)) &libewf_segment_file_free,
 	     LIBFDATA_LIST_ELEMENT_VALUE_FLAG_MANAGED,
@@ -6451,10 +6458,10 @@ on_error:
 		 &sections_cache,
 		 NULL );
 	}
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	if( segment_file != NULL )
@@ -6474,7 +6481,7 @@ int libewf_segment_file_read_section_element_data(
      libewf_segment_file_t *segment_file,
      libbfio_pool_t *file_io_pool,
      libfdata_list_element_t *element,
-     libfcache_cache_t *cache,
+     libfdata_cache_t *cache,
      int file_io_pool_entry,
      off64_t section_data_offset,
      size64_t section_data_size LIBEWF_ATTRIBUTE_UNUSED,
@@ -6482,9 +6489,9 @@ int libewf_segment_file_read_section_element_data(
      uint8_t read_flags LIBEWF_ATTRIBUTE_UNUSED,
      libcerror_error_t **error )
 {
-	libewf_section_t *section = NULL;
-	static char *function     = "libewf_segment_file_read_section_element_data";
-	ssize_t read_count        = 0;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	static char *function                           = "libewf_segment_file_read_section_element_data";
+	ssize_t read_count                              = 0;
 
 	LIBEWF_UNREFERENCED_PARAMETER( section_data_size )
 	LIBEWF_UNREFERENCED_PARAMETER( element_flags )
@@ -6502,21 +6509,21 @@ int libewf_segment_file_read_section_element_data(
 		return( -1 );
 	}
 /* TODO validate section_data_size ? */
-	if( libewf_section_initialize(
-	     &section,
+	if( libewf_section_descriptor_initialize(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section.",
+		 "%s: unable to create section descriptor.",
 		 function );
 
 		goto on_error;
 	}
 	read_count = libewf_section_descriptor_read(
-		      section,
+		      section_descriptor,
 		      file_io_pool,
 		      file_io_pool_entry,
 		      section_data_offset,
@@ -6540,8 +6547,8 @@ int libewf_segment_file_read_section_element_data(
 	     element,
 	     (intptr_t *) file_io_pool,
 	     cache,
-	     (intptr_t *) section,
-	     (int (*)(intptr_t **, libcerror_error_t **)) &libewf_section_free,
+	     (intptr_t *) section_descriptor,
+	     (int (*)(intptr_t **, libcerror_error_t **)) &libewf_section_descriptor_free,
 	     LIBFDATA_LIST_ELEMENT_VALUE_FLAG_MANAGED,
 	     error ) != 1 )
 	{
@@ -6557,10 +6564,10 @@ int libewf_segment_file_read_section_element_data(
 	return( 1 );
 
 on_error:
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	return( -1 );
@@ -6574,7 +6581,7 @@ int libewf_segment_file_read_chunk_group_element_data(
      libewf_segment_file_t *segment_file,
      libbfio_pool_t *file_io_pool,
      libfdata_list_element_t *element,
-     libfcache_cache_t *cache,
+     libfdata_cache_t *cache,
      int file_io_pool_entry,
      off64_t chunk_group_data_offset,
      size64_t chunk_group_data_size,
@@ -6582,21 +6589,21 @@ int libewf_segment_file_read_chunk_group_element_data(
      uint8_t read_flags LIBEWF_ATTRIBUTE_UNUSED,
      libcerror_error_t **error )
 {
-	libewf_chunk_group_t *chunk_group = NULL;
-	libewf_section_t *section         = NULL;
-	uint8_t *section_data             = NULL;
-	uint8_t *table_entries_data       = NULL;
-	static char *function             = "libewf_segment_file_read_chunk_group_element_data";
-	off64_t storage_media_offset      = 0;
-	size_t section_data_size          = 0;
-	size_t table_entries_data_size    = 0;
-	ssize_t read_count                = 0;
-	uint64_t base_offset              = 0;
-	uint64_t chunk_index              = 0;
-	uint64_t first_chunk_index        = 0;
-	uint32_t number_of_entries        = 0;
-	uint8_t entries_corrupted         = 0;
-	int result                        = 0;
+	libewf_chunk_group_t *chunk_group               = NULL;
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	uint8_t *section_data                           = NULL;
+	uint8_t *table_entries_data                     = NULL;
+	static char *function                           = "libewf_segment_file_read_chunk_group_element_data";
+	size_t section_data_size                        = 0;
+	size_t table_entries_data_size                  = 0;
+	ssize_t read_count                              = 0;
+	off64_t storage_media_offset                    = 0;
+	uint64_t base_offset                            = 0;
+	uint64_t chunk_index                            = 0;
+	uint64_t first_chunk_index                      = 0;
+	uint32_t number_of_entries                      = 0;
+	uint8_t entries_corrupted                       = 0;
+	int result                                      = 0;
 
 	LIBEWF_UNREFERENCED_PARAMETER( element_flags )
 	LIBEWF_UNREFERENCED_PARAMETER( read_flags )
@@ -6645,15 +6652,15 @@ int libewf_segment_file_read_chunk_group_element_data(
 
 		return( -1 );
 	}
-	if( libewf_section_initialize(
-	     &section,
+	if( libewf_section_descriptor_initialize(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section.",
+		 "%s: unable to create section descriptor.",
 		 function );
 
 		goto on_error;
@@ -6661,7 +6668,7 @@ int libewf_segment_file_read_chunk_group_element_data(
 	if( segment_file->major_version == 1 )
 	{
 		read_count = libewf_section_descriptor_read(
-			      section,
+			      section_descriptor,
 			      file_io_pool,
 			      file_io_pool_entry,
 			      chunk_group_data_offset,
@@ -6681,7 +6688,7 @@ int libewf_segment_file_read_chunk_group_element_data(
 		}
 		segment_file->current_offset = chunk_group_data_offset + read_count;
 
-		if( chunk_group_data_size != section->size )
+		if( chunk_group_data_size != section_descriptor->size )
 		{
 			libcerror_error_set(
 			 error,
@@ -6725,12 +6732,12 @@ int libewf_segment_file_read_chunk_group_element_data(
 
 			goto on_error;
 		}
-		segment_file->current_offset = chunk_group_data_offset;
-		section->start_offset        = chunk_group_data_offset;
-		section->data_size           = (uint32_t) chunk_group_data_size;
+		segment_file->current_offset     = chunk_group_data_offset;
+		section_descriptor->start_offset = chunk_group_data_offset;
+		section_descriptor->data_size    = (uint32_t) chunk_group_data_size;
 	}
 	read_count = libewf_section_table_read(
-	              section,
+	              section_descriptor,
 	              segment_file->io_handle,
 	              file_io_pool,
 	              file_io_pool_entry,
@@ -6810,7 +6817,7 @@ int libewf_segment_file_read_chunk_group_element_data(
 			  chunk_index,
 			  segment_file->io_handle->chunk_size,
 			  file_io_pool_entry,
-			  section,
+			  section_descriptor,
 			  (off64_t) base_offset,
 			  number_of_entries,
 			  table_entries_data,
@@ -6825,7 +6832,7 @@ int libewf_segment_file_read_chunk_group_element_data(
 			  chunk_index,
 			  segment_file->io_handle->chunk_size,
 			  file_io_pool_entry,
-			  section,
+			  section_descriptor,
 			  number_of_entries,
 			  table_entries_data,
 			  table_entries_data_size,
@@ -6848,8 +6855,8 @@ int libewf_segment_file_read_chunk_group_element_data(
 
 	section_data = NULL;
 
-	if( libewf_section_free(
-	     &section,
+	if( libewf_section_descriptor_free(
+	     &section_descriptor,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -6871,7 +6878,7 @@ int libewf_segment_file_read_chunk_group_element_data(
 			          chunk_index,
 			          segment_file->io_handle->chunk_size,
 				  file_io_pool_entry,
-				  section,
+				  section_descriptor,
 				  (off64_t) base_offset,
 				  number_of_entries,
 				  table_entries_data,
@@ -6924,10 +6931,10 @@ on_error:
 		memory_free(
 		 section_data );
 	}
-	if( section != NULL )
+	if( section_descriptor != NULL )
 	{
-		libewf_section_free(
-		 &section,
+		libewf_section_descriptor_free(
+		 &section_descriptor,
 		 NULL );
 	}
 	return( -1 );
@@ -6963,7 +6970,7 @@ int libewf_segment_file_get_chunk_group_by_offset(
 	result = libfdata_list_get_element_value_at_offset(
 		  segment_file->chunk_groups_list,
 		  (intptr_t *) file_io_pool,
-		  chunk_groups_cache,
+		  (libfdata_cache_t *) chunk_groups_cache,
 		  offset,
 		  chunk_group_index,
 		  chunk_group_data_offset,

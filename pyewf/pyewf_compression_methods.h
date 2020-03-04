@@ -1,7 +1,7 @@
 /*
- * Python object definition of the libewf compresson methods
+ * Python object definition of the libewf compression methods
  *
- * Copyright (C) 2008-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -50,14 +50,14 @@ PyObject *pyewf_compression_methods_new(
            void );
 
 int pyewf_compression_methods_init(
-     pyewf_compression_methods_t *pyewf_compression_methods );
+     pyewf_compression_methods_t *definitions_object );
 
 void pyewf_compression_methods_free(
-      pyewf_compression_methods_t *pyewf_compression_methods );
+      pyewf_compression_methods_t *definitions_object );
 
 #if defined( __cplusplus )
 }
 #endif
 
-#endif
+#endif /* !defined( _PYEWF_COMPRESSION_METHODS_H ) */
 

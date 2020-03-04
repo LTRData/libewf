@@ -39,9 +39,6 @@
     <ClCompile Include="..\..\libodraw\libodraw_io_handle.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\libodraw\libodraw_metadata.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\libodraw\libodraw_notify.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -105,9 +102,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libodraw\libodraw_libuna.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\libodraw\libodraw_metadata.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libodraw\libodraw_notify.h">

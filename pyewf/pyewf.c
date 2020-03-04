@@ -2,7 +2,7 @@
  * Python bindings module for libewf (pyewf)
  *
  * Copyright (c) 2008, David Collett <david.collett@gmail.com>
- * Copyright (C) 2008-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -228,7 +228,9 @@ PyObject *pyewf_check_file_signature(
 
 		Py_DecRef(
 		 utf8_string_object );
-#endif
+
+#endif /* #if defined( HAVE_WIDE_SYSTEM_CHARACTER ) */
+
 		if( result == -1 )
 		{
 			pyewf_error_raise(
@@ -528,6 +530,9 @@ PyObject *pyewf_glob(
 		filename_narrow = PyString_AsString(
 				   utf8_string_object );
 #endif
+		filename_length = narrow_string_length(
+		                   filename_narrow );
+
 		Py_BEGIN_ALLOW_THREADS
 
 		result = libewf_glob(
@@ -895,7 +900,7 @@ PyMODINIT_FUNC initpyewf(
 		goto on_error;
 	}
 	Py_IncRef(
-	 (PyObject * ) &pyewf_handle_type_object );
+	 (PyObject *) &pyewf_handle_type_object );
 
 	handle_type_object = &pyewf_handle_type_object;
 

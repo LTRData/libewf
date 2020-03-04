@@ -1,37 +1,43 @@
 # Info tool testing script
 #
-# Version: 20161101
+# Version: 20181221
 
 $ExitSuccess = 0
 $ExitFailure = 1
 $ExitIgnore = 77
 
-$TestPrefix = Split-Path -path ${Pwd}.Path -parent
-$TestPrefix = Split-Path -path ${TestPrefix} -leaf
-$TestPrefix = ${TestPrefix}.Substring(3)
-$TestSuffix = "info"
+$InputGlob = "*.[ELels]*01"
 
-$TestToolDirectory = "..\msvscpp\Release"
-$TestTool = "${TestPrefix}${TestSuffix}"
-$InputDirectory = "input"
-$InputGlob = "*"
+Function GetTestToolDirectory
+{
+	$TestToolDirectory = ""
 
-If (-Not (Test-Path ${TestToolDirectory}))
-{
-	$TestToolDirectory = "..\vs2010\Release"
+	ForEach (${VSDirectory} in "msvscpp vs2008 vs2010 vs2012 vs2013 vs2015 vs2017" -split " ")
+	{
+		ForEach (${VSConfiguration} in "Release VSDebug" -split " ")
+		{
+			ForEach (${VSPlatform} in "Win32 x64" -split " ")
+			{
+				$TestToolDirectory = "..\${VSDirectory}\${VSConfiguration}\${VSPlatform}"
+
+				If (Test-Path ${TestToolDirectory})
+				{
+					Return ${TestToolDirectory}
+				}
+			}
+			$TestToolDirectory = "..\${VSDirectory}\${VSConfiguration}"
+
+			If (Test-Path ${TestToolDirectory})
+			{
+				Return ${TestToolDirectory}
+			}
+		}
+	}
+	Return ${TestToolDirectory}
 }
-If (-Not (Test-Path ${TestToolDirectory}))
-{
-	$TestToolDirectory = "..\vs2012\Release"
-}
-If (-Not (Test-Path ${TestToolDirectory}))
-{
-	$TestToolDirectory = "..\vs2013\Release"
-}
-If (-Not (Test-Path ${TestToolDirectory}))
-{
-	$TestToolDirectory = "..\vs2015\Release"
-}
+
+$TestToolDirectory = GetTestToolDirectory
+
 If (-Not (Test-Path ${TestToolDirectory}))
 {
 	Write-Host "Missing test tool directory." -foreground Red
@@ -39,14 +45,14 @@ If (-Not (Test-Path ${TestToolDirectory}))
 	Exit ${ExitFailure}
 }
 
-$TestExecutable = "${TestToolDirectory}\${TestTool}.exe"
+$TestExecutable = "${TestToolDirectory}\ewfinfo.exe"
 
-If (-Not (Test-Path -Path "${InputDirectory}"))
+If (-Not (Test-Path -Path "input"))
 {
 	Exit ${ExitSuccess}
 }
 
-Get-ChildItem -Path "${InputDirectory}\${InputGlob}" | Foreach-Object
+Get-ChildItem -Path "input\${InputGlob}" | Foreach-Object
 {
 	Invoke-Expression ${TestExecutable} $_
 

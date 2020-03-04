@@ -1,7 +1,7 @@
 /*
  * Library single_files type test program
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -35,7 +35,7 @@
 
 #include "../libewf/libewf_single_files.h"
 
-#if defined( __GNUC__ )
+#if defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT )
 
 /* Tests the libewf_single_files_initialize function
  * Returns 1 if successful or 0 if not
@@ -64,13 +64,13 @@ int ewf_test_single_files_initialize(
 	 result,
 	 1 );
 
-        EWF_TEST_ASSERT_IS_NOT_NULL(
-         "single_files",
-         single_files );
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "single_files",
+	 single_files );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
 
 	result = libewf_single_files_free(
 	          &single_files,
@@ -81,13 +81,13 @@ int ewf_test_single_files_initialize(
 	 result,
 	 1 );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "single_files",
-         single_files );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "single_files",
+	 single_files );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
 
 	/* Test error cases
 	 */
@@ -100,9 +100,9 @@ int ewf_test_single_files_initialize(
 	 result,
 	 -1 );
 
-        EWF_TEST_ASSERT_IS_NOT_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
 
 	libcerror_error_free(
 	 &error );
@@ -113,19 +113,19 @@ int ewf_test_single_files_initialize(
 	          &single_files,
 	          &error );
 
+	single_files = NULL;
+
 	EWF_TEST_ASSERT_EQUAL_INT(
 	 "result",
 	 result,
 	 -1 );
 
-        EWF_TEST_ASSERT_IS_NOT_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
 
 	libcerror_error_free(
 	 &error );
-
-	single_files = NULL;
 
 #if defined( HAVE_EWF_TEST_MEMORY )
 
@@ -252,9 +252,9 @@ int ewf_test_single_files_free(
 	 result,
 	 -1 );
 
-        EWF_TEST_ASSERT_IS_NOT_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
 
 	libcerror_error_free(
 	 &error );
@@ -270,7 +270,7 @@ on_error:
 	return( 0 );
 }
 
-#endif /* defined( __GNUC__ ) */
+#endif /* defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT ) */
 
 /* The main program
  */
@@ -287,7 +287,7 @@ int main(
 	EWF_TEST_UNREFERENCED_PARAMETER( argc )
 	EWF_TEST_UNREFERENCED_PARAMETER( argv )
 
-#if defined( __GNUC__ )
+#if defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT )
 
 	EWF_TEST_RUN(
 	 "libewf_single_files_initialize",
@@ -309,7 +309,7 @@ int main(
 
 	/* TODO: add tests for libewf_single_files_parse_file_entry_offset_values */
 
-#endif /* defined( __GNUC__ ) */
+#endif /* defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT ) */
 
 	return( EXIT_SUCCESS );
 

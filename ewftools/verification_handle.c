@@ -210,16 +210,12 @@ int verification_handle_initialize(
 	( *verification_handle )->use_chunk_data_functions = use_chunk_data_functions;
 	( *verification_handle )->header_codepage          = LIBEWF_CODEPAGE_ASCII;
 	( *verification_handle )->process_buffer_size      = EWFCOMMON_PROCESS_BUFFER_SIZE;
-<<<<<<< HEAD
 #if !defined( HAVE_MULTI_THREAD_SUPPORT )
     (*verification_handle)->number_of_threads = 0;
 #else
     (*verification_handle)->number_of_threads = 4;
 #endif
     ( *verification_handle )->notify_stream            = VERIFICATION_HANDLE_NOTIFY_STREAM;
-=======
-	( *verification_handle )->notify_stream            = VERIFICATION_HANDLE_NOTIFY_STREAM;
->>>>>>> origin/master
 
 #if defined( HAVE_MULTI_THREAD_SUPPORT )
 	( *verification_handle )->number_of_threads        = 4;

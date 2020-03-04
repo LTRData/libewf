@@ -1,7 +1,7 @@
 /*
  * Media values functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -88,13 +88,13 @@ int libewf_media_values_free(
      libewf_media_values_t **media_values,
      libcerror_error_t **error );
 
+int libewf_media_values_clear(
+     libewf_media_values_t *media_values,
+     libcerror_error_t **error );
+
 int libewf_media_values_clone(
      libewf_media_values_t **destination_media_values,
      libewf_media_values_t *source_media_values,
-     libcerror_error_t **error );
-
-int libewf_media_values_clear(
-     libewf_media_values_t *media_values,
      libcerror_error_t **error );
 
 int libewf_media_values_calculate_chunk_size(

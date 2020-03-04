@@ -1,7 +1,7 @@
 /*
  * Python file objects IO pool functions
  *
- * Copyright (C) 2008-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -43,5 +43,5 @@ int pyewf_file_objects_pool_initialize(
 }
 #endif
 
-#endif
+#endif /* !defined( _PYEWF_FILE_OBJECTS_IO_POOL_H ) */
 

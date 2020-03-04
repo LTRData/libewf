@@ -2,7 +2,7 @@
  * Metadata functions for the Python object definition of the libewf handle
  *
  * Copyright (c) 2008, David Collett <david.collett@gmail.com>
- * Copyright (C) 2008-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -113,5 +113,5 @@ PyObject *pyewf_handle_get_hash_values(
 }
 #endif
 
-#endif
+#endif /* !defined( _PYEWF_METADATA_H ) */
 

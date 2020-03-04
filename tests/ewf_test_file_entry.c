@@ -1,7 +1,7 @@
 /*
  * Library file_entry type test program
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -55,9 +55,9 @@ int ewf_test_file_entry_free(
 	 result,
 	 -1 );
 
-        EWF_TEST_ASSERT_IS_NOT_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
 
 	libcerror_error_free(
 	 &error );
@@ -72,10 +72,6 @@ on_error:
 	}
 	return( 0 );
 }
-
-#if defined( __GNUC__ )
-
-#endif /* defined( __GNUC__ ) */
 
 /* The main program
  */
@@ -92,17 +88,15 @@ int main(
 	EWF_TEST_UNREFERENCED_PARAMETER( argc )
 	EWF_TEST_UNREFERENCED_PARAMETER( argv )
 
-#if defined( __GNUC__ )
+#if defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT )
 
 	/* TODO: add tests for libewf_file_entry_initialize */
 
-#endif /* defined( __GNUC__ ) */
+#endif /* defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT ) */
 
 	EWF_TEST_RUN(
 	 "libewf_file_entry_free",
 	 ewf_test_file_entry_free );
-
-#if defined( __GNUC__ )
 
 	/* TODO: add tests for libewf_file_entry_get_type */
 
@@ -159,8 +153,6 @@ int main(
 	/* TODO: add tests for libewf_file_entry_get_sub_file_entry_by_utf16_name */
 
 	/* TODO: add tests for libewf_file_entry_get_sub_file_entry_by_utf16_path */
-
-#endif /* defined( __GNUC__ ) */
 
 	return( EXIT_SUCCESS );
 

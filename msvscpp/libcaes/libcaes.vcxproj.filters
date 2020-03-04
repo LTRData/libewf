@@ -21,9 +21,6 @@
     <ClCompile Include="..\..\libcaes\libcaes_error.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\libcaes\libcaes_key.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\libcaes\libcaes_support.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -42,9 +39,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libcaes\libcaes_extern.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\libcaes\libcaes_key.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libcaes\libcaes_libcerror.h">

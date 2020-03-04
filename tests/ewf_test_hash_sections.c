@@ -1,7 +1,7 @@
 /*
  * Library hash_sections type test program
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -35,7 +35,7 @@
 
 #include "../libewf/libewf_hash_sections.h"
 
-#if defined( __GNUC__ )
+#if defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT )
 
 /* Tests the libewf_hash_sections_initialize function
  * Returns 1 if successful or 0 if not
@@ -64,13 +64,13 @@ int ewf_test_hash_sections_initialize(
 	 result,
 	 1 );
 
-        EWF_TEST_ASSERT_IS_NOT_NULL(
-         "hash_sections",
-         hash_sections );
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "hash_sections",
+	 hash_sections );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
 
 	result = libewf_hash_sections_free(
 	          &hash_sections,
@@ -81,13 +81,13 @@ int ewf_test_hash_sections_initialize(
 	 result,
 	 1 );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "hash_sections",
-         hash_sections );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "hash_sections",
+	 hash_sections );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
 
 	/* Test error cases
 	 */
@@ -100,9 +100,9 @@ int ewf_test_hash_sections_initialize(
 	 result,
 	 -1 );
 
-        EWF_TEST_ASSERT_IS_NOT_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
 
 	libcerror_error_free(
 	 &error );
@@ -113,19 +113,19 @@ int ewf_test_hash_sections_initialize(
 	          &hash_sections,
 	          &error );
 
+	hash_sections = NULL;
+
 	EWF_TEST_ASSERT_EQUAL_INT(
 	 "result",
 	 result,
 	 -1 );
 
-        EWF_TEST_ASSERT_IS_NOT_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
 
 	libcerror_error_free(
 	 &error );
-
-	hash_sections = NULL;
 
 #if defined( HAVE_EWF_TEST_MEMORY )
 
@@ -252,9 +252,9 @@ int ewf_test_hash_sections_free(
 	 result,
 	 -1 );
 
-        EWF_TEST_ASSERT_IS_NOT_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
 
 	libcerror_error_free(
 	 &error );
@@ -292,13 +292,13 @@ int ewf_test_hash_sections_clone(
 	 result,
 	 1 );
 
-        EWF_TEST_ASSERT_IS_NOT_NULL(
-         "source_hash_sections",
-         source_hash_sections );
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "source_hash_sections",
+	 source_hash_sections );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
 
 	/* Test regular cases
 	 */
@@ -312,13 +312,13 @@ int ewf_test_hash_sections_clone(
 	 result,
 	 1 );
 
-        EWF_TEST_ASSERT_IS_NOT_NULL(
-         "destination_hash_sections",
-         destination_hash_sections );
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "destination_hash_sections",
+	 destination_hash_sections );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
 
 	result = libewf_hash_sections_free(
 	          &destination_hash_sections,
@@ -329,13 +329,13 @@ int ewf_test_hash_sections_clone(
 	 result,
 	 1 );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "destination_hash_sections",
-         destination_hash_sections );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "destination_hash_sections",
+	 destination_hash_sections );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
 
 	result = libewf_hash_sections_clone(
 	          &destination_hash_sections,
@@ -347,13 +347,13 @@ int ewf_test_hash_sections_clone(
 	 result,
 	 1 );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "destination_hash_sections",
-         destination_hash_sections );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "destination_hash_sections",
+	 destination_hash_sections );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
 
 	/* Test error cases
 	 */
@@ -367,9 +367,9 @@ int ewf_test_hash_sections_clone(
 	 result,
 	 -1 );
 
-        EWF_TEST_ASSERT_IS_NOT_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
 
 	libcerror_error_free(
 	 &error );
@@ -385,13 +385,13 @@ int ewf_test_hash_sections_clone(
 	 result,
 	 1 );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "source_hash_sections",
-         source_hash_sections );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "source_hash_sections",
+	 source_hash_sections );
 
-        EWF_TEST_ASSERT_IS_NULL(
-         "error",
-         error );
+	EWF_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
 
 	return( 1 );
 
@@ -416,7 +416,7 @@ on_error:
 	return( 0 );
 }
 
-#endif /* defined( __GNUC__ ) */
+#endif /* defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT ) */
 
 /* The main program
  */
@@ -433,7 +433,7 @@ int main(
 	EWF_TEST_UNREFERENCED_PARAMETER( argc )
 	EWF_TEST_UNREFERENCED_PARAMETER( argv )
 
-#if defined( __GNUC__ )
+#if defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT )
 
 	EWF_TEST_RUN(
 	 "libewf_hash_sections_initialize",
@@ -449,7 +449,7 @@ int main(
 
 	/* TODO: add tests for libewf_hash_sections_set_digest_from_hash_values */
 
-#endif /* defined( __GNUC__ ) */
+#endif /* defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT ) */
 
 	return( EXIT_SUCCESS );
 

@@ -57,7 +57,13 @@
     <ClCompile Include="..\..\libewf\libewf_device_information.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\libewf\libewf_digest_section.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\libewf\libewf_error.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libewf\libewf_error2_section.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\libewf\libewf_file_entry.c">
@@ -84,10 +90,13 @@
     <ClCompile Include="..\..\libewf\libewf_io_handle.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\libewf\libewf_media_values.c">
+    <ClCompile Include="..\..\libewf\libewf_ltree_section.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\libewf\libewf_metadata.c">
+    <ClCompile Include="..\..\libewf\libewf_md5_hash_section.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libewf\libewf_media_values.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\libewf\libewf_notify.c">
@@ -102,6 +111,9 @@
     <ClCompile Include="..\..\libewf\libewf_section.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\libewf\libewf_section_descriptor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\libewf\libewf_sector_range.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -109,6 +121,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\libewf\libewf_segment_table.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libewf\libewf_session_section.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libewf\libewf_sha1_hash_section.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\libewf\libewf_single_file_entry.c">
@@ -121,6 +139,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\libewf\libewf_support.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libewf\libewf_volume_section.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\libewf\libewf_write_io_handle.c">
@@ -203,7 +224,13 @@
     <ClInclude Include="..\..\libewf\libewf_device_information.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\libewf\libewf_digest_section.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\libewf\libewf_error.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\libewf\libewf_error2_section.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libewf\libewf_extern.h">
@@ -272,10 +299,13 @@
     <ClInclude Include="..\..\libewf\libewf_libuna.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\libewf\libewf_media_values.h">
+    <ClInclude Include="..\..\libewf\libewf_ltree_section.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\libewf\libewf_metadata.h">
+    <ClInclude Include="..\..\libewf\libewf_md5_hash_section.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\libewf\libewf_media_values.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libewf\libewf_notify.h">
@@ -290,6 +320,9 @@
     <ClInclude Include="..\..\libewf\libewf_section.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\libewf\libewf_section_descriptor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\libewf\libewf_sector_range.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -297,6 +330,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libewf\libewf_segment_table.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\libewf\libewf_session_section.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\libewf\libewf_sha1_hash_section.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libewf\libewf_single_file_entry.h">
@@ -315,6 +354,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libewf\libewf_unused.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\libewf\libewf_volume_section.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libewf\libewf_write_io_handle.h">

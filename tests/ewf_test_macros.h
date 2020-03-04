@@ -1,7 +1,7 @@
 /*
  * Macros for testing
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -57,6 +57,34 @@
 		goto on_error; \
 	}
 
+#define EWF_TEST_ASSERT_EQUAL_INTPTR( name, value, expected_value ) \
+	if( value != expected_value ) \
+	{ \
+		fprintf( stdout, "%s:%d %s (0x%08x" PRIjx ") != 0x%08x" PRIjx "\n", __FILE__, __LINE__, name, value, expected_value ); \
+		goto on_error; \
+	}
+
+#define EWF_TEST_ASSERT_NOT_EQUAL_INTPTR( name, value, expected_value ) \
+	if( value == expected_value ) \
+	{ \
+		fprintf( stdout, "%s:%d %s (0x%08x" PRIjx ") == 0x%08x" PRIjx "\n", __FILE__, __LINE__, name, value, expected_value ); \
+		goto on_error; \
+	}
+
+#define EWF_TEST_ASSERT_EQUAL_FLOAT( name, value, expected_value ) \
+	if( value != expected_value ) \
+	{ \
+		fprintf( stdout, "%s:%d %s (%f) != %f\n", __FILE__, __LINE__, name, value, expected_value ); \
+		goto on_error; \
+	}
+
+#define EWF_TEST_ASSERT_NOT_EQUAL_FLOAT( name, value, expected_value ) \
+	if( value == expected_value ) \
+	{ \
+		fprintf( stdout, "%s:%d %s (%f) == %f\n", __FILE__, __LINE__, name, value, expected_value ); \
+		goto on_error; \
+	}
+
 #define EWF_TEST_ASSERT_EQUAL_SIZE( name, value, expected_value ) \
 	if( value != expected_value ) \
 	{ \
@@ -68,6 +96,13 @@
 	if( value != expected_value ) \
 	{ \
 		fprintf( stdout, "%s:%d %s (%" PRIzd ") != %" PRIzd "\n", __FILE__, __LINE__, name, value, expected_value ); \
+		goto on_error; \
+	}
+
+#define EWF_TEST_ASSERT_NOT_EQUAL_SSIZE( name, value, expected_value ) \
+	if( value == expected_value ) \
+	{ \
+		fprintf( stdout, "%s:%d %s (%" PRIzd ") == %" PRIzd "\n", __FILE__, __LINE__, name, value, expected_value ); \
 		goto on_error; \
 	}
 
