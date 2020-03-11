@@ -1,22 +1,22 @@
 /*
  * GetOpt functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -47,6 +47,10 @@ system_character_t *optarg = NULL;
  */
 system_integer_t optopt = 0;
 
+/* The next option in a group
+ */
+system_character_t *next_option = NULL;
+
 /* Get the program options
  * Function for platforms that do not have the getopt function
  * Returns the option character processed, or -1 on error,
@@ -62,33 +66,41 @@ system_integer_t ewf_test_getopt(
 	static char *function              = "ewf_test_getopt";
 	size_t options_string_length       = 0;
 
-	if( optind >= argument_count )
+	if( next_option != NULL )
+	{
+		argument_value = next_option;
+		next_option    = NULL;
+	}
+	else if( optind >= argument_count )
 	{
 		return( (system_integer_t) -1 );
 	}
-	argument_value = argument_values[ optind ];
-
-	/* Check if the argument value is not an empty string
-	 */
-	if( *argument_value == 0 )
+	else
 	{
-		return( (system_integer_t) -1 );
-	}
-	/* Check if the first character is a option marker '-'
-	 */
-	if( *argument_value != (system_character_t) '-' )
-	{
-		return( (system_integer_t) -1 );
-	}
-	argument_value++;
+		argument_value = argument_values[ optind ];
 
-	/* Check if long options are provided '--'
-	 */
-	if( *argument_value == (system_character_t) '-' )
-	{
-		optind++;
+		/* Check if the argument value is not an empty string
+		 */
+		if( *argument_value == (system_character_t) '\0' )
+		{
+			return( (system_integer_t) -1 );
+		}
+		/* Check if the first character is a option marker '-'
+		 */
+		if( *argument_value != (system_character_t) '-' )
+		{
+			return( (system_integer_t) -1 );
+		}
+		argument_value++;
 
-		return( (system_integer_t) -1 );
+		/* Check if long options are provided '--'
+		 */
+		if( *argument_value == (system_character_t) '-' )
+		{
+			optind++;
+
+			return( (system_integer_t) -1 );
+		}
 	}
 	options_string_length = system_string_length(
 	                         options_string );
@@ -132,6 +144,12 @@ system_integer_t ewf_test_getopt(
 		if( *argument_value == (system_character_t) '\0' )
 		{
 			optind++;
+		}
+		else
+		{
+			/* Multiple options are grouped
+			 */
+			next_option = argument_value;
 		}
 	}
 	/* Check if the argument is right after the option flag with no space in between

@@ -1,22 +1,22 @@
 /*
  * System character string functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #if !defined( _SYSTEM_STRING_H )
@@ -83,11 +83,11 @@ extern "C" {
 #endif
 
 #if defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x0560 )
-#define system_string_vsprintf \
+#define system_string_vsnprintf \
 	wide_string_vsnwprintf
 
 #else
-#define system_string_vsprintf( string, size, format, ... ) \
+#define system_string_vsnprintf( string, size, format, ... ) \
 	wide_string_vsnwprintf( string, size, format, __VA_ARGS__ )
 #endif
 
@@ -133,15 +133,18 @@ extern "C" {
 #endif
 
 #if defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x0560 )
-#define system_string_vsprintf \
+#define system_string_vsnprintf \
 	narrow_string_vsnprintf
 
 #else
-#define system_string_vsprintf( string, size, format, ... ) \
+#define system_string_vsnprintf( string, size, format, ... ) \
 	narrow_string_vsnprintf( string, size, format, __VA_ARGS__ )
 #endif
 
 #endif /* defined( HAVE_WIDE_SYSTEM_CHARACTER ) */
+
+/* For backwards compatibility */
+#define system_string_vsprintf system_string_vsnprintf
 
 #if defined( _cplusplus )
 }

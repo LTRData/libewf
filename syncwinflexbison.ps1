@@ -1,9 +1,11 @@
 # Script that synchronizes Windows versions of flex and bison.
 #
-# Version: 20170225
+# Version: 20190109
 
 Function DownloadFile($Url, $Destination)
 {
+	[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+
 	$Client = New-Object Net.WebClient
 	${Client}.DownloadFile(${Url}, ${Destination})
 }
@@ -37,9 +39,10 @@ Function ExtractZip($Filename, $Destination)
 	}
 }
 
-$Filename = "${pwd}\win_flex_bison-2.5.9.zip"
-$Url = "http://downloads.sourceforge.net/project/winflexbison/win_flex_bison-2.5.9.zip"
-$ExtractedPath = "win_flex_bison-2.5.9"
+$Version = "2.5.16"
+$Filename = "${pwd}\winflexbison-${Version}.zip"
+$Url = "https://github.com/lexxmark/winflexbison/releases/download/v${Version}/winflexbison-${Version}.zip"
+$ExtractedPath = "winflexbison-${Version}"
 $DestinationPath = "..\win_flex_bison"
 
 If (Test-Path ${Filename})
@@ -53,6 +56,8 @@ If (Test-Path ${ExtractedPath})
 	Remove-Item -Path ${ExtractedPath} -Force -Recurse
 }
 ExtractZip -Filename ${Filename} -Destination "${pwd}\${ExtractedPath}"
+
+Remove-Item -Path ${Filename} -Force
 
 If (Test-Path ${DestinationPath})
 {

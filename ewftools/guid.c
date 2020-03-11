@@ -1,22 +1,22 @@
 /*
  * GUID functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -109,7 +109,7 @@ int guid_generate(
 		 guid );
 #endif
 	}
-	if( guid_type == GUID_TYPE_TIME )
+	else if( guid_type == GUID_TYPE_TIME )
 	{
 #if defined( __BORLANDC__ ) && __BORLANDC__ <= 0x0520
 		/* No support for the time type GUID */
@@ -150,11 +150,13 @@ int guid_generate(
 	guid[ 5 ] = uuid.Data4[ 5 ];
 	guid[ 6 ] = uuid.Data4[ 6 ];
 	guid[ 7 ] = uuid.Data4[ 7 ];
-#endif
+
+#endif /* defined( WINAPI ) */
+
 	return( 1 );
 }
 
-#endif
+#endif /* defined( HAVE_GUID_SUPPORT ) || defined( WINAPI ) */
 
 /* Converts the GUID into a string
  * Returns 1 if successful or -1 on error
@@ -305,7 +307,6 @@ int guid_to_string(
 			       guid[ 8 ], guid[ 9 ],
 			       guid[ 10 ], guid[ 11 ], guid[ 12 ], guid[ 13 ], guid[ 14 ], guid[ 15 ] );
 	}
-
 	if( ( print_count < 0 )
 	 || ( (size_t) print_count > string_size ) )
 	{

@@ -1,52 +1,58 @@
 # Info tool testing script
 #
-# Version: 20161101
+# Version: 20200216
 
 $ExitSuccess = 0
 $ExitFailure = 1
 $ExitIgnore = 77
 
-$TestPrefix = Split-Path -path ${Pwd}.Path -parent
-$TestPrefix = Split-Path -path ${TestPrefix} -leaf
-$TestPrefix = ${TestPrefix}.Substring(3)
-$TestSuffix = "info"
+$InputGlob = "*.[ELels]*01"
 
-$TestToolDirectory = "..\msvscpp\Release"
-$TestTool = "${TestPrefix}${TestSuffix}"
-$InputDirectory = "input"
-$InputGlob = "*"
+Function GetTestExecutablesDirectory
+{
+	$TestExecutablesDirectory = ""
 
-If (-Not (Test-Path ${TestToolDirectory}))
-{
-	$TestToolDirectory = "..\vs2010\Release"
+	ForEach (${VSDirectory} in "msvscpp vs2008 vs2010 vs2012 vs2013 vs2015 vs2017 vs2019" -split " ")
+	{
+		ForEach (${VSConfiguration} in "Release VSDebug" -split " ")
+		{
+			ForEach (${VSPlatform} in "Win32 x64" -split " ")
+			{
+				$TestExecutablesDirectory = "..\${VSDirectory}\${VSConfiguration}\${VSPlatform}"
+
+				If (Test-Path ${TestExecutablesDirectory})
+				{
+					Return ${TestExecutablesDirectory}
+				}
+			}
+			$TestExecutablesDirectory = "..\${VSDirectory}\${VSConfiguration}"
+
+			If (Test-Path ${TestExecutablesDirectory})
+			{
+				Return ${TestExecutablesDirectory}
+			}
+		}
+	}
+	Return ${TestExecutablesDirectory}
 }
-If (-Not (Test-Path ${TestToolDirectory}))
+
+$TestExecutablesDirectory = GetTestExecutablesDirectory
+
+If (-Not (Test-Path ${TestExecutablesDirectory}))
 {
-	$TestToolDirectory = "..\vs2012\Release"
-}
-If (-Not (Test-Path ${TestToolDirectory}))
-{
-	$TestToolDirectory = "..\vs2013\Release"
-}
-If (-Not (Test-Path ${TestToolDirectory}))
-{
-	$TestToolDirectory = "..\vs2015\Release"
-}
-If (-Not (Test-Path ${TestToolDirectory}))
-{
-	Write-Host "Missing test tool directory." -foreground Red
+	Write-Host "Missing test executables directory." -foreground Red
 
 	Exit ${ExitFailure}
 }
 
-$TestExecutable = "${TestToolDirectory}\${TestTool}.exe"
+$TestExecutable = "${TestExecutablesDirectory}\ewfinfo.exe"
 
-If (-Not (Test-Path -Path "${InputDirectory}"))
+If (-Not (Test-Path -Path "input"))
 {
 	Exit ${ExitSuccess}
 }
 
-Get-ChildItem -Path "${InputDirectory}\${InputGlob}" | Foreach-Object
+Get-ChildItem -Path "input\${InputGlob}" | Foreach-Object
 {
 	Invoke-Expression ${TestExecutable} $_
 

@@ -1,23 +1,15 @@
 #!/bin/bash
 # Export tool testing script
 #
-# Version: 20160411
+# Version: 20190223
 
 EXIT_SUCCESS=0;
 EXIT_FAILURE=1;
 EXIT_IGNORE=77;
 
-TEST_PREFIX=`dirname ${PWD}`;
-TEST_PREFIX=`basename ${TEST_PREFIX} | sed 's/^lib\([^-]*\).*$/\1/'`;
-TEST_SUFFIX="export";
-
-TEST_PROFILE="${TEST_PREFIX}${TEST_SUFFIX}";
-TEST_DESCRIPTION="${TEST_PREFIX}${TEST_SUFFIX}";
 OPTION_SETS="format:encase1 format:encase2 format:encase3 format:encase4 format:encase5 format:encase6 format:encase7 format:encase7-v2 format:ewf format:ewfx format:ftk format:linen5 format:linen6 format:linen7 format:raw format:smart deflate:none deflate:empty-block deflate:fast deflate:best blocksize:16 blocksize:32 blocksize:128 blocksize:256 blocksize:512 blocksize:1024 blocksize:2048 blocksize:4096 blocksize:8192 blocksize:16384 blocksize:32768 hash:sha1 hash:sha256 hash:all";
+OPTIONS=(-q -texport -u);
 
-TEST_TOOL_DIRECTORY="../${TEST_PREFIX}tools";
-TEST_TOOL="${TEST_PREFIX}${TEST_SUFFIX}";
-INPUT_DIRECTORY="input";
 INPUT_GLOB="*.[Ees]*01";
 
 test_callback()
@@ -28,10 +20,10 @@ test_callback()
 	local TEST_EXECUTABLE=$4;
 	local TEST_INPUT=$5;
 	shift 5;
-	local ARGUMENTS=$@;
+	local ARGUMENTS=("$@");
 
-	TEST_EXECUTABLE=`readlink -f ${TEST_EXECUTABLE}`;
-	INPUT_FILE_FULL_PATH=`readlink -f "${INPUT_FILE}"`;
+	TEST_EXECUTABLE=$( readlink_f "${TEST_EXECUTABLE}" );
+	INPUT_FILE_FULL_PATH=$( readlink_f "${INPUT_FILE}" );
 
 	(cd ${TMPDIR} && run_test_with_input_and_arguments "${TEST_EXECUTABLE}" "${INPUT_FILE_FULL_PATH}" ${ARGUMENTS[@]});
 	local RESULT=$?;
@@ -73,11 +65,11 @@ then
 	exit ${EXIT_IGNORE};
 fi
 
-TEST_EXECUTABLE="${TEST_TOOL_DIRECTORY}/${TEST_TOOL}";
+TEST_EXECUTABLE="../ewftools/ewfexport";
 
 if ! test -x "${TEST_EXECUTABLE}";
 then
-	TEST_EXECUTABLE="${TEST_TOOL_DIRECTORY}/${TEST_TOOL}.exe";
+	TEST_EXECUTABLE="../ewftools/ewfexport.exe";
 fi
 
 if ! test -x "${TEST_EXECUTABLE}";
@@ -87,11 +79,11 @@ then
 	exit ${EXIT_FAILURE};
 fi
 
-VERIFY_TOOL="../${TEST_PREFIX}tools/${TEST_PREFIX}verify";
+VERIFY_TOOL="../ewftools/ewfverify";
 
 if ! test -x "${VERIFY_TOOL}";
 then
-	VERIFY_TOOL="../${TEST_PREFIX}tools/${TEST_PREFIX}verify.exe";
+	VERIFY_TOOL="../ewftools/ewfverify.exe";
 fi
 
 if ! test -x "${VERIFY_TOOL}";
@@ -115,9 +107,9 @@ then
 	exit ${EXIT_FAILURE};
 fi
 
-PLATFORM=`uname -s`;
-
 source ${TEST_RUNNER};
+
+PLATFORM=`uname -s`;
 
 if test "${PLATFORM}" = "Darwin";
 then
@@ -126,8 +118,77 @@ else
 	assert_availability_binary md5sum;
 fi
 
-run_test_on_input_directory "${TEST_PROFILE}" "${TEST_DESCRIPTION}" "with_callback" "${OPTION_SETS}" "${TEST_EXECUTABLE}" "${INPUT_DIRECTORY}" "${INPUT_GLOB}" -q -texport -u;
-RESULT=$?;
+if ! test -d "input";
+then
+	echo "Test input directory not found.";
+
+	exit ${EXIT_IGNORE};
+fi
+RESULT=`ls input/* | tr ' ' '\n' | wc -l`;
+
+if test ${RESULT} -eq ${EXIT_SUCCESS};
+then
+	echo "No files or directories found in the test input directory";
+
+	exit ${EXIT_IGNORE};
+fi
+
+TEST_PROFILE_DIRECTORY=$(get_test_profile_directory "input" "ewfexport");
+
+IGNORE_LIST=$(read_ignore_list "${TEST_PROFILE_DIRECTORY}");
+
+RESULT=${EXIT_SUCCESS};
+
+for TEST_SET_INPUT_DIRECTORY in input/*;
+do
+	if ! test -d "${TEST_SET_INPUT_DIRECTORY}";
+	then
+		continue;
+	fi
+	if check_for_directory_in_ignore_list "${TEST_SET_INPUT_DIRECTORY}" "${IGNORE_LIST}";
+	then
+		continue;
+	fi
+
+	TEST_SET_DIRECTORY=$(get_test_set_directory "${TEST_PROFILE_DIRECTORY}" "${TEST_SET_INPUT_DIRECTORY}");
+
+	OLDIFS=${IFS};
+
+	# IFS="\n"; is not supported by all platforms.
+	IFS="
+";
+
+	if test -f "${TEST_SET_DIRECTORY}/files";
+	then
+		for INPUT_FILE in `cat ${TEST_SET_DIRECTORY}/files | sed "s?^?${TEST_SET_INPUT_DIRECTORY}/?"`;
+		do
+			run_test_on_input_file_with_options "${TEST_SET_DIRECTORY}" "ewfexport" "with_callback" "${OPTION_SETS}" "${TEST_EXECUTABLE}" "${INPUT_FILE}" "${OPTIONS[@]}";
+			RESULT=$?;
+
+			if test ${RESULT} -ne ${EXIT_SUCCESS};
+			then
+				break;
+			fi
+		done
+	else
+		for INPUT_FILE in `ls -1 ${TEST_SET_INPUT_DIRECTORY}/${INPUT_GLOB}`;
+		do
+			run_test_on_input_file_with_options "${TEST_SET_DIRECTORY}" "ewfexport" "with_callback" "${OPTION_SETS}" "${TEST_EXECUTABLE}" "${INPUT_FILE}" "${OPTIONS[@]}";
+			RESULT=$?;
+
+			if test ${RESULT} -ne ${EXIT_SUCCESS};
+			then
+				break;
+			fi
+		done
+	fi
+	IFS=${OLDIFS};
+
+	if test ${RESULT} -ne ${EXIT_SUCCESS};
+	then
+		break;
+	fi
+done
 
 exit ${RESULT};
 

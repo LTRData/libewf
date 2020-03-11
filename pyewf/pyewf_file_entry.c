@@ -1,22 +1,22 @@
 /*
  * Python object definition of the libewf file entry
  *
- * Copyright (C) 2008-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -30,7 +30,6 @@
 #include "pyewf_error.h"
 #include "pyewf_file_entries.h"
 #include "pyewf_file_entry.h"
-#include "pyewf_handle.h"
 #include "pyewf_integer.h"
 #include "pyewf_libcerror.h"
 #include "pyewf_libewf.h"
@@ -364,7 +363,7 @@ PyTypeObject pyewf_file_entry_type_object = {
  */
 PyObject *pyewf_file_entry_new(
            libewf_file_entry_t *file_entry,
-           pyewf_handle_t *handle_object )
+           PyObject *parent_object )
 {
 	pyewf_file_entry_t *pyewf_file_entry = NULL;
 	static char *function                = "pyewf_file_entry_new";
@@ -402,10 +401,10 @@ PyObject *pyewf_file_entry_new(
 		goto on_error;
 	}
 	pyewf_file_entry->file_entry    = file_entry;
-	pyewf_file_entry->handle_object = handle_object;
+	pyewf_file_entry->parent_object = parent_object;
 
 	Py_IncRef(
-	 (PyObject *) pyewf_file_entry->handle_object );
+	 (PyObject *) pyewf_file_entry->parent_object );
 
 	return( (PyObject *) pyewf_file_entry );
 
@@ -510,10 +509,10 @@ void pyewf_file_entry_free(
 		libcerror_error_free(
 		 &error );
 	}
-	if( pyewf_file_entry->handle_object != NULL )
+	if( pyewf_file_entry->parent_object != NULL )
 	{
 		Py_DecRef(
-		 (PyObject *) pyewf_file_entry->handle_object );
+		 (PyObject *) pyewf_file_entry->parent_object );
 	}
 	ob_type->tp_free(
 	 (PyObject*) pyewf_file_entry );
@@ -966,7 +965,7 @@ PyObject *pyewf_file_entry_get_creation_time(
 	libcerror_error_t *error   = NULL;
 	PyObject *date_time_object = NULL;
 	static char *function      = "pyewf_file_entry_get_creation_time";
-	uint32_t posix_time        = 0;
+	int64_t posix_time         = 0;
 	int result                 = 0;
 
 	PYEWF_UNREFERENCED_PARAMETER( arguments )
@@ -1018,7 +1017,7 @@ PyObject *pyewf_file_entry_get_creation_time_as_integer(
 	libcerror_error_t *error = NULL;
 	PyObject *integer_object = NULL;
 	static char *function    = "pyewf_file_entry_get_creation_time_as_integer";
-	uint32_t posix_time      = 0;
+	int64_t posix_time       = 0;
 	int result               = 0;
 
 	PYEWF_UNREFERENCED_PARAMETER( arguments )
@@ -1070,7 +1069,7 @@ PyObject *pyewf_file_entry_get_modification_time(
 	libcerror_error_t *error   = NULL;
 	PyObject *date_time_object = NULL;
 	static char *function      = "pyewf_file_entry_get_modification_time";
-	uint32_t posix_time        = 0;
+	int64_t posix_time         = 0;
 	int result                 = 0;
 
 	PYEWF_UNREFERENCED_PARAMETER( arguments )
@@ -1122,7 +1121,7 @@ PyObject *pyewf_file_entry_get_modification_time_as_integer(
 	libcerror_error_t *error = NULL;
 	PyObject *integer_object = NULL;
 	static char *function    = "pyewf_file_entry_get_modification_time_as_integer";
-	uint32_t posix_time      = 0;
+	int64_t posix_time       = 0;
 	int result               = 0;
 
 	PYEWF_UNREFERENCED_PARAMETER( arguments )
@@ -1174,7 +1173,7 @@ PyObject *pyewf_file_entry_get_access_time(
 	libcerror_error_t *error   = NULL;
 	PyObject *date_time_object = NULL;
 	static char *function      = "pyewf_file_entry_get_access_time";
-	uint32_t posix_time        = 0;
+	int64_t posix_time         = 0;
 	int result                 = 0;
 
 	PYEWF_UNREFERENCED_PARAMETER( arguments )
@@ -1226,7 +1225,7 @@ PyObject *pyewf_file_entry_get_access_time_as_integer(
 	libcerror_error_t *error = NULL;
 	PyObject *integer_object = NULL;
 	static char *function    = "pyewf_file_entry_get_access_time_as_integer";
-	uint32_t posix_time      = 0;
+	int64_t posix_time       = 0;
 	int result               = 0;
 
 	PYEWF_UNREFERENCED_PARAMETER( arguments )
@@ -1278,7 +1277,7 @@ PyObject *pyewf_file_entry_get_entry_modification_time(
 	libcerror_error_t *error   = NULL;
 	PyObject *date_time_object = NULL;
 	static char *function      = "pyewf_file_entry_get_entry_modification_time";
-	uint32_t posix_time        = 0;
+	int64_t posix_time         = 0;
 	int result                 = 0;
 
 	PYEWF_UNREFERENCED_PARAMETER( arguments )
@@ -1330,7 +1329,7 @@ PyObject *pyewf_file_entry_get_entry_modification_time_as_integer(
 	libcerror_error_t *error = NULL;
 	PyObject *integer_object = NULL;
 	static char *function    = "pyewf_file_entry_get_entry_modification_time_as_integer";
-	uint32_t posix_time      = 0;
+	int64_t posix_time       = 0;
 	int result               = 0;
 
 	PYEWF_UNREFERENCED_PARAMETER( arguments )
@@ -1714,7 +1713,7 @@ PyObject *pyewf_file_entry_get_number_of_sub_file_entries(
  * Returns a Python object if successful or NULL on error
  */
 PyObject *pyewf_file_entry_get_sub_file_entry_by_index(
-           pyewf_file_entry_t *pyewf_file_entry,
+           PyObject *pyewf_file_entry,
            int sub_file_entry_index )
 {
 	libcerror_error_t *error            = NULL;
@@ -1735,7 +1734,7 @@ PyObject *pyewf_file_entry_get_sub_file_entry_by_index(
 	Py_BEGIN_ALLOW_THREADS
 
 	result = libewf_file_entry_get_sub_file_entry(
-	          pyewf_file_entry->file_entry,
+	          ( (pyewf_file_entry_t *) pyewf_file_entry )->file_entry,
 	          sub_file_entry_index,
 	          &sub_file_entry,
 	          &error );
@@ -1758,7 +1757,7 @@ PyObject *pyewf_file_entry_get_sub_file_entry_by_index(
 	}
 	file_entry_object = pyewf_file_entry_new(
 	                     sub_file_entry,
-	                     pyewf_file_entry->handle_object );
+	                     ( (pyewf_file_entry_t *) pyewf_file_entry )->parent_object );
 
 	if( file_entry_object == NULL )
 	{
@@ -1803,7 +1802,7 @@ PyObject *pyewf_file_entry_get_sub_file_entry(
 		return( NULL );
 	}
 	file_entry_object = pyewf_file_entry_get_sub_file_entry_by_index(
-	                     pyewf_file_entry,
+	                     (PyObject *) pyewf_file_entry,
 	                     sub_file_entry_index );
 
 	return( file_entry_object );
@@ -1856,7 +1855,7 @@ PyObject *pyewf_file_entry_get_sub_file_entries(
 		return( NULL );
 	}
 	file_entries_object = pyewf_file_entries_new(
-	                       pyewf_file_entry,
+	                       (PyObject *) pyewf_file_entry,
 	                       &pyewf_file_entry_get_sub_file_entry_by_index,
 	                       number_of_sub_file_entries );
 

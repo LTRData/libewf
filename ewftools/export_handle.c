@@ -1,22 +1,22 @@
 /*
  * Export handle
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -32,6 +32,10 @@
 
 #if defined( HAVE_UNISTD_H )
 #include <unistd.h>
+#endif
+
+#if defined( HAVE_IO_H ) || defined( WINAPI )
+#include <io.h>
 #endif
 
 #if defined( WINAPI )
@@ -64,10 +68,11 @@
 #include "storage_media_buffer.h"
 #include "storage_media_buffer_queue.h"
 
-#define EXPORT_HANDLE_BUFFER_SIZE		8192
-#define EXPORT_HANDLE_INPUT_BUFFER_SIZE		64
-#define EXPORT_HANDLE_STRING_SIZE		1024
-#define EXPORT_HANDLE_NOTIFY_STREAM		stderr
+#define EXPORT_HANDLE_BUFFER_SIZE			8192
+#define EXPORT_HANDLE_INPUT_BUFFER_SIZE			64
+#define EXPORT_HANDLE_STRING_SIZE			1024
+#define EXPORT_HANDLE_NOTIFY_STREAM			stderr
+#define EXPORT_HANDLE_MAXIMUM_PROCESS_BUFFERS_SIZE	64 * 1024 * 1024
 
 /* Creates an export handle
  * Make sure the value export_handle is referencing, is set to NULL
@@ -203,13 +208,11 @@ int export_handle_initialize(
 	( *export_handle )->sectors_per_chunk        = 64;
 	( *export_handle )->header_codepage          = LIBEWF_CODEPAGE_ASCII;
 	( *export_handle )->process_buffer_size      = EWFCOMMON_PROCESS_BUFFER_SIZE;
-#if !defined( HAVE_MULTI_THREAD_SUPPORT )
-    (*export_handle)->number_of_threads = 0;
-#else
-    (*export_handle)->number_of_threads = 4;
-#endif
-    ( *export_handle )->notify_stream            = EXPORT_HANDLE_NOTIFY_STREAM;
+	( *export_handle )->notify_stream            = EXPORT_HANDLE_NOTIFY_STREAM;
 
+#if defined( HAVE_MULTI_THREAD_SUPPORT )
+	( *export_handle )->number_of_threads        = 4;
+#endif
 	return( 1 );
 
 on_error:
@@ -1167,7 +1170,7 @@ ssize_t export_handle_write_storage_media_buffer(
 			write_count = _write(
 			               1,
 				       storage_media_buffer->raw_buffer,
-				       (unsigned int)write_size );
+				       (unsigned int) write_size );
 #else
 			write_count = write(
 			               1,
@@ -2036,29 +2039,29 @@ int export_handle_prompt_for_output_format(
      const system_character_t *request_string,
      libcerror_error_t **error )
 {
+	system_character_t *format_types[ 17 ] = {
+		_SYSTEM_STRING( "raw" ),
+		_SYSTEM_STRING( "files" ),
+		_SYSTEM_STRING( "ewf" ),
+		_SYSTEM_STRING( "smart" ),
+		_SYSTEM_STRING( "ftk" ),
+		_SYSTEM_STRING( "encase1" ),
+		_SYSTEM_STRING( "encase2" ),
+		_SYSTEM_STRING( "encase3" ),
+		_SYSTEM_STRING( "encase4" ),
+		_SYSTEM_STRING( "encase5" ),
+		_SYSTEM_STRING( "encase6" ),
+		_SYSTEM_STRING( "encase7" ),
+		_SYSTEM_STRING( "encase7-v2" ),
+		_SYSTEM_STRING( "linen5" ),
+		_SYSTEM_STRING( "linen6" ),
+		_SYSTEM_STRING( "linen7" ),
+		_SYSTEM_STRING( "ewfx" ) };
+
 	system_character_t *fixed_string_variable = NULL;
 	static char *function                     = "export_handle_prompt_for_output_format";
 	size_t fixed_string_variable_length       = 0;
 	int result                                = 0;
-
-	system_character_t *format_types[ 17 ]    = \
-	{ _SYSTEM_STRING( "raw" ),
-	  _SYSTEM_STRING( "files" ),
-	  _SYSTEM_STRING( "ewf" ),
-	  _SYSTEM_STRING( "smart" ),
-	  _SYSTEM_STRING( "ftk" ),
-	  _SYSTEM_STRING( "encase1" ),
-	  _SYSTEM_STRING( "encase2" ),
-	  _SYSTEM_STRING( "encase3" ),
-	  _SYSTEM_STRING( "encase4" ),
-	  _SYSTEM_STRING( "encase5" ),
-	  _SYSTEM_STRING( "encase6" ),
-	  _SYSTEM_STRING( "encase7" ),
-	  _SYSTEM_STRING( "encase7-v2" ),
-	  _SYSTEM_STRING( "linen5" ),
-	  _SYSTEM_STRING( "linen6" ),
-	  _SYSTEM_STRING( "linen7" ),
-	  _SYSTEM_STRING( "ewfx" ) };
 
 	if( export_handle == NULL )
 	{
@@ -4512,11 +4515,9 @@ int export_handle_process_storage_media_buffer_callback(
 			goto on_error;
 		}
 	}
-	if( libcthreads_thread_pool_push_sorted(
+	if( libcthreads_thread_pool_push(
 	     export_handle->output_thread_pool,
 	     (intptr_t *) storage_media_buffer,
-	     (int (*)(intptr_t *, intptr_t *, libcerror_error_t **)) &storage_media_buffer_compare,
-	     LIBCTHREADS_SORT_FLAG_UNIQUE_VALUES,
 	     &error ) != 1 )
 	{
 		libcerror_error_set(
@@ -5216,7 +5217,7 @@ int export_handle_export_input(
 #if defined( HAVE_MULTI_THREAD_SUPPORT )
 	if( export_handle->number_of_threads != 0 )
 	{
-		maximum_number_of_queued_items = 1 + ( ( 512 * 1024 * 1024 ) / process_buffer_size );
+		maximum_number_of_queued_items = 1 + (int) ( EXPORT_HANDLE_MAXIMUM_PROCESS_BUFFERS_SIZE / process_buffer_size );
 
 		if( libcthreads_thread_pool_create(
 		     &( export_handle->input_process_thread_pool ),
@@ -5285,8 +5286,6 @@ int export_handle_export_input(
 			goto on_error;
 		}
 	}
-#else
-    maximum_number_of_queued_items;
 #endif
 	export_handle->swap_byte_pairs = swap_byte_pairs;
 
@@ -5900,11 +5899,13 @@ int export_handle_export_single_files(
      log_handle_t *log_handle,
      libcerror_error_t **error )
 {
-	libewf_file_entry_t *file_entry = NULL;
-	static char *function           = "export_handle_export_single_files";
-	size_t export_path_size         = 0;
-	int result                      = 0;
-	int status                      = PROCESS_STATUS_COMPLETED;
+	libewf_file_entry_t *file_entry    = NULL;
+	system_character_t *sanitized_name = NULL;
+	static char *function              = "export_handle_export_single_files";
+	size_t export_path_length          = 0;
+	size_t sanitized_name_size         = 0;
+	int result                         = 0;
+	int status                         = PROCESS_STATUS_COMPLETED;
 
 	if( export_handle == NULL )
 	{
@@ -5928,18 +5929,22 @@ int export_handle_export_single_files(
 
 		return( -1 );
 	}
-	export_path_size = 1 + system_string_length(
-	                        export_handle->target_path );
+	export_path_length = system_string_length(
+	                      export_handle->target_path );
 
 #if defined( HAVE_WIDE_SYSTEM_CHARACTER )
-	if( libcpath_path_sanitize_wide(
+	if( libcpath_path_get_sanitized_path_wide(
 	     export_handle->target_path,
-	     &export_path_size,
+	     export_path_length,
+	     &sanitized_name,
+	     &sanitized_name_size,
 	     error ) != 1 )
 #else
-	if( libcpath_path_sanitize(
+	if( libcpath_path_get_sanitized_path(
 	     export_handle->target_path,
-	     &export_path_size,
+	     export_path_length,
+	     &sanitized_name,
+	     &sanitized_name_size,
 	     error ) != 1 )
 #endif
 	{
@@ -6001,11 +6006,11 @@ int export_handle_export_single_files(
 	}
 #if defined( HAVE_WIDE_SYSTEM_CHARACTER )
 	if( libcpath_path_make_directory_wide(
-	     export_handle->target_path,
+	     sanitized_name,
 	     error ) != 1 )
 #else
 	if( libcpath_path_make_directory(
-	     export_handle->target_path,
+	     sanitized_name,
 	     error ) != 1 )
 #endif
 	{
@@ -6015,21 +6020,21 @@ int export_handle_export_single_files(
 		 LIBCERROR_IO_ERROR_WRITE_FAILED,
 		 "%s: unable to create directory: %" PRIs_SYSTEM "",
 		 function,
-		 export_handle->target_path );
+		 sanitized_name );
 
 		goto on_error;
 	}
 	log_handle_printf(
 	 log_handle,
 	 "Created directory: %" PRIs_SYSTEM ".\n",
-	 export_handle->target_path );
+	 sanitized_name );
 
 	result = export_handle_export_file_entry(
 	          export_handle,
 	          file_entry,
-	          export_handle->target_path,
-	          export_path_size,
-	          export_path_size - 1,
+	          sanitized_name,
+	          sanitized_name_size,
+	          sanitized_name_size - 1,
 	          log_handle,
 	          error );
 
@@ -6044,6 +6049,11 @@ int export_handle_export_single_files(
 
 		goto on_error;
 	}
+	memory_free(
+	 sanitized_name );
+
+	sanitized_name = NULL;
+
 	if( export_handle->abort != 0 )
 	{
 		status = PROCESS_STATUS_ABORTED;
@@ -6109,6 +6119,11 @@ on_error:
 		 &file_entry,
 		 NULL );
 	}
+	if( sanitized_name != NULL )
+	{
+		memory_free(
+		 sanitized_name );
+	}
 	return( -1 );
 }
 
@@ -6124,14 +6139,16 @@ int export_handle_export_file_entry(
      log_handle_t *log_handle,
      libcerror_error_t **error )
 {
-	system_character_t *name        = NULL;
-	system_character_t *target_path = NULL;
-	static char *function           = "export_handle_export_file_entry";
-	size_t name_size                = 0;
-	size_t target_path_size         = 0;
-	uint8_t file_entry_type         = 0;
-	int result                      = 0;
-	int return_value                = 0;
+	system_character_t *name           = NULL;
+	system_character_t *sanitized_name = NULL;
+	system_character_t *target_path    = NULL;
+	static char *function              = "export_handle_export_file_entry";
+	size_t name_size                   = 0;
+	size_t sanitized_name_size         = 0;
+	size_t target_path_size            = 0;
+	uint8_t file_entry_type            = 0;
+	int result                         = 0;
+	int return_value                   = 0;
 
 	if( export_handle == NULL )
 	{
@@ -6232,14 +6249,18 @@ int export_handle_export_file_entry(
 			goto on_error;
 		}
 #if defined( HAVE_WIDE_SYSTEM_CHARACTER )
-		if( libcpath_path_sanitize_filename_wide(
+		if( libcpath_path_get_sanitized_filename_wide(
 		     name,
-		     &name_size,
+		     name_size - 1,
+		     &sanitized_name,
+		     &sanitized_name_size,
 		     error ) != 1 )
 #else
-		if( libcpath_path_sanitize_filename(
+		if( libcpath_path_get_sanitized_filename(
 		     name,
-		     &name_size,
+		     name_size - 1,
+		     &sanitized_name,
+		     &sanitized_name_size,
 		     error ) != 1 )
 #endif
 		{
@@ -6252,14 +6273,19 @@ int export_handle_export_file_entry(
 
 			goto on_error;
 		}
+		memory_free(
+		 name );
+
+		name = NULL;
+
 #if defined( HAVE_WIDE_SYSTEM_CHARACTER )
 		if( libcpath_path_join_wide(
 		     &target_path,
 		     &target_path_size,
 		     export_path,
 		     export_path_size - 1,
-		     name,
-		     name_size - 1,
+		     sanitized_name,
+		     sanitized_name_size - 1,
 		     error ) != 1 )
 #else
 		if( libcpath_path_join(
@@ -6267,8 +6293,8 @@ int export_handle_export_file_entry(
 		     &target_path_size,
 		     export_path,
 		     export_path_size - 1,
-		     name,
-		     name_size - 1,
+		     sanitized_name,
+		     sanitized_name_size - 1,
 		     error ) != 1 )
 #endif
 		{
@@ -6282,9 +6308,9 @@ int export_handle_export_file_entry(
 			goto on_error;
 		}
 		memory_free(
-		 name );
+		 sanitized_name );
 
-		name = NULL;
+		sanitized_name = NULL;
 
 		if( target_path == NULL )
 		{
@@ -6452,6 +6478,11 @@ on_error:
 	{
 		memory_free(
 		 target_path );
+	}
+	if( sanitized_name != NULL )
+	{
+		memory_free(
+		 sanitized_name );
 	}
 	if( name != NULL )
 	{
@@ -7130,7 +7161,7 @@ int export_handle_checksum_errors_fprint(
 					{
 						fprintf(
 						 stream,
-						 " %s",
+						 " %" PRIs_SYSTEM "",
 						 filename );
 
 						last_filename      = filename;
@@ -7144,7 +7175,7 @@ int export_handle_checksum_errors_fprint(
 					{
 						fprintf(
 						 stream,
-						 ", %s",
+						 ", %" PRIs_SYSTEM "",
 						 filename );
 
 						memory_free(

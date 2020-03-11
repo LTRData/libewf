@@ -1,22 +1,22 @@
 /*
  * Chunk group functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -33,6 +33,7 @@
 #include "libewf_libfcache.h"
 #include "libewf_libfdata.h"
 #include "libewf_section.h"
+#include "libewf_section_descriptor.h"
 
 #include "ewf_table.h"
 
@@ -65,6 +66,17 @@ int libewf_chunk_group_initialize(
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_VALUE_ALREADY_SET,
 		 "%s: invalid chunk group value already set.",
+		 function );
+
+		return( -1 );
+	}
+	if( io_handle == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid IO handle.",
 		 function );
 
 		return( -1 );
@@ -107,7 +119,7 @@ int libewf_chunk_group_initialize(
 	     (intptr_t *) io_handle,
 	     NULL,
 	     NULL,
-	     (int (*)(intptr_t *, intptr_t *, libfdata_list_element_t *, libfcache_cache_t *, int, off64_t, size64_t, uint32_t, uint8_t, libcerror_error_t **)) &libewf_chunk_data_read_element_data,
+	     (int (*)(intptr_t *, intptr_t *, libfdata_list_element_t *, libfdata_cache_t *, int, off64_t, size64_t, uint32_t, uint8_t, libcerror_error_t **)) &libewf_chunk_data_read_element_data,
 	     NULL,
 	     LIBFDATA_DATA_HANDLE_FLAG_NON_MANAGED,
 	     error ) != 1 )
@@ -242,9 +254,17 @@ int libewf_chunk_group_clone(
 		 "%s: unable to copy source to destination chunk group.",
 		 function );
 
-		goto on_error;
+		memory_free(
+		 *destination_chunk_group );
+
+		*destination_chunk_group = NULL;
+
+		return( -1 );
 	}
+	( *destination_chunk_group )->chunks_list = NULL;
+
 /* TODO clone chunks_list */
+
 	return( 1 );
 
 on_error:
@@ -302,7 +322,7 @@ int libewf_chunk_group_fill_v1(
      uint64_t chunk_index,
      size32_t chunk_size,
      int file_io_pool_entry,
-     libewf_section_t *table_section,
+     libewf_section_descriptor_t *table_section,
      off64_t base_offset,
      uint32_t number_of_entries,
      const uint8_t *table_entries_data,
@@ -539,7 +559,8 @@ int libewf_chunk_group_fill_v1(
 			libcnotify_printf(
 			 "\n" );
 		}
-#endif
+#endif /* defined( HAVE_DEBUG_OUTPUT ) */
+
 		if( libfdata_list_append_element_with_mapped_size(
 		     chunk_group->chunks_list,
 		     &element_index,
@@ -793,7 +814,7 @@ int libewf_chunk_group_fill_v2(
      uint64_t chunk_index,
      size32_t chunk_size,
      int file_io_pool_entry,
-     libewf_section_t *table_section,
+     libewf_section_descriptor_t *table_section,
      uint32_t number_of_offsets,
      const uint8_t *table_entries_data,
      size_t table_entries_data_size,
@@ -999,7 +1020,7 @@ int libewf_chunk_group_correct_v1(
      uint64_t chunk_index,
      size32_t chunk_size,
      int file_io_pool_entry,
-     libewf_section_t *table_section,
+     libewf_section_descriptor_t *table_section,
      off64_t base_offset,
      uint32_t number_of_entries,
      const uint8_t *table_entries_data,

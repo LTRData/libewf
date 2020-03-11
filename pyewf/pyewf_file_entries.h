@@ -1,22 +1,22 @@
 /*
- * Python object definition of the file entries sequence and iterator
+ * Python object definition of the sequence and iterator object of file entries
  *
- * Copyright (C) 2008-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #if !defined( _PYEWF_FILE_ENTRIES_H )
@@ -25,7 +25,6 @@
 #include <common.h>
 #include <types.h>
 
-#include "pyewf_file_entry.h"
 #include "pyewf_libewf.h"
 #include "pyewf_python.h"
 
@@ -41,56 +40,56 @@ struct pyewf_file_entries
 	 */
 	PyObject_HEAD
 
-	/* The file entry object
+	/* The parent object
 	 */
-	pyewf_file_entry_t *file_entry_object;
+	PyObject *parent_object;
 
-	/* The get sub file entry by index callback function
+	/* The get item by index callback function
 	 */
-	PyObject* (*get_sub_file_entry_by_index)(
-	             pyewf_file_entry_t *file_entry_object,
-	             int sub_file_entry_index );
+	PyObject* (*get_item_by_index)(
+	             PyObject *parent_object,
+	             int index );
 
-	/* The (current) sub file entry index
+	/* The current index
 	 */
-	int sub_file_entry_index;
+	int current_index;
 
-	/* The number of sub file entries
+	/* The number of items
 	 */
-	int number_of_sub_file_entries;
+	int number_of_items;
 };
 
 extern PyTypeObject pyewf_file_entries_type_object;
 
 PyObject *pyewf_file_entries_new(
-           pyewf_file_entry_t *file_entry_object,
-           PyObject* (*get_sub_file_entry_by_index)(
-                        pyewf_file_entry_t *file_entry_object,
-                        int sub_file_entry_index ),
-           int number_of_sub_file_entries );
+           PyObject *parent_object,
+           PyObject* (*get_item_by_index)(
+                        PyObject *parent_object,
+                        int index ),
+           int number_of_items );
 
 int pyewf_file_entries_init(
-     pyewf_file_entries_t *pyewf_file_entries );
+     pyewf_file_entries_t *file_entries_object );
 
 void pyewf_file_entries_free(
-      pyewf_file_entries_t *pyewf_file_entries );
+      pyewf_file_entries_t *file_entries_object );
 
 Py_ssize_t pyewf_file_entries_len(
-            pyewf_file_entries_t *pyewf_file_entries );
+            pyewf_file_entries_t *file_entries_object );
 
 PyObject *pyewf_file_entries_getitem(
-           pyewf_file_entries_t *pyewf_file_entries,
+           pyewf_file_entries_t *file_entries_object,
            Py_ssize_t item_index );
 
 PyObject *pyewf_file_entries_iter(
-           pyewf_file_entries_t *pyewf_file_entries );
+           pyewf_file_entries_t *file_entries_object );
 
 PyObject *pyewf_file_entries_iternext(
-           pyewf_file_entries_t *pyewf_file_entries );
+           pyewf_file_entries_t *file_entries_object );
 
 #if defined( __cplusplus )
 }
 #endif
 
-#endif
+#endif /* !defined( _PYEWF_FILE_ENTRIES_H ) */
 

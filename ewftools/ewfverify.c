@@ -1,22 +1,22 @@
 /*
  * Verifies the integrity of the media data within the EWF file
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -24,16 +24,16 @@
 #include <system_string.h>
 #include <types.h>
 
+#if defined( HAVE_SYS_RESOURCE_H )
+#include <sys/resource.h>
+#endif
+
 #if defined( HAVE_STDLIB_H ) || defined( WINAPI )
 #include <stdlib.h>
 #endif
 
-#if defined( HAVE_IO_H )
+#if defined( HAVE_IO_H ) || defined( WINAPI )
 #include <io.h>
-#endif
-
-#if defined( HAVE_SYS_RESOURCE_H )
-#include <sys/resource.h>
 #endif
 
 #if defined( HAVE_GLOB_H )
@@ -206,7 +206,7 @@ int main( int argc, char * const argv[] )
 
 		goto on_error;
 	}
-	ewfoutput_version_fprint(
+	ewftools_output_version_fprint(
 	 stdout,
 	 program );
 
@@ -276,7 +276,7 @@ int main( int argc, char * const argv[] )
 				break;
 
 			case (system_integer_t) 'V':
-				ewfoutput_copyright_fprint(
+				ewftools_output_copyright_fprint(
 				 stdout );
 
 				return( EXIT_SUCCESS );
@@ -396,6 +396,7 @@ int main( int argc, char * const argv[] )
 	}
 	if( option_number_of_jobs != NULL )
 	{
+#if defined( HAVE_MULTI_THREAD_SUPPORT )
 		result = verification_handle_set_number_of_threads(
 			  ewfverify_verification_handle,
 			  option_number_of_jobs,
@@ -412,17 +413,21 @@ int main( int argc, char * const argv[] )
 		else if( ( result == 0 )
 		      || ( ewfverify_verification_handle->number_of_threads > (int) 32 ) )
 		{
-#if defined( HAVE_MULTI_THREAD_SUPPORT )
 			ewfverify_verification_handle->number_of_threads = 4;
-#else
-			ewfverify_verification_handle->number_of_threads = 0;
-#endif
 
 			fprintf(
 			 stderr,
 			 "Unsupported number of jobs (threads) defaulting to: %d.\n",
 			 ewfverify_verification_handle->number_of_threads );
 		}
+#else
+		ewfverify_verification_handle->number_of_threads = 0;
+
+		fprintf(
+		 stderr,
+		 "Unsupported number of jobs (threads) defaulting to: %d.\n",
+		 ewfverify_verification_handle->number_of_threads );
+#endif
 	}
 	if( option_additional_digest_types != NULL )
 	{

@@ -1,22 +1,22 @@
 /*
  * Byte size string functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -146,46 +146,53 @@ int byte_size_string_create_with_decimal_point(
 			remainder           = (int8_t) ( last_factored_size / 100 );
 		}
 	}
-	if( factor > 8 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_UNSUPPORTED_VALUE,
-		 "%s: factor size greater than 8 unsupported.",
-		 function );
-
-		return( -1 );
-	}
 	switch( factor )
 	{
 		case 0:
 			factor_string = _SYSTEM_STRING( "" );
 			break;
+
 		case 1:
 			factor_string = _SYSTEM_STRING( "K" );
 			break;
+
 		case 2:
 			factor_string = _SYSTEM_STRING( "M" );
 			break;
+
 		case 3:
 			factor_string = _SYSTEM_STRING( "G" );
 			break;
+
 		case 4:
 			factor_string = _SYSTEM_STRING( "T" );
 			break;
+
 		case 5:
 			factor_string = _SYSTEM_STRING( "P" );
 			break;
+
 		case 6:
 			factor_string = _SYSTEM_STRING( "E" );
 			break;
+
 		case 7:
 			factor_string = _SYSTEM_STRING( "Z" );
 			break;
+
 		case 8:
 			factor_string = _SYSTEM_STRING( "Y" );
 			break;
+
+		default:
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_UNSUPPORTED_VALUE,
+			 "%s: unsupported size factor.",
+			 function );
+
+			return( -1 );
 	}
 	if( remainder > 9 )
 	{
@@ -371,47 +378,46 @@ int byte_size_string_convert_with_decimal_point(
 		case 'K':
 			factor = 1;
 			break;
+
 		case 'm':
 		case 'M':
 			factor = 2;
 			break;
+
 		case 'g':
 		case 'G':
 			factor = 3;
 			break;
+
 		case 't':
 		case 'T':
 			factor = 4;
 			break;
+
 		case 'p':
 		case 'P':
 			factor = 5;
 			break;
+
 		case 'e':
 		case 'E':
 			factor = 6;
 			break;
+
 		case 'z':
 		case 'Z':
 			factor = 7;
 			break;
+
 		case 'y':
 		case 'Y':
 			factor = 8;
 			break;
-	}
-	if( factor < 0 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
-		 "%s: invalid factor.",
-		 function );
 
-		return( -1 );
+		default:
+			break;
 	}
-	else if( factor > 1 )
+	if( factor >= 1 )
 	{
 		byte_size_string_iterator++;
 	}

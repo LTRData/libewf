@@ -1,22 +1,22 @@
 /*
  * Header values functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -467,17 +467,6 @@ int libewf_convert_date_header_value(
 	time_t timestamp                                = 0;
 	int number_of_date_time_values                  = 0;
 
-	if( header_value == NULL )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-		 "%s: invalid header value.",
-		 function );
-
-		return( -1 );
-	}
 	if( date_time_values_string == NULL )
 	{
 		libcerror_error_set(
@@ -498,7 +487,7 @@ int libewf_convert_date_header_value(
 		 "%s: invalid date time values string size.",
 		 function );
 
-		goto on_error;
+		return( -1 );
 	}
 	if( libfvalue_utf8_string_split(
 	     header_value,
@@ -2397,17 +2386,6 @@ int libewf_header_values_parse_header(
 	static char *function     = "libewf_header_values_parse_header";
 	size_t header_string_size = 0;
 
-	if( header == NULL )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-		 "%s: invalid header.",
-		 function );
-
-		return( -1 );
-	}
 	if( libuna_utf8_string_size_from_byte_stream(
 	     header,
 	     header_size,
@@ -2500,17 +2478,6 @@ int libewf_header_values_parse_header2(
 	static char *function     = "libewf_header_values_parse_header2";
 	size_t header_string_size = 0;
 
-	if( header2 == NULL )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-		 "%s: invalid header2.",
-		 function );
-
-		return( -1 );
-	}
 	if( libuna_utf8_string_size_from_utf16_stream(
 	     header2,
 	     header2_size,
@@ -2629,9 +2596,9 @@ int libewf_header_values_convert_utf8_header_string_to_header(
 	{
 		libcerror_error_set(
 		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-		 "%s: header already created.",
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_ALREADY_SET,
+		 "%s: header already set.",
 		 function );
 
 		return( -1 );
@@ -5183,6 +5150,35 @@ int libewf_header_values_generate_header2(
 	size_t header_string_size  = 0;
 	uint8_t header_string_type = 0;
 
+	switch( format )
+	{
+		case LIBEWF_FORMAT_ENCASE4:
+		case LIBEWF_FORMAT_EWFX:
+			header_string_type = LIBEWF_HEADER_STRING_TYPE_4;
+			break;
+
+		case LIBEWF_FORMAT_ENCASE5:
+			header_string_type = LIBEWF_HEADER_STRING_TYPE_5;
+			break;
+
+		case LIBEWF_FORMAT_ENCASE6:
+			header_string_type = LIBEWF_HEADER_STRING_TYPE_6;
+			break;
+
+		case LIBEWF_FORMAT_ENCASE7:
+			header_string_type = LIBEWF_HEADER_STRING_TYPE_8;
+			break;
+
+		default:
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+			 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
+			 "%s: unsupported format.",
+			 function );
+
+			break;
+	}
 	if( header2 == NULL )
 	{
 		libcerror_error_set(
@@ -5215,35 +5211,6 @@ int libewf_header_values_generate_header2(
 		 function );
 
 		return( -1 );
-	}
-	switch( format )
-	{
-		case LIBEWF_FORMAT_ENCASE4:
-		case LIBEWF_FORMAT_EWFX:
-			header_string_type = LIBEWF_HEADER_STRING_TYPE_4;
-			break;
-
-		case LIBEWF_FORMAT_ENCASE5:
-			header_string_type = LIBEWF_HEADER_STRING_TYPE_5;
-			break;
-
-		case LIBEWF_FORMAT_ENCASE6:
-			header_string_type = LIBEWF_HEADER_STRING_TYPE_6;
-			break;
-
-		case LIBEWF_FORMAT_ENCASE7:
-			header_string_type = LIBEWF_HEADER_STRING_TYPE_8;
-			break;
-
-		default:
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-			 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
-			 "%s: unsupported format.",
-			 function );
-
-			break;
 	}
 	if( libewf_header_values_generate_utf8_header_string(
 	     header_values,
@@ -7115,7 +7082,7 @@ int libewf_header_values_get_identifier(
 
 /* Retrieves the size of the UTF-8 encoded header value of an identifier
  * The string size includes the end of string character
- * Returns 1 if successful, 0 if value not present or -1 on error
+ * Returns 1 if successful, 0 if not set or -1 on error
  */
 int libewf_header_values_get_utf8_value_size(
      libfvalue_table_t *header_values,
@@ -7154,6 +7121,17 @@ int libewf_header_values_get_utf8_value_size(
 		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
 		 "%s: invalid indentifier.",
+		 function );
+
+		return( -1 );
+	}
+	if( identifier_length > (size_t) ( SSIZE_MAX - 1 ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
+		 "%s: invalid identifier length value exceeds maximum.",
 		 function );
 
 		return( -1 );
@@ -7306,7 +7284,7 @@ int libewf_header_values_get_utf8_value_size(
 
 /* Retrieves the UTF-8 encoded header value of an identifier
  * The string size should include the end of string character
- * Returns 1 if successful, 0 if value not present or -1 on error
+ * Returns 1 if successful, 0 if not set or -1 on error
  */
 int libewf_header_values_get_utf8_value(
      libfvalue_table_t *header_values,
@@ -7342,6 +7320,17 @@ int libewf_header_values_get_utf8_value(
 		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
 		 "%s: invalid indentifier.",
+		 function );
+
+		return( -1 );
+	}
+	if( identifier_length > (size_t) ( SSIZE_MAX - 1 ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
+		 "%s: invalid identifier length value exceeds maximum.",
 		 function );
 
 		return( -1 );
@@ -7509,6 +7498,17 @@ int libewf_header_values_set_utf8_value(
 
 		return( -1 );
 	}
+	if( identifier_length > (size_t) ( SSIZE_MAX - 1 ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
+		 "%s: invalid identifier length value exceeds maximum.",
+		 function );
+
+		return( -1 );
+	}
 	result = libfvalue_table_get_value_by_identifier(
 	          header_values,
 	          identifier,
@@ -7607,7 +7607,7 @@ int libewf_header_values_set_utf8_value(
 
 /* Retrieves the size of the UTF-16 encoded header value of an identifier
  * The string size includes the end of string character
- * Returns 1 if successful, 0 if value not present or -1 on error
+ * Returns 1 if successful, 0 if not set or -1 on error
  */
 int libewf_header_values_get_utf16_value_size(
      libfvalue_table_t *header_values,
@@ -7646,6 +7646,17 @@ int libewf_header_values_get_utf16_value_size(
 		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
 		 "%s: invalid indentifier.",
+		 function );
+
+		return( -1 );
+	}
+	if( identifier_length > (size_t) ( SSIZE_MAX - 1 ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
+		 "%s: invalid identifier length value exceeds maximum.",
 		 function );
 
 		return( -1 );
@@ -7798,7 +7809,7 @@ int libewf_header_values_get_utf16_value_size(
 
 /* Retrieves the UTF-16 encoded header value of an identifier
  * The string size should include the end of string character
- * Returns 1 if successful, 0 if value not present or -1 on error
+ * Returns 1 if successful, 0 if not set or -1 on error
  */
 int libewf_header_values_get_utf16_value(
      libfvalue_table_t *header_values,
@@ -7834,6 +7845,17 @@ int libewf_header_values_get_utf16_value(
 		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
 		 "%s: invalid indentifier.",
+		 function );
+
+		return( -1 );
+	}
+	if( identifier_length > (size_t) ( SSIZE_MAX - 1 ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
+		 "%s: invalid identifier length value exceeds maximum.",
 		 function );
 
 		return( -1 );
@@ -7997,6 +8019,17 @@ int libewf_header_values_set_utf16_value(
 		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
 		 "%s: invalid identifier.",
+		 function );
+
+		return( -1 );
+	}
+	if( identifier_length > (size_t) ( SSIZE_MAX - 1 ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
+		 "%s: invalid identifier length value exceeds maximum.",
 		 function );
 
 		return( -1 );

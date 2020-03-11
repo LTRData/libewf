@@ -1,22 +1,22 @@
 /*
  * User input functions for the ewftools
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -1718,7 +1718,7 @@ int ewfinput_get_fixed_string_variable(
 
 	system_character_t *end_of_input  = NULL;
 	system_character_t *result_string = NULL;
-	static char *function             = "ewfinput_get_fixed_value";
+	static char *function             = "ewfinput_get_fixed_string_variable";
 	size_t value_length               = 0;
 	ssize_t input_length              = 0;
 	uint8_t value_iterator            = 0;
