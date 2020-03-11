@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #if !defined( _LIBEWF_SINGLE_FILE_TREE_H )
@@ -25,9 +25,9 @@
 #include <common.h>
 #include <types.h>
 
+#include "libewf_lef_file_entry.h"
 #include "libewf_libcdata.h"
 #include "libewf_libcerror.h"
-#include "libewf_single_file_entry.h"
 
 #if defined( __cplusplus )
 extern "C" {
@@ -38,7 +38,7 @@ int libewf_single_file_tree_get_sub_node_by_utf8_name(
      const uint8_t *utf8_string,
      size_t utf8_string_length,
      libcdata_tree_node_t **single_file_tree_sub_node,
-     libewf_single_file_entry_t **sub_single_file_entry,
+     libewf_lef_file_entry_t **sub_lef_file_entry,
      libcerror_error_t **error );
 
 int libewf_single_file_tree_get_sub_node_by_utf16_name(
@@ -46,7 +46,7 @@ int libewf_single_file_tree_get_sub_node_by_utf16_name(
      const uint16_t *utf16_string,
      size_t utf16_string_length,
      libcdata_tree_node_t **single_file_tree_sub_node,
-     libewf_single_file_entry_t **sub_single_file_entry,
+     libewf_lef_file_entry_t **sub_lef_file_entry,
      libcerror_error_t **error );
 
 #if defined( __cplusplus )

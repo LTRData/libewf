@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #if !defined( _LIBEWF_DEBUG_H )
@@ -31,6 +31,8 @@
 extern "C" {
 #endif
 
+#if defined( HAVE_DEBUG_OUTPUT )
+
 void libewf_debug_print_compression_method(
       uint16_t compression_method );
 
@@ -39,6 +41,23 @@ void libewf_debug_print_section_type(
 
 void libewf_debug_print_section_data_flags(
       uint32_t data_flags );
+
+int libewf_debug_print_guid_value(
+     const char *function_name,
+     const char *value_name,
+     const uint8_t *byte_stream,
+     size_t byte_stream_size,
+     int byte_order,
+     uint32_t string_format_flags,
+     libcerror_error_t **error );
+
+int libewf_debug_print_utf16_string_value(
+     const char *function_name,
+     const char *value_name,
+     const uint8_t *byte_stream,
+     size_t byte_stream_size,
+     int byte_order,
+     libcerror_error_t **error );
 
 int libewf_debug_byte_stream_print(
      const char *header_string,
@@ -57,6 +76,8 @@ int libewf_debug_utf16_stream_print(
      const uint8_t *utf16_stream,
      size_t utf16_stream_size,
      libcerror_error_t **error );
+
+#endif /* defined( HAVE_DEBUG_OUTPUT ) */
 
 #if defined( __cplusplus )
 }

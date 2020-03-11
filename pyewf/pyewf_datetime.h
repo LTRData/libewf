@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #if !defined( _PYEWF_DATETIME_H )
@@ -41,7 +41,7 @@ PyObject *pyewf_datetime_new_from_floatingtime(
            uint64_t floatingtime );
 
 PyObject *pyewf_datetime_new_from_posix_time(
-           uint32_t posix_time );
+           int64_t posix_time );
 
 #if defined( __cplusplus )
 }

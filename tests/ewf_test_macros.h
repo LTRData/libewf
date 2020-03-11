@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #if !defined( _EWF_TEST_MACROS_H )
@@ -179,14 +179,14 @@
 #define EWF_TEST_ASSERT_EQUAL_UINT32( name, value, expected_value ) \
 	if( value != expected_value ) \
 	{ \
-		fprintf( stdout, "%s:%d %s (%" PRIi32 ") != %" PRIu32 "\n", __FILE__, __LINE__, name, value, expected_value ); \
+		fprintf( stdout, "%s:%d %s (%" PRIu32 ") != %" PRIu32 "\n", __FILE__, __LINE__, name, value, expected_value ); \
 		goto on_error; \
 	}
 
 #define EWF_TEST_ASSERT_LESS_THAN_UINT32( name, value, expected_value ) \
 	if( value >= expected_value ) \
 	{ \
-		fprintf( stdout, "%s:%d %s (%" PRIi32 ") >= %" PRIu32 "\n", __FILE__, __LINE__, name, value, expected_value ); \
+		fprintf( stdout, "%s:%d %s (%" PRIu32 ") >= %" PRIu32 "\n", __FILE__, __LINE__, name, value, expected_value ); \
 		goto on_error; \
 	}
 

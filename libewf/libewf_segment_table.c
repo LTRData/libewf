@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -118,8 +118,8 @@ int libewf_segment_table_initialize(
 	if( libfdata_list_initialize(
 	     &( ( *segment_table )->segment_files_list ),
 	     (intptr_t *) io_handle,
-	     NULL,
-	     NULL,
+	     (int (*)(intptr_t **, libcerror_error_t **)) &libewf_io_handle_free,
+	     (int (*)(intptr_t **, intptr_t *, libcerror_error_t **)) &libewf_io_handle_clone,
 	     (int (*)(intptr_t *, intptr_t *, libfdata_list_element_t *, libfdata_cache_t *, int, off64_t, size64_t, uint32_t, uint8_t, libcerror_error_t **)) &libewf_segment_file_read_element_data,
 	     NULL,
 	     LIBFDATA_DATA_HANDLE_FLAG_NON_MANAGED,
@@ -448,7 +448,7 @@ int libewf_segment_table_empty(
 }
 
 /* Retrieves the size of the basename
- * Returns 1 if successful, 0 if value not present or -1 on error
+ * Returns 1 if successful, 0 if not set or -1 on error
  */
 int libewf_segment_table_get_basename_size(
      libewf_segment_table_t *segment_table,
@@ -545,7 +545,7 @@ int libewf_segment_table_get_basename_size(
 }
 
 /* Retrieves the basename
- * Returns 1 if successful, 0 if value not present or -1 on error
+ * Returns 1 if successful, 0 if not set or -1 on error
  */
 int libewf_segment_table_get_basename(
      libewf_segment_table_t *segment_table,
@@ -930,7 +930,7 @@ int libewf_segment_table_set_basename(
 #if defined( HAVE_WIDE_CHARACTER_TYPE )
 
 /* Retrieves the size of the basename
- * Returns 1 if successful, 0 if value not present or -1 on error
+ * Returns 1 if successful, 0 if not set or -1 on error
  */
 int libewf_segment_table_get_basename_size_wide(
      libewf_segment_table_t *segment_table,
@@ -1026,7 +1026,7 @@ int libewf_segment_table_get_basename_size_wide(
 }
 
 /* Retrieves the basename
- * Returns 1 if successful, 0 if value not present or -1 on error
+ * Returns 1 if successful, 0 if not set or -1 on error
  */
 int libewf_segment_table_get_basename_wide(
      libewf_segment_table_t *segment_table,
@@ -1732,7 +1732,7 @@ int libewf_segment_table_get_segment_file_by_index(
 	if( libfdata_list_get_element_value_by_index(
 	     segment_table->segment_files_list,
 	     (intptr_t *) file_io_pool,
-	     (libfdata_cache_t *) segment_table->segment_files_cache,
+	     segment_table->segment_files_cache,
 	     (int) segment_number,
 	     (intptr_t **) segment_file,
 	     0,
@@ -1792,7 +1792,7 @@ int libewf_segment_table_get_segment_file_at_offset(
 	result = libfdata_list_get_element_value_at_offset(
 	          segment_table->segment_files_list,
 	          (intptr_t *) file_io_pool,
-	          (libfdata_cache_t *) segment_table->segment_files_cache,
+	          segment_table->segment_files_cache,
 	          offset,
 	          &segment_files_list_index,
 	          segment_file_data_offset,
@@ -1874,7 +1874,7 @@ int libewf_segment_table_set_segment_file_by_index(
 	if( libfdata_list_set_element_value_by_index(
 	     segment_table->segment_files_list,
 	     (intptr_t *) file_io_pool,
-	     (libfdata_cache_t *) segment_table->segment_files_cache,
+	     segment_table->segment_files_cache,
 	     (int) segment_number,
 	     (intptr_t *) segment_file,
 	     (int (*)(intptr_t **, libcerror_error_t **)) &libewf_segment_file_free,

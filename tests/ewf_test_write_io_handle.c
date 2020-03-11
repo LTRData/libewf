@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -35,7 +35,7 @@
 
 #include "../libewf/libewf_write_io_handle.h"
 
-#if defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT )
+#if defined( __GNUC__ )
 
 /* Tests the libewf_write_io_handle_initialize function
  * Returns 1 if successful or 0 if not
@@ -44,7 +44,6 @@ int ewf_test_write_io_handle_initialize(
      void )
 {
 	libcerror_error_t *error                  = NULL;
-	libewf_io_handle_t *io_handle             = NULL;
 	libewf_write_io_handle_t *write_io_handle = NULL;
 	int result                                = 0;
 
@@ -54,30 +53,10 @@ int ewf_test_write_io_handle_initialize(
 	int test_number                           = 0;
 #endif
 
-	/* Initialize test
-	 */
-	result = libewf_io_handle_initialize(
-	          &io_handle,
-	          &error );
-
-	EWF_TEST_ASSERT_EQUAL_INT(
-	 "result",
-	 result,
-	 1 );
-
-	EWF_TEST_ASSERT_IS_NOT_NULL(
-	 "io_handle",
-	 io_handle );
-
-	EWF_TEST_ASSERT_IS_NULL(
-	 "error",
-	 error );
-
 	/* Test regular cases
 	 */
 	result = libewf_write_io_handle_initialize(
 	          &write_io_handle,
-	          io_handle,
 	          &error );
 
 	EWF_TEST_ASSERT_EQUAL_INT(
@@ -85,13 +64,13 @@ int ewf_test_write_io_handle_initialize(
 	 result,
 	 1 );
 
-	EWF_TEST_ASSERT_IS_NOT_NULL(
-	 "write_io_handle",
-	 write_io_handle );
+        EWF_TEST_ASSERT_IS_NOT_NULL(
+         "write_io_handle",
+         write_io_handle );
 
-	EWF_TEST_ASSERT_IS_NULL(
-	 "error",
-	 error );
+        EWF_TEST_ASSERT_IS_NULL(
+         "error",
+         error );
 
 	result = libewf_write_io_handle_free(
 	          &write_io_handle,
@@ -102,19 +81,18 @@ int ewf_test_write_io_handle_initialize(
 	 result,
 	 1 );
 
-	EWF_TEST_ASSERT_IS_NULL(
-	 "write_io_handle",
-	 write_io_handle );
+        EWF_TEST_ASSERT_IS_NULL(
+         "write_io_handle",
+         write_io_handle );
 
-	EWF_TEST_ASSERT_IS_NULL(
-	 "error",
-	 error );
+        EWF_TEST_ASSERT_IS_NULL(
+         "error",
+         error );
 
 	/* Test error cases
 	 */
 	result = libewf_write_io_handle_initialize(
 	          NULL,
-	          io_handle,
 	          &error );
 
 	EWF_TEST_ASSERT_EQUAL_INT(
@@ -122,9 +100,9 @@ int ewf_test_write_io_handle_initialize(
 	 result,
 	 -1 );
 
-	EWF_TEST_ASSERT_IS_NOT_NULL(
-	 "error",
-	 error );
+        EWF_TEST_ASSERT_IS_NOT_NULL(
+         "error",
+         error );
 
 	libcerror_error_free(
 	 &error );
@@ -133,39 +111,21 @@ int ewf_test_write_io_handle_initialize(
 
 	result = libewf_write_io_handle_initialize(
 	          &write_io_handle,
-	          io_handle,
 	          &error );
+
+	EWF_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+        EWF_TEST_ASSERT_IS_NOT_NULL(
+         "error",
+         error );
+
+	libcerror_error_free(
+	 &error );
 
 	write_io_handle = NULL;
-
-	EWF_TEST_ASSERT_EQUAL_INT(
-	 "result",
-	 result,
-	 -1 );
-
-	EWF_TEST_ASSERT_IS_NOT_NULL(
-	 "error",
-	 error );
-
-	libcerror_error_free(
-	 &error );
-
-	result = libewf_write_io_handle_initialize(
-	          &write_io_handle,
-	          NULL,
-	          &error );
-
-	EWF_TEST_ASSERT_EQUAL_INT(
-	 "result",
-	 result,
-	 -1 );
-
-	EWF_TEST_ASSERT_IS_NOT_NULL(
-	 "error",
-	 error );
-
-	libcerror_error_free(
-	 &error );
 
 #if defined( HAVE_EWF_TEST_MEMORY )
 
@@ -179,7 +139,6 @@ int ewf_test_write_io_handle_initialize(
 
 		result = libewf_write_io_handle_initialize(
 		          &write_io_handle,
-		          io_handle,
 		          &error );
 
 		if( ewf_test_malloc_attempts_before_fail != -1 )
@@ -222,7 +181,6 @@ int ewf_test_write_io_handle_initialize(
 
 		result = libewf_write_io_handle_initialize(
 		          &write_io_handle,
-		          io_handle,
 		          &error );
 
 		if( ewf_test_memset_attempts_before_fail != -1 )
@@ -257,25 +215,6 @@ int ewf_test_write_io_handle_initialize(
 	}
 #endif /* defined( HAVE_EWF_TEST_MEMORY ) */
 
-	/* Clean up
-	 */
-	result = libewf_io_handle_free(
-	          &io_handle,
-	          &error );
-
-	EWF_TEST_ASSERT_EQUAL_INT(
-	 "result",
-	 result,
-	 1 );
-
-	EWF_TEST_ASSERT_IS_NULL(
-	 "io_handle",
-	 io_handle );
-
-	EWF_TEST_ASSERT_IS_NULL(
-	 "error",
-	 error );
-
 	return( 1 );
 
 on_error:
@@ -288,12 +227,6 @@ on_error:
 	{
 		libewf_write_io_handle_free(
 		 &write_io_handle,
-		 NULL );
-	}
-	if( io_handle != NULL )
-	{
-		libewf_io_handle_free(
-		 &io_handle,
 		 NULL );
 	}
 	return( 0 );
@@ -349,6 +282,15 @@ int ewf_test_write_io_handle_clone(
 	libewf_write_io_handle_t *source_write_io_handle      = NULL;
 	int result                                            = 0;
 
+#if defined( HAVE_EWF_TEST_MEMORY )
+	int number_of_malloc_fail_tests                       = 1;
+	int test_number                                       = 0;
+
+#if defined( OPTIMIZATION_DISABLED )
+	int number_of_memcpy_fail_tests                       = 1;
+#endif
+#endif /* defined( HAVE_EWF_TEST_MEMORY ) */
+
 	/* Initialize test
 	 */
 	result = libewf_io_handle_initialize(
@@ -460,6 +402,120 @@ int ewf_test_write_io_handle_clone(
 	libcerror_error_free(
 	 &error );
 
+	destination_write_io_handle = (libewf_write_io_handle_t *) 0x12345678UL;
+
+	result = libewf_write_io_handle_clone(
+	          &destination_write_io_handle,
+	          source_write_io_handle,
+	          &error );
+
+	destination_write_io_handle = NULL;
+
+	EWF_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
+
+	libcerror_error_free(
+	 &error );
+
+#if defined( HAVE_EWF_TEST_MEMORY )
+
+	for( test_number = 0;
+	     test_number < number_of_malloc_fail_tests;
+	     test_number++ )
+	{
+		/* Test libewf_write_io_handle_clone with malloc failing
+		 */
+		ewf_test_malloc_attempts_before_fail = test_number;
+
+		result = libewf_write_io_handle_clone(
+		          &destination_write_io_handle,
+		          source_write_io_handle,
+		          &error );
+
+		if( ewf_test_malloc_attempts_before_fail != -1 )
+		{
+			ewf_test_malloc_attempts_before_fail = -1;
+
+			if( destination_write_io_handle != NULL )
+			{
+				libewf_write_io_handle_free(
+				 &destination_write_io_handle,
+				 NULL );
+			}
+		}
+		else
+		{
+			EWF_TEST_ASSERT_EQUAL_INT(
+			 "result",
+			 result,
+			 -1 );
+
+			EWF_TEST_ASSERT_IS_NULL(
+			 "destination_write_io_handle",
+			 destination_write_io_handle );
+
+			EWF_TEST_ASSERT_IS_NOT_NULL(
+			 "error",
+			 error );
+
+			libcerror_error_free(
+			 &error );
+		}
+	}
+#if defined( OPTIMIZATION_DISABLED )
+
+	for( test_number = 0;
+	     test_number < number_of_memcpy_fail_tests;
+	     test_number++ )
+	{
+		/* Test libewf_write_io_handle_clone with memcpy failing
+		 */
+		ewf_test_memcpy_attempts_before_fail = test_number;
+
+		result = libewf_write_io_handle_clone(
+		          &destination_write_io_handle,
+		          source_write_io_handle,
+		          &error );
+
+		if( ewf_test_memcpy_attempts_before_fail != -1 )
+		{
+			ewf_test_memcpy_attempts_before_fail = -1;
+
+			if( destination_write_io_handle != NULL )
+			{
+				libewf_write_io_handle_free(
+				 &destination_write_io_handle,
+				 NULL );
+			}
+		}
+		else
+		{
+			EWF_TEST_ASSERT_EQUAL_INT(
+			 "result",
+			 result,
+			 -1 );
+
+			EWF_TEST_ASSERT_IS_NULL(
+			 "destination_write_io_handle",
+			 destination_write_io_handle );
+
+			EWF_TEST_ASSERT_IS_NOT_NULL(
+			 "error",
+			 error );
+
+			libcerror_error_free(
+			 &error );
+		}
+	}
+#endif /* defined( OPTIMIZATION_DISABLED ) */
+#endif /* defined( HAVE_EWF_TEST_MEMORY ) */
+
 	/* Clean up
 	 */
 	result = libewf_write_io_handle_free(
@@ -504,28 +560,10 @@ on_error:
 		libcerror_error_free(
 		 &error );
 	}
-	if( destination_write_io_handle != NULL )
-	{
-		libewf_write_io_handle_free(
-		 &destination_write_io_handle,
-		 NULL );
-	}
-	if( source_write_io_handle != NULL )
-	{
-		libewf_write_io_handle_free(
-		 &source_write_io_handle,
-		 NULL );
-	}
-	if( io_handle != NULL )
-	{
-		libewf_io_handle_free(
-		 &io_handle,
-		 NULL );
-	}
 	return( 0 );
 }
 
-#endif /* defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT ) */
+#endif /* defined( __GNUC__ ) */
 
 /* The main program
  */
@@ -542,7 +580,7 @@ int main(
 	EWF_TEST_UNREFERENCED_PARAMETER( argc )
 	EWF_TEST_UNREFERENCED_PARAMETER( argv )
 
-#if defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT )
+#if defined( __GNUC__ )
 
 	EWF_TEST_RUN(
 	 "libewf_write_io_handle_initialize",
@@ -552,15 +590,9 @@ int main(
 	 "libewf_write_io_handle_free",
 	 ewf_test_write_io_handle_free );
 
-#if defined( TODO )
-
-/* TODO: fix libewf_write_io_handle_clone */
-
 	EWF_TEST_RUN(
 	 "libewf_write_io_handle_clone",
 	 ewf_test_write_io_handle_clone );
-
-#endif
 
 	/* TODO: add tests for libewf_write_io_handle_initialize_values */
 
@@ -586,7 +618,7 @@ int main(
 
 	/* TODO: add tests for libewf_write_io_handle_finalize_write_sections_corrections */
 
-#endif /* defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT ) */
+#endif /* defined( __GNUC__ ) */
 
 	return( EXIT_SUCCESS );
 

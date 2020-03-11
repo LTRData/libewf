@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -320,6 +320,7 @@ int libewf_write_io_handle_clone(
 	( *destination_write_io_handle )->table_entries_data      = NULL;
 	( *destination_write_io_handle )->table_entries_data_size = 0;
 	( *destination_write_io_handle )->number_of_table_entries = 0;
+	( *destination_write_io_handle )->chunk_group             = NULL;
 
 	if( source_write_io_handle->case_data != NULL )
 	{

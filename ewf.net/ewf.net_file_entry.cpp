@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma managed( push, off )
 #include <common.h>
@@ -467,7 +467,7 @@ System::DateTime^ FileEntry::GetCreationTime( void )
 	System::DateTime^ creation_time = nullptr;
 	System::String^ error_string    = nullptr;
 	System::String^ function        = "FileEntry::GetCreationTime";
-	int32_t ewf_creation_time       = 0;
+	int64_t ewf_creation_time       = 0;
 
 	Marshal::WriteIntPtr(
 	 (IntPtr) &file_entry,
@@ -513,7 +513,7 @@ System::DateTime^ FileEntry::GetModificationTime( void )
 	System::DateTime^ modification_time = nullptr;
 	System::String^ error_string        = nullptr;
 	System::String^ function            = "FileEntry::GetModificationTime";
-	int32_t ewf_modification_time       = 0;
+	int64_t ewf_modification_time       = 0;
 
 	Marshal::WriteIntPtr(
 	 (IntPtr) &file_entry,
@@ -559,7 +559,7 @@ System::DateTime^ FileEntry::GetAccessTime( void )
 	System::DateTime^ access_time   = nullptr;
 	System::String^ error_string    = nullptr;
 	System::String^ function        = "FileEntry::GetAccessTime";
-	int32_t ewf_access_time         = 0;
+	int64_t ewf_access_time         = 0;
 
 	Marshal::WriteIntPtr(
 	 (IntPtr) &file_entry,
@@ -605,7 +605,7 @@ System::DateTime^ FileEntry::GetEntryModificationTime( void )
 	System::DateTime^ entry_modification_time = nullptr;
 	System::String^ error_string              = nullptr;
 	System::String^ function                  = "FileEntry::GetEntryModificationTime";
-	int32_t ewf_entry_modification_time       = 0;
+	int64_t ewf_entry_modification_time       = 0;
 
 	Marshal::WriteIntPtr(
 	 (IntPtr) &file_entry,

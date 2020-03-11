@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #if !defined( _GUID_H )
@@ -40,12 +40,14 @@ enum GUID_TYPES
 };
 
 #if defined( HAVE_GUID_SUPPORT ) || defined( WINAPI )
+
 int guid_generate(
      uint8_t *guid,
      size_t guid_size,
      uint8_t guid_type,
      libcerror_error_t **error );
-#endif
+
+#endif /* defined( HAVE_GUID_SUPPORT ) || defined( WINAPI ) */
 
 int guid_to_string(
      uint8_t *guid,

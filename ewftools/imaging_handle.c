@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -1678,11 +1678,9 @@ int imaging_handle_process_storage_media_buffer_callback(
 
 		goto on_error;
 	}
-	if( libcthreads_thread_pool_push_sorted(
+	if( libcthreads_thread_pool_push(
 	     imaging_handle->output_thread_pool,
 	     (intptr_t *) storage_media_buffer,
-	     (int (*)(intptr_t *, intptr_t *, libcerror_error_t **)) &storage_media_buffer_compare,
-	     LIBCTHREADS_SORT_FLAG_UNIQUE_VALUES,
 	     &error ) != 1 )
 	{
 		libcerror_error_set(

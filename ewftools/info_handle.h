@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #if !defined( _INFO_HANDLE_H )
@@ -59,6 +59,10 @@ struct info_handle
 	 */
 	libewf_handle_t *input_handle;
 
+	/* The bodyfile output stream
+	 */
+	FILE *bodyfile_stream;
+
 	/* The notification output stream
 	 */
 	FILE *notify_stream;
@@ -74,6 +78,11 @@ int info_handle_free(
 
 int info_handle_signal_abort(
      info_handle_t *info_handle,
+     libcerror_error_t **error );
+
+int info_handle_set_bodyfile(
+     info_handle_t *info_handle,
+     const system_character_t *filename,
      libcerror_error_t **error );
 
 int info_handle_set_maximum_number_of_open_handles(
@@ -104,6 +113,12 @@ int info_handle_set_date_format(
 int info_handle_set_header_codepage(
      info_handle_t *info_handle,
      const system_character_t *string,
+     libcerror_error_t **error );
+
+int info_handle_posix_time_value_fprint(
+     info_handle_t *info_handle,
+     const char *value_name,
+     int64_t value_64bit,
      libcerror_error_t **error );
 
 int info_handle_section_header_fprint(
@@ -158,6 +173,17 @@ int info_handle_section_value_boolean_fprint(
      int value_boolean,
      libcerror_error_t **error );
 
+int info_handle_sub_section_header_fprint(
+     info_handle_t *info_handle,
+     const char *identifier,
+     const char *description,
+     libcerror_error_t **error );
+
+int info_handle_sub_section_footer_fprint(
+     info_handle_t *info_handle,
+     const char *identifier,
+     libcerror_error_t **error );
+
 int info_handle_header_value_fprint(
      info_handle_t *info_handle,
      const char *identifier,
@@ -208,14 +234,52 @@ int info_handle_tracks_fprint(
      info_handle_t *info_handle,
      libcerror_error_t **error );
 
-int info_handle_single_files_fprint(
+int info_handle_access_control_entry_value_fprint(
+     info_handle_t *info_handle,
+     libewf_access_control_entry_t *access_control_entry,
+     libcerror_error_t **error );
+
+int info_handle_attribute_value_fprint(
+     info_handle_t *info_handle,
+     libewf_attribute_t *attribute,
+     libcerror_error_t **error );
+
+int info_handle_source_value_fprint(
+     info_handle_t *info_handle,
+     libewf_source_t *source,
+     libcerror_error_t **error );
+
+int info_handle_file_entry_value_fprint(
+     info_handle_t *info_handle,
+     libewf_file_entry_t *file_entry,
+     const system_character_t *path,
+     libcerror_error_t **error );
+
+int info_handle_logical_files_hierarchy_fprint_file_entry(
+     info_handle_t *info_handle,
+     libewf_file_entry_t *file_entry,
+     const system_character_t *path,
+     uint8_t is_root,
+     libcerror_error_t **error );
+
+int info_handle_file_entry_fprint_by_path(
+     info_handle_t *info_handle,
+     const system_character_t *path,
+     libcerror_error_t **error );
+
+int info_handle_logical_files_hierarchy_fprint(
      info_handle_t *info_handle,
      libcerror_error_t **error );
 
 int info_handle_file_entry_fprint(
      info_handle_t *info_handle,
      libewf_file_entry_t *file_entry,
-     int indentation_level,
+     const system_character_t *path,
+     libcerror_error_t **error );
+
+int info_handle_image_fprint(
+     info_handle_t *info_handle,
+     char info_option,
      libcerror_error_t **error );
 
 int info_handle_dfxml_header_fprint(

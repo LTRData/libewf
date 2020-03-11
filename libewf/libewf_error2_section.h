@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #if !defined( _LIBEWF_ERROR2_SECTION_H )
@@ -42,7 +42,7 @@ int libewf_error2_section_read_data(
      libcdata_range_list_t *acquiry_errors,
      libcerror_error_t **error );
 
-ssize_t libewf_section_error_read(
+ssize_t libewf_error2_section_read_file_io_pool(
          libewf_section_descriptor_t *section_descriptor,
          libewf_io_handle_t *io_handle,
          libbfio_pool_t *file_io_pool,
@@ -51,7 +51,14 @@ ssize_t libewf_section_error_read(
          libcdata_range_list_t *acquiry_errors,
          libcerror_error_t **error );
 
-ssize_t libewf_section_error_write(
+int libewf_error2_section_write_data(
+     uint8_t *data,
+     size_t data_size,
+     uint8_t format_version,
+     libcdata_range_list_t *acquiry_errors,
+     libcerror_error_t **error );
+
+ssize_t libewf_error2_section_write_file_io_pool(
          libewf_section_descriptor_t *section_descriptor,
          libewf_io_handle_t *io_handle,
          libbfio_pool_t *file_io_pool,

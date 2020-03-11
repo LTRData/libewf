@@ -9,14 +9,14 @@
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #pragma managed( push, off )
@@ -206,7 +206,7 @@ System::DateTime^ DateTime::FromFiletime( System::UInt64 filetime )
 /* Creates a new datetime object from a POSIX time
  * Returns a DateTime object if successful or nullptr on error
  */
-System::DateTime^ DateTime::FromPOSIXTime( System::Int32 posix_time )
+System::DateTime^ DateTime::FromPOSIXTime( System::Int64 posix_time )
 {
 	System::DateTime^ date_time_object = nullptr;
 	System::String^ error_string       = nullptr;
@@ -335,7 +335,7 @@ System::DateTime^ DateTime::FromPOSIXTime( System::Int32 posix_time )
 	}
 	/* Determine the day
 	 */
-	day = posix_time;
+	day = (System::Int32) posix_time;
 
 	date_time_object = gcnew System::DateTime(
 	                          year,

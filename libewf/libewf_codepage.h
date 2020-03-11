@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #if !defined( _LIBEWF_INTERNAL_CODEPAGE_H )
@@ -29,14 +29,14 @@
 extern "C" {
 #endif
 
-#if !defined( HAVE_LOCAL_LIBEWF )
-
-#include <libewf/codepage.h>
-
 /* Define HAVE_LOCAL_LIBEWF for local use of libewf
  * The definitions in <libewf/codepage.h> are copied here
  * for local use of libewf
  */
+#if !defined( HAVE_LOCAL_LIBEWF )
+
+#include <libewf/codepage.h>
+
 #else
 
 /* The codepage definitions

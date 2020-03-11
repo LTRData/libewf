@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #if !defined( _EWF_NET_DATETIME_H )
@@ -40,7 +40,7 @@ public ref class DateTime sealed
         public:
 		static System::DateTime^ FromFiletime( System::UInt64 filetime );
 
-		static System::DateTime^ FromPOSIXTime( System::Int32 posix_time );
+		static System::DateTime^ FromPOSIXTime( System::Int64 posix_time );
 };
 
 } // namespace EWF

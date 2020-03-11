@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -261,8 +261,9 @@ int libewf_chunk_group_clone(
 
 		return( -1 );
 	}
-/* TODO clone chunks_list */
 	( *destination_chunk_group )->chunks_list = NULL;
+
+/* TODO clone chunks_list */
 
 	return( 1 );
 

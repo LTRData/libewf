@@ -1,4 +1,15 @@
 TODO
+* fix issue with encase7 header value having invalid hex character
+* move libewf_hash_values_get_identifier_size libewf_hash_values_get_identifier into libfvalue
+* ewfinfo sanitize special characters in file names?
+* rename extended attribute to attribute
+* change single files tree to B-tree
+* ewftools ignore name of root - check ewfmount / ewfveriry
+* access control entry / permission group add get_owner and get_group functions
+* file entry add 0 if not set support for values
+* file entry get permission group from single files
+* ewfinfo -H complete bodyfile support
+
 * be able to handle large chunk tables for version 2
   - move chunk list access into chunk group
   - throttle maximum chunk group size
