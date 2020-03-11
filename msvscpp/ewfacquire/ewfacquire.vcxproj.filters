@@ -119,6 +119,9 @@
     <ClInclude Include="..\..\ewftools\ewftools_libewf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\ewftools\ewftools_libfdatetime.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\ewftools\ewftools_libfvalue.h">
       <Filter>Header Files</Filter>
     </ClInclude>

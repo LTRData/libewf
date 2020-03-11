@@ -27,9 +27,6 @@
     <ClCompile Include="..\..\libsmdev\libsmdev_handle.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\libsmdev\libsmdev_metadata.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\libsmdev\libsmdev_notify.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -93,9 +90,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libsmdev\libsmdev_libuna.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\libsmdev\libsmdev_metadata.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libsmdev\libsmdev_notify.h">

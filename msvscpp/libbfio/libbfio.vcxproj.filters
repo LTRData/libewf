@@ -21,16 +21,25 @@
     <ClCompile Include="..\..\libbfio\libbfio_file.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\libbfio\libbfio_file_io_handle.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\libbfio\libbfio_file_pool.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\libbfio\libbfio_file_range.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\libbfio\libbfio_file_range_io_handle.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\libbfio\libbfio_handle.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\libbfio\libbfio_memory_range.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libbfio\libbfio_memory_range_io_handle.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\libbfio\libbfio_pool.c">
@@ -59,10 +68,16 @@
     <ClInclude Include="..\..\libbfio\libbfio_file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\libbfio\libbfio_file_io_handle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\libbfio\libbfio_file_pool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libbfio\libbfio_file_range.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\libbfio\libbfio_file_range_io_handle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libbfio\libbfio_handle.h">
@@ -90,6 +105,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libbfio\libbfio_memory_range.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\libbfio\libbfio_memory_range_io_handle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libbfio\libbfio_pool.h">

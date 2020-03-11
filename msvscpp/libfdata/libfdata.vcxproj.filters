@@ -95,9 +95,6 @@
     <ClInclude Include="..\..\libfdata\libfdata_extern.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\libfdata\libfdata_inline.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\libfdata\libfdata_libcdata.h">
       <Filter>Header Files</Filter>
     </ClInclude>
