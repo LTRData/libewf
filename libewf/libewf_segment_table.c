@@ -1,22 +1,22 @@
 /*
  * Segment table functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -118,9 +118,9 @@ int libewf_segment_table_initialize(
 	if( libfdata_list_initialize(
 	     &( ( *segment_table )->segment_files_list ),
 	     (intptr_t *) io_handle,
-	     NULL,
-	     NULL,
-	     (int (*)(intptr_t *, intptr_t *, libfdata_list_element_t *, libfcache_cache_t *, int, off64_t, size64_t, uint32_t, uint8_t, libcerror_error_t **)) &libewf_segment_file_read_element_data,
+	     (int (*)(intptr_t **, libcerror_error_t **)) &libewf_io_handle_free,
+	     (int (*)(intptr_t **, intptr_t *, libcerror_error_t **)) &libewf_io_handle_clone,
+	     (int (*)(intptr_t *, intptr_t *, libfdata_list_element_t *, libfdata_cache_t *, int, off64_t, size64_t, uint32_t, uint8_t, libcerror_error_t **)) &libewf_segment_file_read_element_data,
 	     NULL,
 	     LIBFDATA_DATA_HANDLE_FLAG_NON_MANAGED,
 	     error ) != 1 )
@@ -448,7 +448,7 @@ int libewf_segment_table_empty(
 }
 
 /* Retrieves the size of the basename
- * Returns 1 if successful, 0 if value not present or -1 on error
+ * Returns 1 if successful, 0 if not set or -1 on error
  */
 int libewf_segment_table_get_basename_size(
      libewf_segment_table_t *segment_table,
@@ -545,7 +545,7 @@ int libewf_segment_table_get_basename_size(
 }
 
 /* Retrieves the basename
- * Returns 1 if successful, 0 if value not present or -1 on error
+ * Returns 1 if successful, 0 if not set or -1 on error
  */
 int libewf_segment_table_get_basename(
      libewf_segment_table_t *segment_table,
@@ -930,7 +930,7 @@ int libewf_segment_table_set_basename(
 #if defined( HAVE_WIDE_CHARACTER_TYPE )
 
 /* Retrieves the size of the basename
- * Returns 1 if successful, 0 if value not present or -1 on error
+ * Returns 1 if successful, 0 if not set or -1 on error
  */
 int libewf_segment_table_get_basename_size_wide(
      libewf_segment_table_t *segment_table,
@@ -1026,7 +1026,7 @@ int libewf_segment_table_get_basename_size_wide(
 }
 
 /* Retrieves the basename
- * Returns 1 if successful, 0 if value not present or -1 on error
+ * Returns 1 if successful, 0 if not set or -1 on error
  */
 int libewf_segment_table_get_basename_wide(
      libewf_segment_table_t *segment_table,

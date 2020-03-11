@@ -1,22 +1,22 @@
 /*
  * Ltree section functions
  *
- * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #if !defined( _LIBEWF_LTREE_SECTION_H )
@@ -34,7 +34,15 @@
 extern "C" {
 #endif
 
-ssize_t libewf_section_ltree_read(
+int libewf_ltree_section_read_data(
+     const uint8_t *data,
+     size_t data_size,
+     uint8_t format_version,
+     uint8_t **single_files_data,
+     size_t *single_files_data_size,
+     libcerror_error_t **error );
+
+ssize_t libewf_ltree_section_read_file_io_pool(
          libewf_section_descriptor_t *section_descriptor,
           libewf_io_handle_t *io_handle,
          libbfio_pool_t *file_io_pool,
@@ -42,11 +50,11 @@ ssize_t libewf_section_ltree_read(
          uint8_t format_version,
          uint8_t **section_data,
          size_t *section_data_size,
-         uint8_t **ltree_data,
-         size_t *ltree_data_size,
+         uint8_t **single_files_data,
+         size_t *single_files_data_size,
          libcerror_error_t **error );
 
-ssize_t libewf_section_ltree_write(
+ssize_t libewf_ltree_section_write_file_io_pool(
          libewf_section_descriptor_t *section_descriptor,
          libewf_io_handle_t *io_handle,
          libbfio_pool_t *file_io_pool,
@@ -55,8 +63,8 @@ ssize_t libewf_section_ltree_write(
          off64_t section_offset,
          uint8_t *section_data,
          size_t section_data_size,
-         uint8_t *ltree_data,
-         size_t ltree_data_size,
+         uint8_t *single_files_data,
+         size_t single_files_data_size,
          libcerror_error_t **error );
 
 #if defined( __cplusplus )

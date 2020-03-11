@@ -1,22 +1,22 @@
 /*
  * Compression handling functions
  *
- * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -75,6 +75,17 @@ int libewf_compress_data(
 
 		return( -1 );
 	}
+	if( compressed_data_size == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid compressed data size.",
+		 function );
+
+		return( -1 );
+	}
 	if( uncompressed_data == NULL )
 	{
 		libcerror_error_set(
@@ -93,17 +104,6 @@ int libewf_compress_data(
 		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
 		 "%s: invalid uncompressed data buffer equals compressed data buffer.",
-		 function );
-
-		return( -1 );
-	}
-	if( compressed_data_size == NULL )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-		 "%s: invalid compressed data size.",
 		 function );
 
 		return( -1 );
@@ -138,7 +138,11 @@ int libewf_compress_data(
 
 			return( -1 );
 		}
+#if ULONG_MAX < SSIZE_MAX
 		if( *compressed_data_size > (size_t) ULONG_MAX )
+#else
+		if( *compressed_data_size > (size_t) SSIZE_MAX )
+#endif
 		{
 			libcerror_error_set(
 			 error,
@@ -149,7 +153,11 @@ int libewf_compress_data(
 
 			return( -1 );
 		}
+#if ULONG_MAX < SSIZE_MAX
 		if( uncompressed_data_size > (size_t) ULONG_MAX )
+#else
+		if( uncompressed_data_size > (size_t) SSIZE_MAX )
+#endif
 		{
 			libcerror_error_set(
 			 error,
@@ -408,17 +416,6 @@ int libewf_decompress_data(
 
 		return( -1 );
 	}
-	if( uncompressed_data == compressed_data )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-		 "%s: invalid compressed data buffer equals uncompressed data buffer.",
-		 function );
-
-		return( -1 );
-	}
 	if( uncompressed_data_size == NULL )
 	{
 		libcerror_error_set(
@@ -430,10 +427,25 @@ int libewf_decompress_data(
 
 		return( -1 );
 	}
+	if( uncompressed_data == compressed_data )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid compressed data buffer equals uncompressed data buffer.",
+		 function );
+
+		return( -1 );
+	}
 	if( compression_method == LIBEWF_COMPRESSION_METHOD_DEFLATE )
 	{
 #if ( defined( HAVE_ZLIB ) && defined( HAVE_ZLIB_UNCOMPRESS ) ) || defined( ZLIB_DLL )
+#if ULONG_MAX < SSIZE_MAX
 		if( compressed_data_size > (size_t) ULONG_MAX )
+#else
+		if( compressed_data_size > (size_t) SSIZE_MAX )
+#endif
 		{
 			libcerror_error_set(
 			 error,
@@ -444,7 +456,11 @@ int libewf_decompress_data(
 
 			return( -1 );
 		}
+#if ULONG_MAX < SSIZE_MAX
 		if( *uncompressed_data_size > (size_t) ULONG_MAX )
+#else
+		if( *uncompressed_data_size > (size_t) SSIZE_MAX )
+#endif
 		{
 			libcerror_error_set(
 			 error,

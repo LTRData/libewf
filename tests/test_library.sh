@@ -1,17 +1,13 @@
 #!/bin/bash
-# Tests C library functions and types.
+# Tests library functions and types.
 #
-# Version: 20170115
+# Version: 20190216
 
 EXIT_SUCCESS=0;
 EXIT_FAILURE=1;
 EXIT_IGNORE=77;
 
-TEST_PREFIX=`dirname ${PWD}`;
-TEST_PREFIX=`basename ${TEST_PREFIX} | sed 's/^lib\([^-]*\).*$/\1/'`;
-
-TEST_PROFILE="lib${TEST_PREFIX}";
-LIBRARY_TESTS="chunk_data chunk_group chunk_table data_chunk error file_entry hash_sections header_sections io_handle media_values notify read_io_handle section sector_range segment_file segment_table single_file_entry single_files write_io_handle";
+LIBRARY_TESTS="access_control_entry analytical_data attribute bit_stream case_data chunk_data chunk_group chunk_table compression data_chunk date_time date_time_values deflate device_information digest_section error error2_section file_entry hash_sections hash_values header_sections header_values huffman_tree io_handle lef_extended_attribute lef_file_entry lef_permission lef_source lef_subject ltree_section md5_hash_section media_values notify permission_group read_io_handle restart_data section_descriptor sector_range segment_file segment_table serialized_string session_section sha1_hash_section single_file_tree single_files source volume_section write_io_handle";
 LIBRARY_TESTS_WITH_INPUT="handle support";
 OPTION_SETS="";
 

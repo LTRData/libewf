@@ -1,22 +1,22 @@
 /*
  * Mount file entry
  *
- * Copyright (C) 2006-2019, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -291,7 +291,7 @@ int mount_file_entry_get_creation_time(
      libcerror_error_t **error )
 {
 	static char *function = "mount_file_entry_get_creation_time";
-	int32_t posix_time    = 0;
+	int64_t posix_time    = 0;
 
 #if defined( WINAPI )
 	uint64_t filetime     = 0;
@@ -327,7 +327,7 @@ int mount_file_entry_get_creation_time(
 #if defined( WINAPI )
 		if( posix_time != 0 )
 		{
-			/* Convert the POSIX nanoseconds timestamp into a FILETIME timestamp
+			/* Convert the POSIX timestamp into a FILETIME timestamp
 			 */
 			filetime = (uint64_t) ( ( (int64_t) posix_time * 10000000 ) + 116444736000000000L );
 		}
@@ -367,7 +367,7 @@ int mount_file_entry_get_access_time(
      libcerror_error_t **error )
 {
 	static char *function = "mount_file_entry_get_access_time";
-	int32_t posix_time    = 0;
+	int64_t posix_time    = 0;
 
 #if defined( WINAPI )
 	uint64_t filetime     = 0;
@@ -403,7 +403,7 @@ int mount_file_entry_get_access_time(
 #if defined( WINAPI )
 		if( posix_time != 0 )
 		{
-			/* Convert the POSIX nanoseconds timestamp into a FILETIME timestamp
+			/* Convert the POSIX timestamp into a FILETIME timestamp
 			 */
 			filetime = (uint64_t) ( ( (int64_t) posix_time * 10000000 ) + 116444736000000000L );
 		}
@@ -443,7 +443,7 @@ int mount_file_entry_get_modification_time(
      libcerror_error_t **error )
 {
 	static char *function = "mount_file_entry_get_modification_time";
-	int32_t posix_time    = 0;
+	int64_t posix_time    = 0;
 
 #if defined( WINAPI )
 	uint64_t filetime     = 0;
@@ -479,7 +479,7 @@ int mount_file_entry_get_modification_time(
 #if defined( WINAPI )
 		if( posix_time != 0 )
 		{
-			/* Convert the POSIX nanoseconds timestamp into a FILETIME timestamp
+			/* Convert the POSIX timestamp into a FILETIME timestamp
 			 */
 			filetime = (uint64_t) ( ( (int64_t) posix_time * 10000000 ) + 116444736000000000L );
 		}
@@ -519,7 +519,7 @@ int mount_file_entry_get_inode_change_time(
      libcerror_error_t **error )
 {
 	static char *function = "mount_file_entry_get_inode_change_time";
-	int32_t posix_time    = 0;
+	int64_t posix_time    = 0;
 
 #if defined( WINAPI )
 	uint64_t filetime     = 0;
@@ -555,7 +555,7 @@ int mount_file_entry_get_inode_change_time(
 #if defined( WINAPI )
 		if( posix_time != 0 )
 		{
-			/* Convert the POSIX nanoseconds timestamp into a FILETIME timestamp
+			/* Convert the POSIX timestamp into a FILETIME timestamp
 			 */
 			filetime = (uint64_t) ( ( (int64_t) posix_time * 10000000 ) + 116444736000000000L );
 		}

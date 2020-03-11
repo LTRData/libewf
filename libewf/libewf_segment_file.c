@@ -1,22 +1,22 @@
 /*
  * Segment file reading/writing functions
  *
- * Copyright (C) 2006-2017, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
- * This software is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This software is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -157,7 +157,7 @@ int libewf_segment_file_initialize(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create chunk groups list.",
+		 "%s: unable to create sections list.",
 		 function );
 
 		goto on_error;
@@ -280,7 +280,15 @@ int libewf_segment_file_clone(
      libewf_segment_file_t *source_segment_file,
      libcerror_error_t **error )
 {
-	static char *function = "libewf_segment_file_clone";
+	static char *function       = "libewf_segment_file_clone";
+	size64_t list_element_size  = 0;
+	size64_t mapped_size        = 0;
+	off64_t list_element_offset = 0;
+	uint32_t list_element_flags = 0;
+	int element_index           = 0;
+	int list_element_file_index = 0;
+	int list_element_index      = 0;
+	int number_of_list_elements = 0;
 
 	if( destination_segment_file == NULL )
 	{
@@ -343,12 +351,18 @@ int libewf_segment_file_clone(
 
 		return( -1 );
 	}
-	( *destination_segment_file )->sections_list     = NULL;
-	( *destination_segment_file )->chunk_groups_list = NULL;
+	( *destination_segment_file )->sections_list      = NULL;
+	( *destination_segment_file )->chunk_groups_list  = NULL;
+	( *destination_segment_file )->chunk_groups_index = 0;
 
-	if( libfdata_list_clone(
+	if( libfdata_list_initialize(
 	     &( ( *destination_segment_file )->sections_list ),
-	     source_segment_file->sections_list,
+	     (intptr_t *) *destination_segment_file,
+	     NULL,
+	     NULL,
+	     (int (*)(intptr_t *, intptr_t *, libfdata_list_element_t *, libfdata_cache_t *, int, off64_t, size64_t, uint32_t, uint8_t, libcerror_error_t **)) &libewf_segment_file_read_section_element_data,
+	     NULL,
+	     LIBFDATA_DATA_HANDLE_FLAG_NON_MANAGED,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -360,9 +374,71 @@ int libewf_segment_file_clone(
 
 		goto on_error;
 	}
-	if( libfdata_list_clone(
+	if( libfdata_list_get_number_of_elements(
+	     source_segment_file->sections_list,
+	     &number_of_list_elements,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+		 "%s: unable to retrieve the number of elements from source sections list.",
+		 function );
+
+		goto on_error;
+	}
+	for( list_element_index = 0;
+	     list_element_index < number_of_list_elements;
+	     list_element_index++ )
+	{
+		if( libfdata_list_get_element_by_index(
+		     source_segment_file->sections_list,
+		     list_element_index,
+		     &list_element_file_index,
+		     &list_element_offset,
+		     &list_element_size,
+		     &list_element_flags,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+			 "%s: unable to retrieve element: %d from source sections list.",
+			 function,
+			 list_element_index );
+
+			goto on_error;
+		}
+		if( libfdata_list_append_element(
+		     ( *destination_segment_file )->sections_list,
+		     &element_index,
+		     list_element_file_index,
+		     list_element_offset,
+		     list_element_size,
+		     list_element_flags,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
+			 "%s: unable to append element: %d to destination sections list.",
+			 function,
+			 list_element_index );
+
+			goto on_error;
+		}
+	}
+	if( libfdata_list_initialize(
 	     &( ( *destination_segment_file )->chunk_groups_list ),
-	     source_segment_file->chunk_groups_list,
+	     (intptr_t *) *destination_segment_file,
+	     NULL,
+	     NULL,
+	     (int (*)(intptr_t *, intptr_t *, libfdata_list_element_t *, libfdata_cache_t *, int, off64_t, size64_t, uint32_t, uint8_t, libcerror_error_t **)) &libewf_segment_file_read_chunk_group_element_data,
+	     NULL,
+	     LIBFDATA_DATA_HANDLE_FLAG_NON_MANAGED,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -373,6 +449,80 @@ int libewf_segment_file_clone(
 		 function );
 
 		goto on_error;
+	}
+	if( libfdata_list_get_number_of_elements(
+	     source_segment_file->chunk_groups_list,
+	     &number_of_list_elements,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+		 "%s: unable to retrieve the number of elements from source chunk groups list.",
+		 function );
+
+		goto on_error;
+	}
+	for( list_element_index = 0;
+	     list_element_index < number_of_list_elements;
+	     list_element_index++ )
+	{
+		if( libfdata_list_get_element_by_index(
+		     source_segment_file->chunk_groups_list,
+		     list_element_index,
+		     &list_element_file_index,
+		     &list_element_offset,
+		     &list_element_size,
+		     &list_element_flags,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+			 "%s: unable to retrieve element: %d from source chunk groups list.",
+			 function,
+			 list_element_index );
+
+			goto on_error;
+		}
+		if( libfdata_list_get_mapped_size_by_index(
+		     source_segment_file->chunk_groups_list,
+		     list_element_index,
+		     &mapped_size,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+			 "%s: unable to retrieve mappped size: %d from source chunk groups list.",
+			 function,
+			 list_element_index );
+
+			goto on_error;
+		}
+		if( libfdata_list_append_element_with_mapped_size(
+		     ( *destination_segment_file )->chunk_groups_list,
+		     &element_index,
+		     list_element_file_index,
+		     list_element_offset,
+		     list_element_size,
+		     list_element_flags,
+		     mapped_size,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
+			 "%s: unable to append element: %d to destination chunk groups list.",
+			 function,
+			 list_element_index );
+
+			goto on_error;
+		}
 	}
 	return( 1 );
 
@@ -429,7 +579,7 @@ int libewf_segment_file_get_number_of_sections(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-		 "%s: unable to retrieve the number of sections from sections list.",
+		 "%s: unable to retrieve the number of elements from sections list.",
 		 function );
 
 		return( -1 );
@@ -474,7 +624,7 @@ int libewf_segment_file_get_section_by_index(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-		 "%s: unable to retrieve section: %d from sections list.",
+		 "%s: unable to retrieve element: %d from sections list.",
 		 function,
 		 section_index );
 
@@ -498,11 +648,7 @@ ssize_t libewf_segment_file_read_file_header(
 	ssize_t read_count           = 0;
 
 #if defined( HAVE_DEBUG_OUTPUT )
-	system_character_t guid_string[ 48 ];
-
-	libfguid_identifier_t *guid  = NULL;
 	uint16_t value_16bit         = 0;
-	int result                   = 0;
 #endif
 
 	if( segment_file == NULL )
@@ -745,75 +891,20 @@ ssize_t libewf_segment_file_read_file_header(
 		}
 		else if( file_header_data_size == sizeof( ewf_file_header_v2_t ) )
 		{
-			if( libfguid_identifier_initialize(
-			     &guid,
-			     error ) != 1 )
-			{
-				libcerror_error_set(
-				 error,
-				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-				 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-				 "%s: unable to create GUID.",
-				 function );
-
-				goto on_error;
-			}
-			if( libfguid_identifier_copy_from_byte_stream(
-			     guid,
+			if( libewf_debug_print_guid_value(
+			     function,
+			     "set identifier\t\t\t",
 			     segment_file->set_identifier,
 			     16,
 			     LIBFGUID_ENDIAN_LITTLE,
+			     LIBFGUID_STRING_FORMAT_FLAG_USE_LOWER_CASE,
 			     error ) != 1 )
 			{
 				libcerror_error_set(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-				 LIBCERROR_RUNTIME_ERROR_COPY_FAILED,
-				 "%s: unable to copy byte stream to GUID.",
-				 function );
-
-				goto on_error;
-			}
-#if defined( HAVE_WIDE_SYSTEM_CHARACTER )
-			result = libfguid_identifier_copy_to_utf16_string(
-				  guid,
-				  (uint16_t *) guid_string,
-				  48,
-				  LIBFGUID_STRING_FORMAT_FLAG_USE_LOWER_CASE,
-				  error );
-#else
-			result = libfguid_identifier_copy_to_utf8_string(
-				  guid,
-				  (uint8_t *) guid_string,
-				  48,
-				  LIBFGUID_STRING_FORMAT_FLAG_USE_LOWER_CASE,
-				  error );
-#endif
-			if( result != 1 )
-			{
-				libcerror_error_set(
-				 error,
-				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-				 LIBCERROR_RUNTIME_ERROR_COPY_FAILED,
-				 "%s: unable to copy GUID to string.",
-				 function );
-
-				goto on_error;
-			}
-			libcnotify_printf(
-			 "%s: set identifier\t\t\t: %" PRIs_SYSTEM "\n",
-			 function,
-			 guid_string );
-
-			if( libfguid_identifier_free(
-			     &guid,
-			     error ) != 1 )
-			{
-				libcerror_error_set(
-				 error,
-				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-				 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
-				 "%s: unable to free GUID.",
+				 LIBCERROR_RUNTIME_ERROR_PRINT_FAILED,
+				 "%s: unable to print GUID value.",
 				 function );
 
 				goto on_error;
@@ -822,21 +913,14 @@ ssize_t libewf_segment_file_read_file_header(
 		libcnotify_printf(
 	 	 "\n" );
 	}
-#endif
+#endif /* defined( HAVE_DEBUG_OUTPUT ) */
+
 	memory_free(
 	 file_header_data );
 
 	return( (ssize_t) file_header_data_size );
 
 on_error:
-#if defined( HAVE_DEBUG_OUTPUT )
-	if( guid != NULL )
-	{
-		libfguid_identifier_free(
-		 &guid,
-		 NULL );
-	}
-#endif
 	if( file_header_data != NULL )
 	{
 		memory_free(
@@ -1664,8 +1748,8 @@ ssize_t libewf_segment_file_read_volume_section(
 	}
 	if( section->data_size == (size64_t) sizeof( ewf_volume_t ) )
 	{
-		read_count = libewf_section_volume_e01_read(
-		              section,
+		read_count = libewf_volume_section_e01_read_file_io_pool(
+		              section_descriptor,
 		              segment_file->io_handle,
 		              file_io_pool,
 		              file_io_pool_entry,
@@ -1686,8 +1770,8 @@ ssize_t libewf_segment_file_read_volume_section(
 	}
 	else if( section->data_size == (size64_t) sizeof( ewf_volume_smart_t ) )
 	{
-		read_count = libewf_section_volume_s01_read(
-		              section,
+		read_count = libewf_volume_section_s01_read_file_io_pool(
+		              section_descriptor,
 		              segment_file->io_handle,
 		              file_io_pool,
 		              file_io_pool_entry,
@@ -1875,7 +1959,7 @@ ssize_t libewf_segment_file_write_device_information_section(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-		 "%s: unable to append section to sections list.",
+		 "%s: unable to append element to sections list.",
 		 function );
 
 		goto on_error;
@@ -2047,7 +2131,7 @@ ssize_t libewf_segment_file_write_case_data_section(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-		 "%s: unable to append section to sections list.",
+		 "%s: unable to append element to sections list.",
 		 function );
 
 		goto on_error;
@@ -2181,7 +2265,7 @@ ssize_t libewf_segment_file_write_header_section(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-		 "%s: unable to append section to sections list.",
+		 "%s: unable to append element to sections list.",
 		 function );
 
 		goto on_error;
@@ -2351,7 +2435,7 @@ ssize_t libewf_segment_file_write_header2_section(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-		 "%s: unable to append section to sections list.",
+		 "%s: unable to append element to sections list.",
 		 function );
 
 		goto on_error;
@@ -2521,7 +2605,7 @@ ssize_t libewf_segment_file_write_xheader_section(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-		 "%s: unable to append section to sections list.",
+		 "%s: unable to append element to sections list.",
 		 function );
 
 		goto on_error;
@@ -3020,7 +3104,7 @@ ssize_t libewf_segment_file_write_last_section(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-		 "%s: unable to append section to sections list.",
+		 "%s: unable to append element to sections list.",
 		 function );
 
 		goto on_error;
@@ -3150,8 +3234,8 @@ ssize_t libewf_segment_file_write_start(
 
 			if( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1 )
 			{
-				write_count = libewf_section_volume_e01_write(
-					       section,
+				write_count = libewf_volume_section_e01_write_file_io_pool(
+					       section_descriptor,
 					       segment_file->io_handle,
 					       file_io_pool,
 					       file_io_pool_entry,
@@ -3161,8 +3245,8 @@ ssize_t libewf_segment_file_write_start(
 			}
 			else if( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1_SMART )
 			{
-				write_count = libewf_section_volume_s01_write(
-					       section,
+				write_count = libewf_volume_section_s01_write_file_io_pool(
+					       section_descriptor,
 					       segment_file->io_handle,
 					       file_io_pool,
 					       file_io_pool_entry,
@@ -3225,7 +3309,7 @@ ssize_t libewf_segment_file_write_start(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 				 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-				 "%s: unable to append section to sections list.",
+				 "%s: unable to append element to sections list.",
 				 function );
 
 				goto on_error;
@@ -3687,7 +3771,7 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-			 "%s: unable to append section to sections list.",
+			 "%s: unable to append element to sections list.",
 			 function );
 
 			goto on_error;
@@ -3757,7 +3841,7 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-			 "%s: unable to append section to sections list.",
+			 "%s: unable to append element to sections list.",
 			 function );
 
 			goto on_error;
@@ -3854,7 +3938,7 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-			 "%s: unable to append section to sections list.",
+			 "%s: unable to append element to sections list.",
 			 function );
 
 			goto on_error;
@@ -3934,7 +4018,7 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-			 "%s: unable to append section to sections list.",
+			 "%s: unable to append element to sections list.",
 			 function );
 
 			goto on_error;
@@ -4239,8 +4323,8 @@ ssize_t libewf_segment_file_write_hash_sections(
 
 				goto on_error;
 			}
-			write_count = libewf_section_digest_write(
-				       section,
+			write_count = libewf_digest_section_write_file_io_pool(
+				       section_descriptor,
 				       segment_file->io_handle,
 				       file_io_pool,
 				       file_io_pool_entry,
@@ -4272,7 +4356,7 @@ ssize_t libewf_segment_file_write_hash_sections(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 				 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-				 "%s: unable to append section to sections list.",
+				 "%s: unable to append element to sections list.",
 				 function );
 
 				goto on_error;
@@ -4312,8 +4396,8 @@ ssize_t libewf_segment_file_write_hash_sections(
 
 			goto on_error;
 		}
-		write_count = libewf_section_md5_hash_write(
-			       section,
+		write_count = libewf_md5_hash_section_write_file_io_pool(
+			       section_descriptor,
 			       segment_file->io_handle,
 			       file_io_pool,
 			       file_io_pool_entry,
@@ -4364,7 +4448,7 @@ ssize_t libewf_segment_file_write_hash_sections(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-			 "%s: unable to append section to sections list.",
+			 "%s: unable to append element to sections list.",
 			 function );
 
 			goto on_error;
@@ -4402,8 +4486,8 @@ ssize_t libewf_segment_file_write_hash_sections(
 
 				goto on_error;
 			}
-			write_count = libewf_section_sha1_hash_write(
-				       section,
+			write_count = libewf_sha1_hash_section_write_file_io_pool(
+				       section_descriptor,
 				       segment_file->io_handle,
 				       file_io_pool,
 				       file_io_pool_entry,
@@ -4454,7 +4538,7 @@ ssize_t libewf_segment_file_write_hash_sections(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 				 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-				 "%s: unable to append section to sections list.",
+				 "%s: unable to append element to sections list.",
 				 function );
 
 				goto on_error;
@@ -4584,7 +4668,7 @@ ssize_t libewf_segment_file_write_hash_sections(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-			 "%s: unable to append section to sections list.",
+			 "%s: unable to append element to sections list.",
 			 function );
 
 			goto on_error;
@@ -4755,7 +4839,7 @@ ssize_t libewf_segment_file_write_close(
 					 error,
 					 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 					 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-					 "%s: unable to append section to sections list.",
+					 "%s: unable to append element to sections list.",
 					 function );
 
 					goto on_error;
@@ -4818,8 +4902,8 @@ ssize_t libewf_segment_file_write_close(
 
 					goto on_error;
 				}
-				write_count = libewf_section_session_write(
-					       section,
+				write_count = libewf_session_section_write_file_io_pool(
+					       section_descriptor,
 					       segment_file->io_handle,
 					       file_io_pool,
 					       file_io_pool_entry,
@@ -4835,7 +4919,7 @@ ssize_t libewf_segment_file_write_close(
 					 error,
 					 LIBCERROR_ERROR_DOMAIN_IO,
 					 LIBCERROR_IO_ERROR_WRITE_FAILED,
-					 "%s: unable to write sessions section.",
+					 "%s: unable to write session section.",
 					 function );
 
 					goto on_error;
@@ -4871,7 +4955,7 @@ ssize_t libewf_segment_file_write_close(
 					 error,
 					 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 					 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-					 "%s: unable to append section to sections list.",
+					 "%s: unable to append element to sections list.",
 					 function );
 
 					goto on_error;
@@ -4933,8 +5017,8 @@ ssize_t libewf_segment_file_write_close(
 
 					goto on_error;
 				}
-				write_count = libewf_section_error_write(
-					       section,
+				write_count = libewf_error2_section_write_file_io_pool(
+					       section_descriptor,
 					       segment_file->io_handle,
 					       file_io_pool,
 					       file_io_pool_entry,
@@ -4949,7 +5033,7 @@ ssize_t libewf_segment_file_write_close(
 					 error,
 					 LIBCERROR_ERROR_DOMAIN_IO,
 					 LIBCERROR_IO_ERROR_WRITE_FAILED,
-					 "%s: unable to write error section.",
+					 "%s: unable to write error2 section.",
 					 function );
 
 					goto on_error;
@@ -4985,7 +5069,7 @@ ssize_t libewf_segment_file_write_close(
 					 error,
 					 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 					 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-					 "%s: unable to append section to sections list.",
+					 "%s: unable to append element to sections list.",
 					 function );
 
 					goto on_error;
@@ -5683,8 +5767,8 @@ int libewf_segment_file_write_sections_correction(
 
 				if( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1 )
 				{
-					write_count = libewf_section_volume_e01_write(
-						       section,
+					write_count = libewf_volume_section_e01_write_file_io_pool(
+						       section_descriptor,
 						       segment_file->io_handle,
 						       file_io_pool,
 						       file_io_pool_entry,
@@ -5694,8 +5778,8 @@ int libewf_segment_file_write_sections_correction(
 				}
 				else if( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1_SMART )
 				{
-					write_count = libewf_section_volume_s01_write(
-						       section,
+					write_count = libewf_volume_section_s01_write_file_io_pool(
+						       section_descriptor,
 						       segment_file->io_handle,
 						       file_io_pool,
 						       file_io_pool_entry,
@@ -6092,7 +6176,7 @@ int libewf_segment_file_read_element_data(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 				 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-				 "%s: unable to append section to sections list.",
+				 "%s: unable to append element to sections list.",
 				 function );
 
 				goto on_error;
@@ -6144,7 +6228,7 @@ int libewf_segment_file_read_element_data(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 				 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-				 "%s: unable to append section to sections list.",
+				 "%s: unable to append element to sections list.",
 				 function );
 
 				goto on_error;

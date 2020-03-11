@@ -1,10 +1,13 @@
 #!/bin/sh
 # Script that synchronizes the local library dependencies
 #
-# Version: 20161212
+# Version: 20191229
+
+EXIT_SUCCESS=0;
+EXIT_FAILURE=1;
 
 GIT_URL_PREFIX="https://github.com/libyal";
-LOCAL_LIBS="libbfio libcaes libcdata libcdatetime libcerror libcfile libclocale libcnotify libcpath libcsplit libcthreads libfcache libfdata libfguid libfvalue libhmac libodraw libsmdev libsmraw libuna";
+LOCAL_LIBS="libbfio libcaes libcdata libcdatetime libcerror libcfile libclocale libcnotify libcpath libcsplit libcthreads libfcache libfdata libfdatetime libfguid libfvalue libhmac libodraw libsmdev libsmraw libuna";
 
 OLDIFS=$IFS;
 IFS=" ";
@@ -79,7 +82,7 @@ endif
 	rm -f ${LOCAL_LIB}-$$.sed;
 
 	sed -i'~' "/${LOCAL_LIB}_definitions.h.in/d" ${LOCAL_LIB_MAKEFILE_AM};
-	sed -i'~' "/${LOCAL_LIB}.rc/d" ${LOCAL_LIB_MAKEFILE_AM};
+	sed -i'~' "/${LOCAL_LIB}\\.rc/d" ${LOCAL_LIB_MAKEFILE_AM};
 
 	if test ${LOCAL_LIB} = "libfplist";
 	then
@@ -135,6 +138,19 @@ SED_SCRIPT="/^$/ {
 		if ! test -f "m4/libuna.m4";
 		then
 			sed -i'~' '/@LIBUNA_CPPFLAGS@/d' ${LOCAL_LIB_MAKEFILE_AM};
+		fi
+	fi
+
+	# Make the necessary changes to libsmraw/Makefile.am
+	if test ${LOCAL_LIB} = "libsmraw";
+	then
+		if test -f "m4/libfdatetime.m4";
+		then
+			sed -i'~' '/@LIBFVALUE_CPPFLAGS@/{h; s/FVALUE/FDATETIME/; p; g;}' ${LOCAL_LIB_MAKEFILE_AM};
+		fi
+		if test -f "m4/libfguid.m4";
+		then
+			sed -i'~' '/@LIBFVALUE_CPPFLAGS@/{h; s/FVALUE/FGUID/; p; g;}' ${LOCAL_LIB_MAKEFILE_AM};
 		fi
 	fi
 
