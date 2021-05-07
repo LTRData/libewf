@@ -1,7 +1,7 @@
 /*
  * Compression handling functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #endif
 
-#if defined( HAVE_LIBBZ2 ) || defined( BZIP2_DLL )
+#if defined( HAVE_BZLIB ) || defined( BZ_DLL )
 #include <bzlib.h>
 #endif
 
@@ -55,7 +55,7 @@ int libewf_compress_data(
 	static char *function                   = "libewf_compress_data";
 	int result                              = 0;
 
-#if defined( HAVE_LIBBZ2 ) || defined( BZIP2_DLL )
+#if defined( HAVE_BZLIB ) || defined( BZ_DLL )
 	unsigned int bzip2_compressed_data_size = 0;
 	int bzip2_compression_level             = 0;
 #endif
@@ -111,19 +111,19 @@ int libewf_compress_data(
 	if( compression_method == LIBEWF_COMPRESSION_METHOD_DEFLATE )
 	{
 #if ( defined( HAVE_ZLIB ) && defined( HAVE_ZLIB_COMPRESS2 ) ) || defined( ZLIB_DLL )
-		if( compression_level == LIBEWF_COMPRESSION_DEFAULT )
+		if( compression_level == LIBEWF_COMPRESSION_LEVEL_DEFAULT )
 		{
 			zlib_compression_level = Z_DEFAULT_COMPRESSION;
 		}
-		else if( compression_level == LIBEWF_COMPRESSION_FAST )
+		else if( compression_level == LIBEWF_COMPRESSION_LEVEL_FAST )
 		{
 			zlib_compression_level = Z_BEST_SPEED;
 		}
-		else if( compression_level == LIBEWF_COMPRESSION_BEST )
+		else if( compression_level == LIBEWF_COMPRESSION_LEVEL_BEST )
 		{
 			zlib_compression_level = Z_BEST_COMPRESSION;
 		}
-		else if( compression_level == LIBEWF_COMPRESSION_NONE )
+		else if( compression_level == LIBEWF_COMPRESSION_LEVEL_NONE )
 		{
 			zlib_compression_level = Z_NO_COMPRESSION;
 		}
@@ -245,13 +245,13 @@ int libewf_compress_data(
 	}
 	else if( compression_method == LIBEWF_COMPRESSION_METHOD_BZIP2 )
 	{
-#if defined( HAVE_LIBBZ2 ) || defined( BZIP2_DLL )
-		if( ( compression_level == LIBEWF_COMPRESSION_DEFAULT )
-		 || ( compression_level == LIBEWF_COMPRESSION_FAST ) )
+#if defined( HAVE_BZLIB ) || defined( BZ_DLL )
+		if( ( compression_level == LIBEWF_COMPRESSION_LEVEL_DEFAULT )
+		 || ( compression_level == LIBEWF_COMPRESSION_LEVEL_FAST ) )
 		{
 			bzip2_compression_level = 1;
 		}
-		else if( compression_level == LIBEWF_COMPRESSION_BEST )
+		else if( compression_level == LIBEWF_COMPRESSION_LEVEL_BEST )
 		{
 			bzip2_compression_level = 9;
 		}
@@ -357,7 +357,7 @@ int libewf_compress_data(
 		 function );
 
 		return( -1 );
-#endif /* defined( HAVE_LIBBZ2 ) || defined( BZIP2_DLL ) */
+#endif /* defined( HAVE_BZLIB ) || defined( BZ_DLL ) */
 	}
 	else
 	{
@@ -387,7 +387,7 @@ int libewf_decompress_data(
 	static char *function                     = "libewf_decompress_data";
 	int result                                = 0;
 
-#if defined( HAVE_LIBBZ2 ) || defined( BZIP2_DLL )
+#if defined( HAVE_BZLIB ) || defined( BZ_DLL )
 	unsigned int bzip2_uncompressed_data_size = 0;
 #endif
 #if ( defined( HAVE_ZLIB ) && defined( HAVE_ZLIB_UNCOMPRESS ) ) || defined( ZLIB_DLL )
@@ -543,7 +543,7 @@ int libewf_decompress_data(
 			result = -1;
 		}
 #else
-		result = libewf_deflate_decompress(
+		result = libewf_deflate_decompress_zlib(
 		          compressed_data,
 		          compressed_data_size,
 		          uncompressed_data,
@@ -565,7 +565,7 @@ int libewf_decompress_data(
 	}
 	else if( compression_method == LIBEWF_COMPRESSION_METHOD_BZIP2 )
 	{
-#if defined( HAVE_LIBBZ2 ) || defined( BZIP2_DLL )
+#if defined( HAVE_BZLIB ) || defined( BZ_DLL )
 		if( compressed_data_size > (size_t) UINT_MAX )
 		{
 			libcerror_error_set(
@@ -671,7 +671,7 @@ int libewf_decompress_data(
 		 function );
 
 		return( -1 );
-#endif /* defined( HAVE_LIBBZ2 ) || defined( BZIP2_DLL ) */
+#endif /* defined( HAVE_BZLIB ) || defined( BZ_DLL ) */
 	}
 	else
 	{

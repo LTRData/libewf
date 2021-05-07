@@ -1,7 +1,7 @@
 /*
  * Export handle
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -83,9 +83,13 @@ struct export_handle
 	 */
 	uint8_t ewf_format;
 
-	/* The number of sectors per chunk
+	/* The number of sectors per chunk of the input
 	 */
-	uint32_t sectors_per_chunk;
+	uint32_t input_sectors_per_chunk;
+
+	/* The number of sectors per chunk of the output
+	 */
+	uint32_t output_sectors_per_chunk;
 
 	/* The maximum segment size
 	 */
@@ -151,9 +155,9 @@ struct export_handle
 	 */
 	system_character_t *calculated_sha256_hash_string;
 
-	/* Value to indicate if the chunk data instead of the buffered read and write functions should be used
+	/* Value to indicate if the data chunk functions instead of the buffered read and write functions should be used
 	 */
-	uint8_t use_chunk_data_functions;
+	uint8_t use_data_chunk_functions;
 
 	/* The process buffer size
 	 */
@@ -251,7 +255,7 @@ struct export_handle
 int export_handle_initialize(
      export_handle_t **export_handle,
      uint8_t calculate_md5,
-     uint8_t use_chunk_data_functions,
+     uint8_t use_data_chunk_functions,
      libcerror_error_t **error );
 
 int export_handle_free(

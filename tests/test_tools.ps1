@@ -1,12 +1,12 @@
 # Tests tools functions and types.
 #
-# Version: 20200216
+# Version: 20200820
 
 $ExitSuccess = 0
 $ExitFailure = 1
 $ExitIgnore = 77
 
-$ToolsTests = "byte_size_string device_handle digest_hash guid info_handle platform verification_handle"
+$ToolsTests = "byte_size_string device_handle digest_hash export_handle guid imaging_handle info_handle log_handle output platform signal storage_media_buffer system_string verification_handle"
 $ToolsTestsWithInput = ""
 
 $InputGlob = "*.[Ees]*01"
@@ -84,7 +84,7 @@ Function RunTest
 	param( [string]$TestType )
 
 	$TestDescription = "Testing: ${TestName}"
-	$TestExecutable = "${TestExecutablesDirectory}\ewf_test_${TestName}.exe"
+	$TestExecutable = "${TestExecutablesDirectory}\ewf_test_tools_${TestName}.exe"
 
 	$Output = Invoke-Expression ${TestExecutable}
 	$Result = ${LastExitCode}
@@ -111,7 +111,7 @@ Function RunTestWithInput
 	param( [string]$TestType )
 
 	$TestDescription = "Testing: ${TestName}"
-	$TestExecutable = "${TestExecutablesDirectory}\ewf_test_${TestName}.exe"
+	$TestExecutable = "${TestExecutablesDirectory}\ewf_test_tools_${TestName}.exe"
 
 	$TestProfileDirectory = GetTestProfileDirectory "input" "ewftools"
 

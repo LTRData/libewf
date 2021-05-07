@@ -1,7 +1,7 @@
 /*
  * Segment file reading/writing functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -22,7 +22,6 @@
 #include <common.h>
 #include <byte_stream.h>
 #include <memory.h>
-#include <system_string.h>
 #include <types.h>
 
 #if defined( TIME_WITH_SYS_TIME )
@@ -60,6 +59,7 @@
 #include "libewf_session_section.h"
 #include "libewf_sha1_hash_section.h"
 #include "libewf_single_files.h"
+#include "libewf_table_section.h"
 #include "libewf_unused.h"
 #include "libewf_volume_section.h"
 
@@ -188,7 +188,20 @@ int libewf_segment_file_initialize(
 
 		goto on_error;
 	}
-/* TODO set mapped offset in chunk_groups_list ? */
+	if( libfcache_cache_initialize(
+	     &( ( *segment_file )->chunk_groups_cache ),
+	     LIBEWF_MAXIMUM_CACHE_ENTRIES_CHUNK_GROUPS,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+		 "%s: unable to create chunk groups cache.",
+		 function );
+
+		goto on_error;
+	}
 	( *segment_file )->io_handle                        = io_handle;
 	( *segment_file )->device_information_section_index = -1;
 	( *segment_file )->previous_last_chunk_filled       = -1;
@@ -267,6 +280,19 @@ int libewf_segment_file_free(
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
 			 "%s: unable to free chunk groups list.",
+			 function );
+
+			result = -1;
+		}
+		if( libfcache_cache_free(
+		     &( ( *segment_file )->chunk_groups_cache ),
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
+			 "%s: unable to free chunk groups cache.",
 			 function );
 
 			result = -1;
@@ -358,9 +384,10 @@ int libewf_segment_file_clone(
 
 		return( -1 );
 	}
-	( *destination_segment_file )->sections_list      = NULL;
-	( *destination_segment_file )->chunk_groups_list  = NULL;
-	( *destination_segment_file )->chunk_groups_index = 0;
+	( *destination_segment_file )->sections_list             = NULL;
+	( *destination_segment_file )->chunk_groups_list         = NULL;
+	( *destination_segment_file )->chunk_groups_cache        = NULL;
+	( *destination_segment_file )->current_chunk_group_index = 0;
 
 	if( libfdata_list_initialize(
 	     &( ( *destination_segment_file )->sections_list ),
@@ -531,6 +558,20 @@ int libewf_segment_file_clone(
 			goto on_error;
 		}
 	}
+	if( libfcache_cache_clone(
+	     &( ( *destination_segment_file )->chunk_groups_cache ),
+	     source_segment_file->chunk_groups_cache,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+		 "%s: unable to create destination chunk groups cache.",
+		 function );
+
+		goto on_error;
+	}
 	return( 1 );
 
 on_error:
@@ -641,21 +682,18 @@ int libewf_segment_file_get_section_by_index(
 }
 
 /* Reads the segment file header
- * Returns the number of bytes read if successful, or -1 on error
+ * Returns 1 if successful or -1 on error
  */
-ssize_t libewf_segment_file_read_file_header(
-         libewf_segment_file_t *segment_file,
-         libbfio_pool_t *file_io_pool,
-         int file_io_pool_entry,
-         libcerror_error_t **error )
+int libewf_segment_file_read_file_header_data(
+     libewf_segment_file_t *segment_file,
+     const uint8_t *data,
+     size_t data_size,
+     libcerror_error_t **error )
 {
-	uint8_t *file_header_data    = NULL;
-	static char *function        = "libewf_segment_file_read_file_header";
-	size_t file_header_data_size = 0;
-	ssize_t read_count           = 0;
+	static char *function = "libewf_segment_file_read_file_header_data";
 
 #if defined( HAVE_DEBUG_OUTPUT )
-	uint16_t value_16bit         = 0;
+	uint16_t value_16bit  = 0;
 #endif
 
 	if( segment_file == NULL )
@@ -669,51 +707,202 @@ ssize_t libewf_segment_file_read_file_header(
 
 		return( -1 );
 	}
-	file_header_data = (uint8_t *) memory_allocate(
-	                                sizeof( ewf_file_header_v2_t ) );
-
-	if( file_header_data == NULL )
+	if( data == NULL )
 	{
 		libcerror_error_set(
 		 error,
-		 LIBCERROR_ERROR_DOMAIN_MEMORY,
-		 LIBCERROR_MEMORY_ERROR_INSUFFICIENT,
-		 "%s: unable to create file header data.",
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
+		 "%s: missing data.",
 		 function );
 
-		goto on_error;
+		return( -1 );
+	}
+	if( ( data_size != sizeof( ewf_file_header_v1_t ) )
+	 && ( data_size != sizeof( ewf_file_header_v2_t ) ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
+		 "%s: invalid data size value out of bounds.",
+		 function );
+
+		return( -1 );
 	}
 #if defined( HAVE_DEBUG_OUTPUT )
 	if( libcnotify_verbose != 0 )
 	{
 		libcnotify_printf(
-	 	"%s: reading file header at offset: 0 (0x00000000)\n",
+		 "%s: file header:\n",
 		 function );
+		libcnotify_print_data(
+		 data,
+		 data_size,
+		 0 );
 	}
 #endif
-	if( libbfio_pool_seek_offset(
-	     file_io_pool,
-	     file_io_pool_entry,
-	     0,
-	     SEEK_SET,
-	     error ) == -1 )
+	if( data_size == sizeof( ewf_file_header_v1_t ) )
+	{
+		byte_stream_copy_to_uint16_little_endian(
+		 ( (ewf_file_header_v1_t *) data )->segment_number,
+		 segment_file->segment_number );
+
+		segment_file->major_version      = 1;
+		segment_file->minor_version      = 0;
+		segment_file->compression_method = LIBEWF_COMPRESSION_METHOD_DEFLATE;
+	}
+	else if( data_size == sizeof( ewf_file_header_v2_t ) )
+	{
+		segment_file->major_version = ( (ewf_file_header_v2_t *) data )->major_version;
+		segment_file->minor_version = ( (ewf_file_header_v2_t *) data )->minor_version;
+
+		byte_stream_copy_to_uint16_little_endian(
+		 ( (ewf_file_header_v2_t *) data )->compression_method,
+		 segment_file->compression_method );
+
+		byte_stream_copy_to_uint32_little_endian(
+		 ( (ewf_file_header_v2_t *) data )->segment_number,
+		 segment_file->segment_number );
+
+		if( memory_copy(
+		     segment_file->set_identifier,
+		     ( (ewf_file_header_v2_t *) data )->set_identifier,
+		     16 ) == NULL )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_MEMORY,
+			 LIBCERROR_MEMORY_ERROR_COPY_FAILED,
+			 "%s: unable to copy set identifier.",
+			 function );
+
+			return( -1 );
+		}
+	}
+#if defined( HAVE_DEBUG_OUTPUT )
+	if( libcnotify_verbose != 0 )
+	{
+		libcnotify_printf(
+		 "%s: signature:\n",
+		 function );
+		libcnotify_print_data(
+		 data,
+		 8,
+		 0 );
+
+		if( data_size == sizeof( ewf_file_header_v1_t ) )
+		{
+			libcnotify_printf(
+			 "%s: fields start\t\t\t: 0x%02" PRIx8 "\n",
+			 function,
+			 ( (ewf_file_header_v1_t *) data )->fields_start );
+		}
+		else if( data_size == sizeof( ewf_file_header_v2_t ) )
+		{
+			libcnotify_printf(
+			 "%s: major version\t\t: %" PRIu8 "\n",
+			 function,
+			 segment_file->major_version );
+
+			libcnotify_printf(
+			 "%s: minor version\t\t: %" PRIu8 "\n",
+			 function,
+			 segment_file->minor_version );
+
+			libcnotify_printf(
+			 "%s: compression method\t\t: %" PRIu16 " (",
+			 function,
+			 segment_file->compression_method );
+			libewf_debug_print_compression_method(
+			 segment_file->compression_method );
+			libcnotify_printf(
+			 ")\n" );
+		}
+		libcnotify_printf(
+		 "%s: segment number\t\t: %" PRIu32 "\n",
+		 function,
+		 segment_file->segment_number );
+
+		if( data_size == sizeof( ewf_file_header_v1_t ) )
+		{
+			byte_stream_copy_to_uint16_little_endian(
+			 ( (ewf_file_header_v1_t *) data )->fields_end,
+			 value_16bit );
+			libcnotify_printf(
+			 "%s: fields end\t\t\t: 0x%04" PRIx16 "\n",
+			 function,
+			 value_16bit );
+		}
+		else if( data_size == sizeof( ewf_file_header_v2_t ) )
+		{
+			if( libewf_debug_print_guid_value(
+			     function,
+			     "set identifier\t\t",
+			     segment_file->set_identifier,
+			     16,
+			     LIBFGUID_ENDIAN_LITTLE,
+			     LIBFGUID_STRING_FORMAT_FLAG_USE_LOWER_CASE,
+			     error ) != 1 )
+			{
+				libcerror_error_set(
+				 error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_PRINT_FAILED,
+				 "%s: unable to print GUID value.",
+				 function );
+
+				return( -1 );
+			}
+		}
+		libcnotify_printf(
+		 "\n" );
+	}
+#endif /* defined( HAVE_DEBUG_OUTPUT ) */
+
+	return( 1 );
+}
+
+/* Reads the segment file header
+ * Returns the number of bytes read if successful, or -1 on error
+ */
+ssize_t libewf_segment_file_read_file_header_file_io_pool(
+         libewf_segment_file_t *segment_file,
+         libbfio_pool_t *file_io_pool,
+         int file_io_pool_entry,
+         libcerror_error_t **error )
+{
+	uint8_t file_header_data[ sizeof( ewf_file_header_v2_t ) ];
+
+	static char *function        = "libewf_segment_file_read_file_header_file_io_pool";
+	size_t file_header_data_size = 0;
+	ssize_t read_count           = 0;
+
+	if( segment_file == NULL )
 	{
 		libcerror_error_set(
 		 error,
-		 LIBCERROR_ERROR_DOMAIN_IO,
-		 LIBCERROR_IO_ERROR_SEEK_FAILED,
-		 "%s: unable to seek file header offset: 0.",
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid segment file.",
 		 function );
 
-		goto on_error;
+		return( -1 );
 	}
-	segment_file->current_offset = 0;
-
-	read_count = libbfio_pool_read_buffer(
+#if defined( HAVE_DEBUG_OUTPUT )
+	if( libcnotify_verbose != 0 )
+	{
+		libcnotify_printf(
+		 "%s: reading file header at offset: 0 (0x00000000)\n",
+		 function );
+	}
+#endif
+	read_count = libbfio_pool_read_buffer_at_offset(
 	              file_io_pool,
 	              file_io_pool_entry,
 	              file_header_data,
 	              8,
+	              0,
 	              error );
 
 	if( read_count != (ssize_t) 8 )
@@ -722,12 +911,12 @@ ssize_t libewf_segment_file_read_file_header(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_IO,
 		 LIBCERROR_IO_ERROR_READ_FAILED,
-		 "%s: unable to read file header signature.",
+		 "%s: unable to read file header signature at offset 0 (0x00000000).",
 		 function );
 
-		goto on_error;
+		return( -1 );
 	}
-	segment_file->current_offset += read_count;
+	segment_file->current_offset = read_count;
 
 	if( memory_compare(
 	     ewf1_evf_file_signature,
@@ -770,7 +959,7 @@ ssize_t libewf_segment_file_read_file_header(
 		 "%s: unsupported file header signature.",
 		 function );
 
-		goto on_error;
+		return( -1 );
 	}
 	read_count = libbfio_pool_read_buffer(
 	              file_io_pool,
@@ -788,152 +977,26 @@ ssize_t libewf_segment_file_read_file_header(
 		 "%s: unable to read file header data.",
 		 function );
 
-		goto on_error;
+		return( -1 );
 	}
 	segment_file->current_offset += read_count;
 
-#if defined( HAVE_DEBUG_OUTPUT )
-	if( libcnotify_verbose != 0 )
+	if( libewf_segment_file_read_file_header_data(
+	     segment_file,
+	     file_header_data,
+	     file_header_data_size,
+	     error ) != 1 )
 	{
-		libcnotify_printf(
-	 	 "%s: file header:\n",
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_IO,
+		 LIBCERROR_IO_ERROR_READ_FAILED,
+		 "%s: unable to read file header.",
 		 function );
-		libcnotify_print_data(
-		 file_header_data,
-		 file_header_data_size,
-		 0 );
+
+		return( -1 );
 	}
-#endif
-	if( file_header_data_size == sizeof( ewf_file_header_v1_t ) )
-	{
-		byte_stream_copy_to_uint16_little_endian(
-		 ( (ewf_file_header_v1_t *) file_header_data )->segment_number,
-		 segment_file->segment_number );
-
-		segment_file->major_version      = 1;
-		segment_file->minor_version      = 0;
-		segment_file->compression_method = LIBEWF_COMPRESSION_METHOD_DEFLATE;
-	}
-	else if( file_header_data_size == sizeof( ewf_file_header_v2_t ) )
-	{
-		segment_file->major_version = ( (ewf_file_header_v2_t *) file_header_data )->major_version;
-		segment_file->minor_version = ( (ewf_file_header_v2_t *) file_header_data )->minor_version;
-
-		byte_stream_copy_to_uint16_little_endian(
-		 ( (ewf_file_header_v2_t *) file_header_data )->compression_method,
-		 segment_file->compression_method );
-
-		byte_stream_copy_to_uint32_little_endian(
-		 ( (ewf_file_header_v2_t *) file_header_data )->segment_number,
-		 segment_file->segment_number );
-
-		if( memory_copy(
-		     segment_file->set_identifier,
-		     ( (ewf_file_header_v2_t *) file_header_data )->set_identifier,
-		     16 ) == NULL )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_MEMORY,
-			 LIBCERROR_MEMORY_ERROR_COPY_FAILED,
-			 "%s: unable to copy set identifier.",
-			 function );
-
-			goto on_error;
-		}
-	}
-#if defined( HAVE_DEBUG_OUTPUT )
-	if( libcnotify_verbose != 0 )
-	{
-		libcnotify_printf(
-	 	 "%s: signature:\n",
-		 function );
-		libcnotify_print_data(
-		 file_header_data,
-		 8,
-		 0 );
-
-		if( file_header_data_size == sizeof( ewf_file_header_v1_t ) )
-		{
-			libcnotify_printf(
-		 	 "%s: fields start\t\t\t: 0x%02" PRIx8 "\n",
-			 function,
-			 ( (ewf_file_header_v1_t *) file_header_data )->fields_start );
-		}
-		else if( file_header_data_size == sizeof( ewf_file_header_v2_t ) )
-		{
-			libcnotify_printf(
-		 	 "%s: major version\t\t\t: %" PRIu8 "\n",
-			 function,
-			 segment_file->major_version );
-
-			libcnotify_printf(
-		 	 "%s: minor version\t\t\t: %" PRIu8 "\n",
-			 function,
-			 segment_file->minor_version );
-
-			libcnotify_printf(
-		 	 "%s: compression method\t\t: %" PRIu16 " (",
-			 function,
-			 segment_file->compression_method );
-			libewf_debug_print_compression_method(
-			 segment_file->compression_method );
-			libcnotify_printf(
-			 ")\n" );
-		}
-		libcnotify_printf(
-	 	 "%s: segment number\t\t\t: %" PRIu32 "\n",
-		 function,
-		 segment_file->segment_number );
-
-		if( file_header_data_size == sizeof( ewf_file_header_v1_t ) )
-		{
-			byte_stream_copy_to_uint16_little_endian(
-			 ( (ewf_file_header_v1_t *) file_header_data )->fields_end,
-			 value_16bit );
-			libcnotify_printf(
-		 	 "%s: fields end\t\t\t: 0x%04" PRIx16 "\n",
-			 function,
-			 value_16bit );
-		}
-		else if( file_header_data_size == sizeof( ewf_file_header_v2_t ) )
-		{
-			if( libewf_debug_print_guid_value(
-			     function,
-			     "set identifier\t\t\t",
-			     segment_file->set_identifier,
-			     16,
-			     LIBFGUID_ENDIAN_LITTLE,
-			     LIBFGUID_STRING_FORMAT_FLAG_USE_LOWER_CASE,
-			     error ) != 1 )
-			{
-				libcerror_error_set(
-				 error,
-				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-				 LIBCERROR_RUNTIME_ERROR_PRINT_FAILED,
-				 "%s: unable to print GUID value.",
-				 function );
-
-				goto on_error;
-			}
-		}
-		libcnotify_printf(
-	 	 "\n" );
-	}
-#endif /* defined( HAVE_DEBUG_OUTPUT ) */
-
-	memory_free(
-	 file_header_data );
-
 	return( (ssize_t) file_header_data_size );
-
-on_error:
-	if( file_header_data != NULL )
-	{
-		memory_free(
-		 file_header_data );
-	}
-	return( -1 );
 }
 
 /* Writes the segment file header
@@ -1126,7 +1189,7 @@ ssize_t libewf_segment_file_write_file_header(
 	if( libcnotify_verbose != 0 )
 	{
 		libcnotify_printf(
-	 	 "%s: file header:\n",
+		 "%s: file header:\n",
 		 function );
 		libcnotify_print_data(
 		 file_header_data,
@@ -1138,7 +1201,7 @@ ssize_t libewf_segment_file_write_file_header(
 	if( libcnotify_verbose != 0 )
 	{
 		libcnotify_printf(
-	 	 "%s: signature:\n",
+		 "%s: signature:\n",
 		 function );
 		libcnotify_print_data(
 		 file_header_data,
@@ -1148,24 +1211,24 @@ ssize_t libewf_segment_file_write_file_header(
 		if( segment_file->major_version == 1 )
 		{
 			libcnotify_printf(
-		 	 "%s: fields start\t\t\t: 0x%02" PRIx8 "\n",
+			 "%s: fields start\t\t\t: 0x%02" PRIx8 "\n",
 			 function,
 			 ( (ewf_file_header_v1_t *) file_header_data )->fields_start );
 		}
 		else if( segment_file->major_version == 2 )
 		{
 			libcnotify_printf(
-		 	 "%s: major version\t\t\t: %" PRIu8 "\n",
+			 "%s: major version\t\t: %" PRIu8 "\n",
 			 function,
 			 segment_file->major_version );
 
 			libcnotify_printf(
-		 	 "%s: minor version\t\t\t: %" PRIu8 "\n",
+			 "%s: minor version\t\t: %" PRIu8 "\n",
 			 function,
 			 segment_file->minor_version );
 
 			libcnotify_printf(
-		 	 "%s: compression method\t\t: %" PRIu16 " (",
+			 "%s: compression method\t\t: %" PRIu16 " (",
 			 function,
 			 segment_file->compression_method );
 			libewf_debug_print_compression_method(
@@ -1174,7 +1237,7 @@ ssize_t libewf_segment_file_write_file_header(
 			 ")\n" );
 		}
 		libcnotify_printf(
-	 	 "%s: segment number\t\t\t: %" PRIu32 "\n",
+		 "%s: segment number\t\t\t: %" PRIu32 "\n",
 		 function,
 		 segment_file->segment_number );
 
@@ -1184,25 +1247,36 @@ ssize_t libewf_segment_file_write_file_header(
 			 ( (ewf_file_header_v1_t *) file_header_data )->fields_end,
 			 value_16bit );
 			libcnotify_printf(
-		 	 "%s: fields end\t\t\t: 0x%04" PRIx16 "\n",
+			 "%s: fields end\t\t\t: 0x%04" PRIx16 "\n",
 			 function,
 			 value_16bit );
 		}
 		else if( segment_file->major_version == 2 )
 		{
-/* TODO replace by GUID print */
-			libcnotify_printf(
-			 "%s: set identifier:\n",
-			 function );
-			libcnotify_print_data(
-			 segment_file->set_identifier,
-			 16,
-			 0 );
+			if( libewf_debug_print_guid_value(
+			     function,
+			     "set identifier\t\t",
+			     segment_file->set_identifier,
+			     16,
+			     LIBFGUID_ENDIAN_LITTLE,
+			     LIBFGUID_STRING_FORMAT_FLAG_USE_LOWER_CASE,
+			     error ) != 1 )
+			{
+				libcerror_error_set(
+				 error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_PRINT_FAILED,
+				 "%s: unable to print GUID value.",
+				 function );
+
+				return( -1 );
+			}
 		}
 		libcnotify_printf(
-	 	 "\n" );
+		 "\n" );
 	}
-#endif
+#endif /* defined( HAVE_DEBUG_OUTPUT ) */
+
 	write_count = libbfio_pool_write_buffer(
 	               file_io_pool,
 	               file_io_pool_entry,
@@ -1293,20 +1367,13 @@ ssize_t libewf_segment_file_read_table_section(
          size32_t chunk_size,
          libcerror_error_t **error )
 {
-	uint8_t *section_data           = NULL;
-	uint8_t *table_entries_data     = NULL;
-	static char *function           = "libewf_segment_file_read_table_section";
-	off64_t chunk_group_data_offset = 0;
-	size64_t chunk_group_data_size  = 0;
-	size64_t storage_media_size     = 0;
-	ssize_t read_count              = 0;
-	size_t section_data_size        = 0;
-	size_t table_entries_data_size  = 0;
-	uint64_t base_offset            = 0;
-	uint64_t first_chunk_index      = 0;
-	uint32_t number_of_entries      = 0;
-	uint32_t range_flags            = 0;
-	uint8_t entries_corrupted       = 0;
+	libewf_table_section_t *table_section = NULL;
+	static char *function                 = "libewf_segment_file_read_table_section";
+	size64_t chunk_group_data_size        = 0;
+	size64_t storage_media_size           = 0;
+	ssize_t read_count                    = 0;
+	off64_t chunk_group_data_offset       = 0;
+	uint32_t range_flags                  = 0;
 
 	if( segment_file == NULL )
 	{
@@ -1341,25 +1408,32 @@ ssize_t libewf_segment_file_read_table_section(
 
 		return( -1 );
 	}
+	if( libewf_table_section_initialize(
+	     &table_section,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+		 "%s: unable to create table section.",
+		 function );
+
+		goto on_error;
+	}
 	segment_file->previous_last_chunk_filled = segment_file->last_chunk_filled;
 
-	read_count = libewf_section_table_read(
-	              section_descriptor,
+	read_count = libewf_table_section_read_file_io_pool(
+	              table_section,
 	              segment_file->io_handle,
 	              file_io_pool,
 	              file_io_pool_entry,
 	              segment_file->major_version,
 	              segment_file->type,
-		      &section_data,
-		      &section_data_size,
-	              &first_chunk_index,
-	              &base_offset,
-		      &table_entries_data,
-		      &table_entries_data_size,
-	              &number_of_entries,
-		      &entries_corrupted,
+	              section_descriptor->data_size,
+	              section_descriptor->data_flags,
 	              error );
-	
+
 	if( read_count == -1 )
 	{
 		libcerror_error_set(
@@ -1391,9 +1465,9 @@ ssize_t libewf_segment_file_read_table_section(
 
 		if( segment_file->last_chunk_filled == -1 )
 		{
-			segment_file->last_chunk_filled = (int64_t) first_chunk_index;
+			segment_file->last_chunk_filled = (int64_t) table_section->first_chunk_index;
 		}
-		else if( (int64_t) first_chunk_index != segment_file->last_chunk_filled )
+		else if( (int64_t) table_section->first_chunk_index != segment_file->last_chunk_filled )
 		{
 			libcerror_error_set(
 			 error,
@@ -1405,19 +1479,19 @@ ssize_t libewf_segment_file_read_table_section(
 			return( -1 );
 		}
 	}
-	if( entries_corrupted != 0 )
+	if( table_section->entries_corrupted != 0 )
 	{
 		segment_file->flags |= LIBEWF_SEGMENT_FILE_FLAG_IS_CORRUPTED;
 
 		range_flags = LIBEWF_RANGE_FLAG_IS_TAINTED;
 	}
-	if( number_of_entries > 0 )
+	if( table_section->number_of_entries > 0 )
 	{
-		storage_media_size = (size64_t) chunk_size * number_of_entries;
+		storage_media_size = (size64_t) chunk_size * table_section->number_of_entries;
 
 		if( libfdata_list_append_element_with_mapped_size(
 		     segment_file->chunk_groups_list,
-		     &( segment_file->chunk_groups_index ),
+		     &( segment_file->current_chunk_group_index ),
 		     file_io_pool_entry,
 		     chunk_group_data_offset,
 		     chunk_group_data_size,
@@ -1435,19 +1509,30 @@ ssize_t libewf_segment_file_read_table_section(
 			goto on_error;
 		}
 		segment_file->storage_media_size += storage_media_size;
-		segment_file->number_of_chunks   += (uint64_t) number_of_entries;
-		segment_file->last_chunk_filled  += (int64_t) number_of_entries;
+		segment_file->number_of_chunks   += (uint64_t) table_section->number_of_entries;
+		segment_file->last_chunk_filled  += (int64_t) table_section->number_of_entries;
 	}
-	memory_free(
-	 section_data );
+	if( libewf_table_section_free(
+	     &table_section,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
+		 "%s: unable to free table section.",
+		 function );
 
+		goto on_error;
+	}
 	return( 1 );
 
 on_error:
-	if( section_data != NULL )
+	if( table_section != NULL )
 	{
-		memory_free(
-		 section_data );
+		libewf_table_section_free(
+		 &table_section,
+		 NULL );
 	}
 	return( -1 );
 }
@@ -1462,20 +1547,13 @@ ssize_t libewf_segment_file_read_table2_section(
          int file_io_pool_entry,
          libcerror_error_t **error )
 {
-	uint8_t *section_data                 = NULL;
-	uint8_t *table_entries_data           = NULL;
+	libewf_table_section_t *table_section = NULL;
 	static char *function                 = "libewf_segment_file_read_table2_section";
-	off64_t chunk_group_data_offset       = 0;
 	size64_t chunk_group_data_size        = 0;
-	size_t section_data_size              = 0;
-	size_t table_entries_data_size        = 0;
 	ssize_t read_count                    = 0;
-	uint64_t base_offset                  = 0;
-	uint64_t first_chunk_index            = 0;
+	off64_t chunk_group_data_offset       = 0;
 	int64_t chunk_group_number_of_entries = 0;
 	uint32_t chunk_group_range_flags      = 0;
-	uint32_t number_of_entries            = 0;
-	uint8_t entries_corrupted             = 0;
 	uint8_t number_of_entries_mismatch    = 0;
 	int chunk_group_file_io_pool_entry    = 0;
 	int result                            = 0;
@@ -1535,23 +1613,30 @@ ssize_t libewf_segment_file_read_table2_section(
 
 		return( -1 );
 	}
-	read_count = libewf_section_table_read(
-	              section_descriptor,
+	if( libewf_table_section_initialize(
+	     &table_section,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+		 "%s: unable to create table section.",
+		 function );
+
+		goto on_error;
+	}
+	read_count = libewf_table_section_read_file_io_pool(
+	              table_section,
 	              segment_file->io_handle,
 	              file_io_pool,
 	              file_io_pool_entry,
 	              segment_file->major_version,
 	              segment_file->type,
-		      &section_data,
-		      &section_data_size,
-	              &first_chunk_index,
-	              &base_offset,
-		      &table_entries_data,
-		      &table_entries_data_size,
-	              &number_of_entries,
-		      &entries_corrupted,
+	              section_descriptor->data_size,
+	              section_descriptor->data_flags,
 	              error );
-	
+
 	if( read_count == -1 )
 	{
 		libcerror_error_set(
@@ -1568,7 +1653,7 @@ ssize_t libewf_segment_file_read_table2_section(
 	chunk_group_number_of_entries = segment_file->last_chunk_filled
 	                              - segment_file->previous_last_chunk_filled;
 
-	if( (int64_t) number_of_entries != chunk_group_number_of_entries )
+	if( (int64_t) table_section->number_of_entries != chunk_group_number_of_entries )
 	{
 #if defined( HAVE_DEBUG_OUTPUT )
 		if( libcnotify_verbose != 0 )
@@ -1587,7 +1672,7 @@ ssize_t libewf_segment_file_read_table2_section(
 	}
 	if( libfdata_list_get_element_by_index(
 	     segment_file->chunk_groups_list,
-	     segment_file->chunk_groups_index,
+	     segment_file->current_chunk_group_index,
 	     &chunk_group_file_io_pool_entry,
 	     &chunk_group_data_offset,
 	     &chunk_group_data_size,
@@ -1600,17 +1685,17 @@ ssize_t libewf_segment_file_read_table2_section(
 		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
 		 "%s: unable to retrieve element: %d from chunk groups list.",
 		 function,
-		 segment_file->chunk_groups_index );
+		 segment_file->current_chunk_group_index );
 
 		goto on_error;
 	}
 	result = 1;
 
-	if( entries_corrupted != 0 )
+	if( table_section->entries_corrupted != 0 )
 	{
 		segment_file->flags |= LIBEWF_SEGMENT_FILE_FLAG_IS_CORRUPTED;
 
-		number_of_entries = (uint32_t) chunk_group_number_of_entries;
+		table_section->number_of_entries = chunk_group_number_of_entries;
 	}
 	else if( number_of_entries_mismatch != 0 )
 	{
@@ -1619,7 +1704,7 @@ ssize_t libewf_segment_file_read_table2_section(
 		{
 			/* If the number of entries in the table section are not 0 prefer the table section
 			 */
-			number_of_entries = (uint32_t) chunk_group_number_of_entries;
+			table_section->number_of_entries = chunk_group_number_of_entries;
 		}
 		else
 		{
@@ -1630,9 +1715,9 @@ ssize_t libewf_segment_file_read_table2_section(
 	}
 	if( ( chunk_group_range_flags & LIBEWF_RANGE_FLAG_IS_TAINTED ) != 0 )
 	{
-		if( entries_corrupted == 0 )
+		if( table_section->entries_corrupted == 0 )
 		{
-			segment_file->last_chunk_filled = segment_file->previous_last_chunk_filled + number_of_entries;
+			segment_file->last_chunk_filled = segment_file->previous_last_chunk_filled + table_section->number_of_entries;
 
 			/* For EWF version 1 the entire table2 section is considered the group
 			 * because the section descriptor is need to determine the chunk data
@@ -1651,7 +1736,7 @@ ssize_t libewf_segment_file_read_table2_section(
 #endif
 			result = libfdata_list_set_element_by_index(
 				  segment_file->chunk_groups_list,
-				  segment_file->chunk_groups_index,
+				  segment_file->current_chunk_group_index,
 				  file_io_pool_entry,
 				  chunk_group_data_offset,
 				  chunk_group_data_size,
@@ -1670,7 +1755,7 @@ ssize_t libewf_segment_file_read_table2_section(
 #endif
 			result = libfdata_list_set_element_by_index(
 				  segment_file->chunk_groups_list,
-				  segment_file->chunk_groups_index,
+				  segment_file->current_chunk_group_index,
 				  chunk_group_file_io_pool_entry,
 				  chunk_group_data_offset,
 				  chunk_group_data_size,
@@ -1685,23 +1770,34 @@ ssize_t libewf_segment_file_read_table2_section(
 			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
 			 "%s: unable to set element: %d in chunk groups list.",
 			 function,
-			 segment_file->chunk_groups_index );
+			 segment_file->current_chunk_group_index );
 
 			goto on_error;
 		}
 	}
-	segment_file->last_chunk_compared += (int64_t) number_of_entries;
+	segment_file->last_chunk_compared += (int64_t) table_section->number_of_entries;
 
-	memory_free(
-	 section_data );
+	if( libewf_table_section_free(
+	     &table_section,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
+		 "%s: unable to free table section.",
+		 function );
 
+		goto on_error;
+	}
 	return( 1 );
 
 on_error:
-	if( section_data != NULL )
+	if( table_section != NULL )
 	{
-		memory_free(
-		 section_data );
+		libewf_table_section_free(
+		 &table_section,
+		 NULL );
 	}
 	return( -1 );
 }
@@ -1903,7 +1999,7 @@ ssize_t libewf_segment_file_write_device_information_section(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section descriptor.descriptor.",
+		 "%s: unable to create section descriptor.",
 		 function );
 
 		goto on_error;
@@ -1921,7 +2017,7 @@ ssize_t libewf_segment_file_write_device_information_section(
 	               0,
 	               segment_file->current_offset,
 	               segment_file->io_handle->compression_method,
-	               LIBEWF_COMPRESSION_DEFAULT,
+	               LIBEWF_COMPRESSION_LEVEL_DEFAULT,
 	               *device_information,
 	               *device_information_size - 2,
 	               0,
@@ -2075,7 +2171,7 @@ ssize_t libewf_segment_file_write_case_data_section(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section descriptor.descriptor.",
+		 "%s: unable to create section descriptor.",
 		 function );
 
 		goto on_error;
@@ -2093,7 +2189,7 @@ ssize_t libewf_segment_file_write_case_data_section(
 	               0,
 	               segment_file->current_offset,
 	               segment_file->io_handle->compression_method,
-	               LIBEWF_COMPRESSION_DEFAULT,
+	               LIBEWF_COMPRESSION_LEVEL_DEFAULT,
 	               *case_data,
 	               *case_data_size - 2,
 	               0,
@@ -2224,7 +2320,7 @@ ssize_t libewf_segment_file_write_header_section(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section descriptor.descriptor.",
+		 "%s: unable to create section descriptor.",
 		 function );
 
 		goto on_error;
@@ -2394,7 +2490,7 @@ ssize_t libewf_segment_file_write_header2_section(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section descriptor.descriptor.",
+		 "%s: unable to create section descriptor.",
 		 function );
 
 		goto on_error;
@@ -2412,7 +2508,7 @@ ssize_t libewf_segment_file_write_header2_section(
 	               7,
 	               segment_file->current_offset,
 	               segment_file->io_handle->compression_method,
-	               LIBEWF_COMPRESSION_DEFAULT,
+	               LIBEWF_COMPRESSION_LEVEL_DEFAULT,
 	               header_sections->header2,
 	               header_sections->header2_size - 2,
 	               0,
@@ -2564,7 +2660,7 @@ ssize_t libewf_segment_file_write_xheader_section(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section descriptor.descriptor.",
+		 "%s: unable to create section descriptor.",
 		 function );
 
 		goto on_error;
@@ -2582,7 +2678,7 @@ ssize_t libewf_segment_file_write_xheader_section(
 	               7,
 	               segment_file->current_offset,
 	               segment_file->io_handle->compression_method,
-	               LIBEWF_COMPRESSION_DEFAULT,
+	               LIBEWF_COMPRESSION_LEVEL_DEFAULT,
 	               header_sections->xheader,
 	               header_sections->xheader_size - 1,
 	               0,
@@ -2778,7 +2874,7 @@ ssize_t libewf_segment_file_write_header_sections(
 		               file_io_pool,
 		               file_io_pool_entry,
 		               header_sections,
-		               LIBEWF_COMPRESSION_DEFAULT,
+		               LIBEWF_COMPRESSION_LEVEL_DEFAULT,
 		               error );
 
 		if( write_count == -1 )
@@ -2799,7 +2895,7 @@ ssize_t libewf_segment_file_write_header_sections(
 		               file_io_pool,
 		               file_io_pool_entry,
 		               header_sections,
-		               LIBEWF_COMPRESSION_DEFAULT,
+		               LIBEWF_COMPRESSION_LEVEL_DEFAULT,
 		               error );
 
 		if( write_count == -1 )
@@ -2871,7 +2967,7 @@ ssize_t libewf_segment_file_write_header_sections(
 		               file_io_pool,
 		               file_io_pool_entry,
 		               header_sections,
-		               LIBEWF_COMPRESSION_DEFAULT,
+		               LIBEWF_COMPRESSION_LEVEL_DEFAULT,
 		               error );
 
 		if( write_count == -1 )
@@ -2945,7 +3041,7 @@ ssize_t libewf_segment_file_write_header_sections(
 		               file_io_pool,
 		               file_io_pool_entry,
 		               header_sections,
-		               LIBEWF_COMPRESSION_DEFAULT,
+		               LIBEWF_COMPRESSION_LEVEL_DEFAULT,
 		               error );
 
 		if( write_count == -1 )
@@ -3060,7 +3156,7 @@ ssize_t libewf_segment_file_write_last_section(
 
 		goto on_error;
 	}
-	if( libewf_section_set_values(
+	if( libewf_section_descriptor_set(
 	     section_descriptor,
 	     section_type,
 	     section_type_string,
@@ -3075,12 +3171,12 @@ ssize_t libewf_segment_file_write_last_section(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-		 "%s: unable to set section values.",
+		 "%s: unable to set section descriptor.",
 		 function );
 
 		goto on_error;
 	}
-	write_count = libewf_section_descriptor_write(
+	write_count = libewf_section_descriptor_write_file_io_pool(
 	               section_descriptor,
 	               file_io_pool,
 	               file_io_pool_entry,
@@ -3413,8 +3509,9 @@ ssize_t libewf_segment_file_write_chunks_section_start(
          uint32_t number_of_table_entries,
          uint64_t number_of_chunks_written,
          libcerror_error_t **error )
-{	
+{
 	libewf_section_descriptor_t *section_descriptor = NULL;
+	libewf_table_section_t *table_section           = NULL;
 	static char *function                           = "libewf_segment_file_write_chunks_section_start";
 	ssize_t write_count                             = 0;
 
@@ -3453,26 +3550,32 @@ ssize_t libewf_segment_file_write_chunks_section_start(
 
 		return( -1 );
 	}
-	if( libewf_section_descriptor_initialize(
-	     &section_descriptor,
-	     error ) != 1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create section descriptor.",
-		 function );
-
-		goto on_error;
-	}
 	if( ( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1_SMART )
 	 || ( segment_file->io_handle->format == LIBEWF_FORMAT_ENCASE1 ) )
 	{
+		if( libewf_table_section_initialize(
+		     &table_section,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+			 "%s: unable to create table section.",
+			 function );
+
+			goto on_error;
+		}
+		table_section->first_chunk_index = number_of_chunks_written;
+		table_section->base_offset       = 0;
+		table_section->number_of_entries = number_of_table_entries;
+		table_section->section_data      = table_section_data;
+		table_section->section_data_size = table_section_data_size;
+
 		/* Write table section descriptor
 		 */
-		write_count = libewf_section_table_write(
-		               section_descriptor,
+		write_count = libewf_table_section_write_file_io_pool(
+		               table_section,
 		               segment_file->io_handle,
 		               file_io_pool,
 		               file_io_pool_entry,
@@ -3481,15 +3584,13 @@ ssize_t libewf_segment_file_write_chunks_section_start(
 		               (uint8_t *) "table",
 		               5,
 		               segment_file->current_offset,
-		               table_section_data,
-		               table_section_data_size,
-		               number_of_chunks_written,
-		               0,
 		               table_entries_data,
 		               table_entries_data_size,
-		               number_of_table_entries,
 		               0,
 		               error );
+
+		table_section->section_data      = NULL;
+		table_section->section_data_size = 0;
 
 		if( write_count == -1 )
 		{
@@ -3500,12 +3601,38 @@ ssize_t libewf_segment_file_write_chunks_section_start(
 			 "%s: unable to write table section.",
 			 function );
 
-			return( -1 );
+			goto on_error;
+		}
+		if( libewf_table_section_free(
+		     &table_section,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
+			 "%s: unable to free table section.",
+			 function );
+
+			goto on_error;
 		}
 	}
 	else if( ( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1 )
 	      || ( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1_LOGICAL ) )
 	{
+		if( libewf_section_descriptor_initialize(
+		     &section_descriptor,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+			 "%s: unable to create section descriptor.",
+			 function );
+
+			goto on_error;
+		}
 		write_count = libewf_section_sectors_write(
 		               section_descriptor,
 		               file_io_pool,
@@ -3527,22 +3654,22 @@ ssize_t libewf_segment_file_write_chunks_section_start(
 
 			goto on_error;
 		}
+		if( libewf_section_descriptor_free(
+		     &section_descriptor,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
+			 "%s: unable to free section.",
+			 function );
+
+			goto on_error;
+		}
 	}
 	segment_file->current_offset += write_count;
 
-	if( libewf_section_descriptor_free(
-	     &section_descriptor,
-	     error ) != 1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
-		 "%s: unable to free section.",
-		 function );
-
-		goto on_error;
-	}
 	return( write_count );
 
 on_error:
@@ -3550,6 +3677,12 @@ on_error:
 	{
 		libewf_section_descriptor_free(
 		 &section_descriptor,
+		 NULL );
+	}
+	if( table_section != NULL )
+	{
+		libewf_table_section_free(
+		 &table_section,
 		 NULL );
 	}
 	return( -1 );
@@ -3576,7 +3709,9 @@ ssize_t libewf_segment_file_write_chunks_section_end(
          libcerror_error_t **error )
 {
 	libewf_section_descriptor_t *section_descriptor = NULL;
+	libewf_table_section_t *table_section           = NULL;
 	static char *function                           = "libewf_segment_file_write_chunks_section_end";
+	size64_t maximum_chunks_section_size            = 0;
 	ssize_t total_write_count                       = 0;
 	ssize_t write_count                             = 0;
 	int element_index                               = 0;
@@ -3609,31 +3744,22 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 	 || ( segment_file->io_handle->format == LIBEWF_FORMAT_ENCASE7 )
 	 || ( segment_file->io_handle->format == LIBEWF_FORMAT_V2_ENCASE7 ) )
 	{
-		if( chunks_section_size >= (size64_t) INT64_MAX )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-			 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
-			 "%s: invalid chunk section size value exceeds maximum.",
-			 function );
-
-			return( -1 );
-		}
+		maximum_chunks_section_size = (size64_t) INT64_MAX;
 	}
 	else
 	{
-		if( chunks_section_size >= (size64_t) INT32_MAX )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-			 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
-			 "%s: invalid chunk section size value exceeds maximum.",
-			 function );
+		maximum_chunks_section_size = (size64_t) INT32_MAX;
+	}
+	if( chunks_section_size >= maximum_chunks_section_size )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
+		 "%s: invalid chunk section size value exceeds maximum.",
+		 function );
 
-			return( -1 );
-		}
+		return( -1 );
 	}
 	if( libewf_section_descriptor_initialize(
 	     &section_descriptor,
@@ -3660,7 +3786,7 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 		if( libcnotify_verbose != 0 )
 		{
 			libcnotify_printf(
-		 	"%s: setting file descriptor to start of chunks section offset: %" PRIi64 ".\n",
+			 "%s: setting file descriptor to start of chunks section offset: %" PRIi64 ".\n",
 			 function,
 			 chunks_section_offset );
 		}
@@ -3696,10 +3822,29 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 				 chunks_section_size );
 			}
 #endif
+			if( libewf_table_section_initialize(
+			     &table_section,
+			     error ) != 1 )
+			{
+				libcerror_error_set(
+				 error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+				 "%s: unable to create table section.",
+				 function );
+
+				goto on_error;
+			}
+			table_section->first_chunk_index = first_chunk_index;
+			table_section->base_offset       = 0;
+			table_section->number_of_entries = number_of_table_entries;
+			table_section->section_data      = table_section_data;
+			table_section->section_data_size = table_section_data_size;
+
 			/* Rewrite table section descriptor
 			 */
-			write_count = libewf_section_table_write(
-				       section_descriptor,
+			write_count = libewf_table_section_write_file_io_pool(
+				       table_section,
 				       segment_file->io_handle,
 				       file_io_pool,
 				       file_io_pool_entry,
@@ -3708,15 +3853,13 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 				       (uint8_t *) "table",
 				       5,
 				       chunks_section_offset,
-				       table_section_data,
-				       table_section_data_size,
-				       first_chunk_index,
-				       0,
 				       table_entries_data,
 				       table_entries_data_size,
-				       number_of_table_entries,
 				       chunks_section_size,
 				       error );
+
+			table_section->section_data      = NULL;
+			table_section->section_data_size = 0;
 
 			if( write_count == -1 )
 			{
@@ -3725,6 +3868,19 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 				 LIBCERROR_ERROR_DOMAIN_IO,
 				 LIBCERROR_IO_ERROR_WRITE_FAILED,
 				 "%s: unable to write table section.",
+				 function );
+
+				goto on_error;
+			}
+			if( libewf_table_section_free(
+			     &table_section,
+			     error ) != 1 )
+			{
+				libcerror_error_set(
+				 error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
+				 "%s: unable to free table section.",
 				 function );
 
 				goto on_error;
@@ -3870,21 +4026,27 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 	if( ( segment_file->type != LIBEWF_SEGMENT_FILE_TYPE_EWF1_SMART )
 	 && ( segment_file->io_handle->format != LIBEWF_FORMAT_ENCASE1 ) )
 	{
-		if( libewf_section_descriptor_initialize(
-		     &section_descriptor,
+		if( libewf_table_section_initialize(
+		     &table_section,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-			 "%s: unable to create section descriptor.",
+			 "%s: unable to create table section.",
 			 function );
 
 			goto on_error;
 		}
-		write_count = libewf_section_table_write(
-		               section_descriptor,
+		table_section->first_chunk_index = first_chunk_index;
+		table_section->base_offset       = base_offset;
+		table_section->number_of_entries = number_of_table_entries;
+		table_section->section_data      = table_section_data;
+		table_section->section_data_size = table_section_data_size;
+
+		write_count = libewf_table_section_write_file_io_pool(
+		               table_section,
 		               segment_file->io_handle,
 		               file_io_pool,
 		               file_io_pool_entry,
@@ -3893,15 +4055,13 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 		               (uint8_t *) "table",
 		               5,
 		               segment_file->current_offset,
-		               table_section_data,
-		               table_section_data_size,
-		               first_chunk_index,
-		               base_offset,
 		               table_entries_data,
 		               table_entries_data_size,
-		               number_of_table_entries,
 		               0,
 		               error );
+
+		table_section->section_data      = NULL;
+		table_section->section_data_size = 0;
 
 		if( write_count == -1 )
 		{
@@ -3910,6 +4070,19 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 			 LIBCERROR_ERROR_DOMAIN_IO,
 			 LIBCERROR_IO_ERROR_WRITE_FAILED,
 			 "%s: unable to write sector table section.",
+			 function );
+
+			goto on_error;
+		}
+		if( libewf_table_section_free(
+		     &table_section,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
+			 "%s: unable to free table section.",
 			 function );
 
 			goto on_error;
@@ -3950,39 +4123,32 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 
 			goto on_error;
 		}
-		if( libewf_section_descriptor_free(
-		     &section_descriptor,
-		     error ) != 1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
-			 "%s: unable to free section.",
-			 function );
-
-			goto on_error;
-		}
 	}
 	if( ( ( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1 )
 	  ||  ( segment_file->type == LIBEWF_SEGMENT_FILE_TYPE_EWF1_LOGICAL ) )
 	 && ( segment_file->io_handle->format != LIBEWF_FORMAT_ENCASE1 ) )
 	{
-		if( libewf_section_descriptor_initialize(
-		     &section_descriptor,
+		if( libewf_table_section_initialize(
+		     &table_section,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-			 "%s: unable to create section descriptor.",
+			 "%s: unable to create table section.",
 			 function );
 
 			goto on_error;
 		}
-		write_count = libewf_section_table_write(
-		               section_descriptor,
+		table_section->first_chunk_index = first_chunk_index;
+		table_section->base_offset       = base_offset;
+		table_section->number_of_entries = number_of_table_entries;
+		table_section->section_data      = table_section_data;
+		table_section->section_data_size = table_section_data_size;
+
+		write_count = libewf_table_section_write_file_io_pool(
+		               table_section,
 		               segment_file->io_handle,
 		               file_io_pool,
 		               file_io_pool_entry,
@@ -3991,15 +4157,13 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 		               (uint8_t *) "table2",
 		               6,
 		               segment_file->current_offset,
-		               table_section_data,
-		               table_section_data_size,
-		               first_chunk_index,
-		               base_offset,
 		               table_entries_data,
 		               table_entries_data_size,
-		               number_of_table_entries,
 		               0,
 		               error );
+
+		table_section->section_data      = NULL;
+		table_section->section_data_size = 0;
 
 		if( write_count == -1 )
 		{
@@ -4008,6 +4172,19 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 			 LIBCERROR_ERROR_DOMAIN_IO,
 			 LIBCERROR_IO_ERROR_WRITE_FAILED,
 			 "%s: unable to write table2 section.",
+			 function );
+
+			goto on_error;
+		}
+		if( libewf_table_section_free(
+		     &table_section,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
+			 "%s: unable to free table section.",
 			 function );
 
 			goto on_error;
@@ -4032,24 +4209,16 @@ ssize_t libewf_segment_file_write_chunks_section_end(
 		}
 		segment_file->current_offset += write_count;
 		total_write_count            += write_count;
-
-		if( libewf_section_descriptor_free(
-		     &section_descriptor,
-		     error ) != 1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
-			 "%s: unable to free section.",
-			 function );
-
-			goto on_error;
-		}
 	}
 	return( total_write_count );
 
 on_error:
+	if( table_section != NULL )
+	{
+		libewf_table_section_free(
+		 &table_section,
+		 NULL );
+	}
 	if( section_descriptor != NULL )
 	{
 		libewf_section_descriptor_free(
@@ -4645,7 +4814,7 @@ ssize_t libewf_segment_file_write_hash_sections(
 			       5,
 			       segment_file->current_offset,
 			       segment_file->io_handle->compression_method,
-			       LIBEWF_COMPRESSION_DEFAULT,
+			       LIBEWF_COMPRESSION_LEVEL_DEFAULT,
 			       hash_sections->xhash,
 			       hash_sections->xhash_size - 1,
 			       0,
@@ -5144,24 +5313,6 @@ ssize_t libewf_segment_file_write_close(
 
 	segment_file->number_of_chunks = number_of_chunks_written_to_segment_file;
 
-	/* Make sure the next time the file is opened it is not truncated
-	 */
-	if( libbfio_pool_reopen(
-	     file_io_pool,
-	     file_io_pool_entry,
-	     LIBBFIO_OPEN_READ_WRITE,
-	     error ) != 1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_IO,
-		 LIBCERROR_IO_ERROR_CLOSE_FAILED,
-		 "%s: unable to reopen segment file: %" PRIu16 ".",
-		 function,
-		 segment_file->segment_number );
-
-		goto on_error;
-	}
 	if( libbfio_pool_close(
 	     file_io_pool,
 	     file_io_pool_entry,
@@ -5292,7 +5443,7 @@ int libewf_segment_file_reopen(
 	{
 		if( libfdata_list_get_mapped_size_by_index(
 		     segment_file->chunk_groups_list,
-		     segment_file->chunk_groups_index,
+		     segment_file->current_chunk_group_index,
 		     &storage_media_size,
 		     error ) != 1 )
 		{
@@ -5302,13 +5453,13 @@ int libewf_segment_file_reopen(
 			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
 			 "%s: unable to retrieve chunk group: %d mapped size.",
 			 function,
-			 segment_file->chunk_groups_index );
+			 segment_file->current_chunk_group_index );
 
 			return( -1 );
 		}
 		if( libfdata_list_resize(
 		     segment_file->chunk_groups_list,
-		     segment_file->chunk_groups_index,
+		     segment_file->current_chunk_group_index,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
@@ -5320,7 +5471,7 @@ int libewf_segment_file_reopen(
 
 			return( -1 );
 		}
-		segment_file->chunk_groups_index -= 1;
+		segment_file->current_chunk_group_index -= 1;
 
 		if( storage_media_size > segment_file->storage_media_size )
 		{
@@ -5510,7 +5661,7 @@ int libewf_segment_file_write_sections_correction(
 		libcnotify_printf(
 		 "%s: correcting sections in segment file: %" PRIu16 ".\n",
 		 function,
-		 segment_file->segment_number );	
+		 segment_file->segment_number );
 	}
 #endif
 	if( libfdata_list_get_number_of_elements(
@@ -5625,7 +5776,7 @@ int libewf_segment_file_write_sections_correction(
 						       0,
 						       section_descriptor->start_offset,
 						       segment_file->io_handle->compression_method,
-						       LIBEWF_COMPRESSION_DEFAULT,
+						       LIBEWF_COMPRESSION_LEVEL_DEFAULT,
 						       *device_information,
 						       *device_information_size - 2,
 						       (size_t) section_descriptor->data_size,
@@ -5707,7 +5858,7 @@ int libewf_segment_file_write_sections_correction(
 						       0,
 						       section_descriptor->start_offset,
 						       segment_file->io_handle->compression_method,
-						       LIBEWF_COMPRESSION_DEFAULT,
+						       LIBEWF_COMPRESSION_LEVEL_DEFAULT,
 						       *case_data,
 						       *case_data_size - 2,
 						       (size_t) section_descriptor->data_size,
@@ -6024,7 +6175,27 @@ int libewf_segment_file_read_element_data(
 
 		goto on_error;
 	}
-	read_count = libewf_segment_file_read_file_header(
+	if( segment_file_size == 0 )
+	{
+		/* segment_file_size is 0 on write correction
+		 */
+		if( libbfio_pool_get_size(
+		     file_io_pool,
+		     file_io_pool_entry,
+		     &segment_file_size,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+			 "%s: unable to retrieve segment file size.",
+			 function );
+
+			goto on_error;
+		}
+	}
+	read_count = libewf_segment_file_read_file_header_file_io_pool(
 		      segment_file,
 		      file_io_pool,
 		      file_io_pool_entry,
@@ -6086,7 +6257,7 @@ int libewf_segment_file_read_element_data(
 			 "%s: unsupported compression method.",
 			 function );
 
-			return( -1 );
+			goto on_error;
 		}
 	}
 	/* Read the section descriptors:
@@ -6119,7 +6290,7 @@ int libewf_segment_file_read_element_data(
 	while( ( segment_file_offset > 0 )
 	    && ( (size64_t) segment_file_offset < segment_file_size ) )
 	{
-		read_count = libewf_section_descriptor_read(
+		read_count = libewf_section_descriptor_read_file_io_pool(
 			      section_descriptor,
 			      file_io_pool,
 			      file_io_pool_entry,
@@ -6606,7 +6777,7 @@ int libewf_segment_file_read_section_element_data(
 
 		goto on_error;
 	}
-	read_count = libewf_section_descriptor_read(
+	read_count = libewf_section_descriptor_read_file_io_pool(
 		      section_descriptor,
 		      file_io_pool,
 		      file_io_pool_entry,
@@ -6675,19 +6846,17 @@ int libewf_segment_file_read_chunk_group_element_data(
 {
 	libewf_chunk_group_t *chunk_group               = NULL;
 	libewf_section_descriptor_t *section_descriptor = NULL;
-	uint8_t *section_data                           = NULL;
-	uint8_t *table_entries_data                     = NULL;
+	libewf_table_section_t *table_section           = NULL;
 	static char *function                           = "libewf_segment_file_read_chunk_group_element_data";
-	size_t section_data_size                        = 0;
-	size_t table_entries_data_size                  = 0;
 	ssize_t read_count                              = 0;
-	off64_t storage_media_offset                    = 0;
-	uint64_t base_offset                            = 0;
 	uint64_t chunk_index                            = 0;
-	uint64_t first_chunk_index                      = 0;
-	uint32_t number_of_entries                      = 0;
-	uint8_t entries_corrupted                       = 0;
 	int result                                      = 0;
+
+#if defined( HAVE_DEBUG_OUTPUT )
+	size64_t chunk_group_range_size                 = 0;
+	off64_t chunk_group_range_offset                = 0;
+	int element_index                               = 0;
+#endif
 
 	LIBEWF_UNREFERENCED_PARAMETER( element_flags )
 	LIBEWF_UNREFERENCED_PARAMETER( read_flags )
@@ -6751,7 +6920,7 @@ int libewf_segment_file_read_chunk_group_element_data(
 	}
 	if( segment_file->major_version == 1 )
 	{
-		read_count = libewf_section_descriptor_read(
+		read_count = libewf_section_descriptor_read_file_io_pool(
 			      section_descriptor,
 			      file_io_pool,
 			      file_io_pool_entry,
@@ -6820,23 +6989,30 @@ int libewf_segment_file_read_chunk_group_element_data(
 		section_descriptor->start_offset = chunk_group_data_offset;
 		section_descriptor->data_size    = (uint32_t) chunk_group_data_size;
 	}
-	read_count = libewf_section_table_read(
-	              section_descriptor,
+	if( libewf_table_section_initialize(
+	     &table_section,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+		 "%s: unable to create table section.",
+		 function );
+
+		goto on_error;
+	}
+	read_count = libewf_table_section_read_file_io_pool(
+	              table_section,
 	              segment_file->io_handle,
 	              file_io_pool,
 	              file_io_pool_entry,
 	              segment_file->major_version,
 	              segment_file->type,
-		      &section_data,
-		      &section_data_size,
-	              &first_chunk_index,
-	              &base_offset,
-		      &table_entries_data,
-		      &table_entries_data_size,
-	              &number_of_entries,
-		      &entries_corrupted,
+	              section_descriptor->data_size,
+	              section_descriptor->data_flags,
 	              error );
-	
+
 	if( read_count < 0 )
 	{
 		libcerror_error_set(
@@ -6851,7 +7027,7 @@ int libewf_segment_file_read_chunk_group_element_data(
 	segment_file->current_offset += read_count;
 	chunk_group_data_size        -= read_count;
 
-	if( number_of_entries == 0 )
+	if( table_section->number_of_entries == 0 )
 	{
 		libcerror_error_set(
 		 error,
@@ -6876,23 +7052,41 @@ int libewf_segment_file_read_chunk_group_element_data(
 
 		goto on_error;
 	}
-/* TODO set mapped offset in chunks list ?
-	if( libfdata_list_get_mapped_offset(
-	     chunk_group->chunks_list,
-	     &storage_media_offset,
+#if defined( HAVE_DEBUG_OUTPUT )
+	if( libfdata_list_element_get_element_index(
+	     element,
+	     &element_index,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-		 "%s: unable to retrieve mapped offset from chunks list.",
+		 "%s: unable to retrieve chunk group list element index.",
 		 function );
 
 		goto on_error;
 	}
-*/
-	chunk_index = storage_media_offset / segment_file->io_handle->chunk_size;
+	if( libfdata_list_get_element_mapped_range(
+	     segment_file->chunk_groups_list,
+	     element_index,
+	     &chunk_group_range_offset,
+	     &chunk_group_range_size,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+		 "%s: unable to retrieve chunk group list element: %d mapped range.",
+		 function,
+		 element_index );
+
+		goto on_error;
+	}
+	chunk_index = ( segment_file->range_start_offset + chunk_group_range_offset ) / segment_file->io_handle->chunk_size;
+
+#endif /* defined( HAVE_DEBUG_OUTPUT ) */
 
 	if( segment_file->major_version == 1 )
 	{
@@ -6902,11 +7096,11 @@ int libewf_segment_file_read_chunk_group_element_data(
 			  segment_file->io_handle->chunk_size,
 			  file_io_pool_entry,
 			  section_descriptor,
-			  (off64_t) base_offset,
-			  number_of_entries,
-			  table_entries_data,
-			  table_entries_data_size,
-			  entries_corrupted,
+			  (off64_t) table_section->base_offset,
+			  table_section->number_of_entries,
+			  &( table_section->section_data[ table_section->entries_offset ] ),
+			  table_section->entries_size,
+			  table_section->entries_corrupted,
 			  error );
 	}
 	else if( segment_file->major_version == 2 )
@@ -6917,10 +7111,10 @@ int libewf_segment_file_read_chunk_group_element_data(
 			  segment_file->io_handle->chunk_size,
 			  file_io_pool_entry,
 			  section_descriptor,
-			  number_of_entries,
-			  table_entries_data,
-			  table_entries_data_size,
-			  entries_corrupted,
+			  table_section->number_of_entries,
+			  &( table_section->section_data[ table_section->entries_offset ] ),
+			  table_section->entries_size,
+			  table_section->entries_corrupted,
 			  error );
 	}
 	if( result != 1 )
@@ -6934,11 +7128,19 @@ int libewf_segment_file_read_chunk_group_element_data(
 
 		goto on_error;
 	}
-	memory_free(
-	 section_data );
+	if( libewf_table_section_free(
+	     &table_section,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
+		 "%s: unable to free table section.",
+		 function );
 
-	section_data = NULL;
-
+		goto on_error;
+	}
 	if( libewf_section_descriptor_free(
 	     &section_descriptor,
 	     error ) != 1 )
@@ -6953,7 +7155,7 @@ int libewf_segment_file_read_chunk_group_element_data(
 		goto on_error;
 	}
 /* TODO read and process backup range if available and neccessary
-	if( entries_corrupted != 0 )
+	if( table_section->entries_corrupted != 0 )
 	{
 		if( segment_file->major_version == 1 )
 		{
@@ -6963,11 +7165,11 @@ int libewf_segment_file_read_chunk_group_element_data(
 			          segment_file->io_handle->chunk_size,
 				  file_io_pool_entry,
 				  section_descriptor,
-				  (off64_t) base_offset,
-				  number_of_entries,
-				  table_entries_data,
-				  table_entries_data_size,
-				  entries_corrupted,
+				  (off64_t) table_section->base_offset,
+				  table_section->number_of_entries,
+				  &( table_section->section_data[ table_section->entries_offset ] ),
+				  table_section->entries_size,
+				  table_section->entries_corrupted,
 				  error );
 		}
 		if( result != 1 )
@@ -7010,10 +7212,11 @@ on_error:
 		 &chunk_group,
 		 NULL );
 	}
-	if( section_data != NULL )
+	if( table_section != NULL )
 	{
-		memory_free(
-		 section_data );
+		libewf_table_section_free(
+		 &table_section,
+		 NULL );
 	}
 	if( section_descriptor != NULL )
 	{
@@ -7030,15 +7233,17 @@ on_error:
 int libewf_segment_file_get_chunk_group_by_offset(
      libewf_segment_file_t *segment_file,
      libbfio_pool_t *file_io_pool,
-     libfcache_cache_t *chunk_groups_cache,
      off64_t offset,
      int *chunk_group_index,
      off64_t *chunk_group_data_offset,
      libewf_chunk_group_t **chunk_group,
      libcerror_error_t **error )
 {
-	static char *function = "libewf_segment_file_get_chunk_group_by_offset";
-	int result            = 0;
+	libewf_chunk_group_t *safe_chunk_group = NULL;
+	static char *function                  = "libewf_segment_file_get_chunk_group_by_offset";
+	off64_t safe_chunk_group_data_offset   = 0;
+	int result                             = 0;
+	int safe_chunk_group_index             = 0;
 
 	if( segment_file == NULL )
 	{
@@ -7051,14 +7256,47 @@ int libewf_segment_file_get_chunk_group_by_offset(
 
 		return( -1 );
 	}
+	if( chunk_group_index == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid chunk group index.",
+		 function );
+
+		return( -1 );
+	}
+	if( chunk_group_data_offset == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid chunk group data offset.",
+		 function );
+
+		return( -1 );
+	}
+	if( chunk_group == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid chunk group.",
+		 function );
+
+		return( -1 );
+	}
 	result = libfdata_list_get_element_value_at_offset(
 		  segment_file->chunk_groups_list,
 		  (intptr_t *) file_io_pool,
-		  (libfdata_cache_t *) chunk_groups_cache,
+		  (libfdata_cache_t *) segment_file->chunk_groups_cache,
 		  offset,
-		  chunk_group_index,
-		  chunk_group_data_offset,
-		  (intptr_t **) chunk_group,
+		  &safe_chunk_group_index,
+		  &safe_chunk_group_data_offset,
+		  (intptr_t **) &safe_chunk_group,
 		  0,
 		  error );
 
@@ -7073,6 +7311,45 @@ int libewf_segment_file_get_chunk_group_by_offset(
 		 offset );
 
 		return( -1 );
+	}
+	else if( result != 0 )
+	{
+		if( safe_chunk_group == NULL )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
+			 "%s: missing chunk group.",
+			 function );
+
+			return( -1 );
+		}
+		segment_file->current_chunk_group_index = safe_chunk_group_index;
+
+		if( libfdata_list_get_element_mapped_range(
+		     segment_file->chunk_groups_list,
+		     safe_chunk_group_index,
+		     &( safe_chunk_group->range_start_offset ),
+		     (size64_t *) &( safe_chunk_group->range_end_offset ),
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+			 "%s: unable to retrieve chunks list element: %d mapped range.",
+			 function,
+			 safe_chunk_group_index );
+
+			return( -1 );
+		}
+		safe_chunk_group->range_start_offset += segment_file->range_start_offset;
+		safe_chunk_group->range_end_offset   += safe_chunk_group->range_start_offset;
+
+		*chunk_group_index       = safe_chunk_group_index;
+		*chunk_group_data_offset = safe_chunk_group_data_offset;
+		*chunk_group             = safe_chunk_group;
 	}
 	return( result );
 }

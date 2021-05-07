@@ -1,7 +1,7 @@
 /*
  * Library to access the Expert Witness Compression Format (EWF)
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -403,7 +403,7 @@ int libewf_handle_get_data_chunk(
      libewf_error_t **error );
 
 /* Reads a (media) data chunk at the current offset
- * Returns the number of bytes read, 0 when no longer data can be read or -1 on error
+ * Returns the number of bytes in the data chunk, 0 when no longer data can be read or -1 on error
  */
 LIBEWF_EXTERN \
 ssize_t libewf_handle_read_data_chunk(
@@ -1509,6 +1509,14 @@ int libewf_handle_get_file_entry_by_utf16_path(
 LIBEWF_EXTERN \
 int libewf_data_chunk_free(
      libewf_data_chunk_t **data_chunk,
+     libewf_error_t **error );
+
+/* Determines if the data chunk is corrupted
+ * Returns 1 if the data chunk is corrupted, 0 if not or -1 on error
+ */
+LIBEWF_EXTERN \
+int libewf_data_chunk_is_corrupted(
+     libewf_data_chunk_t *data_chunk,
      libewf_error_t **error );
 
 /* Reads a buffer from the data chunk

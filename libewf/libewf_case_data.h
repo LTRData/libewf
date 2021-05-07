@@ -1,7 +1,7 @@
 /*
  * Case data functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -66,6 +66,16 @@ int libewf_case_data_parse_utf8_string(
      libewf_media_values_t *media_values,
      libfvalue_table_t *header_values,
      uint8_t *format,
+     libcerror_error_t **error );
+
+int libewf_case_data_parse_utf8_string_value(
+     uint8_t *type_string,
+     size_t type_string_size,
+     uint8_t *value_string,
+     size_t value_string_size,
+     int value_index,
+     libewf_media_values_t *media_values,
+     libfvalue_table_t *header_values,
      libcerror_error_t **error );
 
 int libewf_case_data_parse(

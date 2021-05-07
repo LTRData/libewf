@@ -1,7 +1,7 @@
 /*
- * Python object definition of the libewf file entry
+ * Python object wrapper of libewf_file_entry_t
  *
- * Copyright (C) 2008-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -22,7 +22,7 @@
 #include <common.h>
 #include <types.h>
 
-#if defined( HAVE_STDLIB_H )
+#if defined( HAVE_STDLIB_H ) || defined( HAVE_WINAPI )
 #include <stdlib.h>
 #endif
 
@@ -417,7 +417,7 @@ on_error:
 	return( NULL );
 }
 
-/* Intializes a file_entry object
+/* Initializes a file_entry object
  * Returns 0 if successful or -1 on error
  */
 int pyewf_file_entry_init(

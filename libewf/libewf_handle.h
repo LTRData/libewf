@@ -1,7 +1,7 @@
 /*
  * Handle functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -98,10 +98,6 @@ struct libewf_internal_handle
 	 */
 	off64_t current_offset;
 
-	/* The current (storage media) chunk index
-	 */
-	uint64_t current_chunk_index;
-
 	/* The segment file table
 	 */
 	libewf_segment_table_t *segment_table;
@@ -109,14 +105,6 @@ struct libewf_internal_handle
 	/* The chunk table
 	 */
 	libewf_chunk_table_t *chunk_table;
-
-	/* The chunk groups cache
-	 */
-	libfcache_cache_t *chunk_groups_cache;
-
-	/* The chunks cache
-	 */
-	libfcache_cache_t *chunks_cache;
 
 	/* The current chunk data
 	 */
@@ -209,6 +197,13 @@ int libewf_internal_handle_open_read_segment_files(
      libewf_internal_handle_t *internal_handle,
      libbfio_pool_t *file_io_pool,
      libewf_segment_table_t *segment_table,
+     libcerror_error_t **error );
+
+int libewf_internal_handle_open_read_device_information(
+     libewf_internal_handle_t *internal_handle,
+     libbfio_pool_t *file_io_pool,
+     libewf_segment_table_t *segment_table,
+     uint32_t number_of_segments,
      libcerror_error_t **error );
 
 int libewf_internal_handle_open_file_io_pool(

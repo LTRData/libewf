@@ -1,7 +1,7 @@
 /*
  * Section descriptor functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -90,6 +90,47 @@ int libewf_section_descriptor_clone(
      libewf_section_descriptor_t **destination_section_descriptor,
      libewf_section_descriptor_t *source_section_descriptor,
      libcerror_error_t **error );
+
+int libewf_section_descriptor_set(
+     libewf_section_descriptor_t *section_descriptor,
+     uint32_t type,
+     const uint8_t *type_string,
+     size_t type_string_length,
+     off64_t section_offset,
+     size64_t section_size,
+     size64_t data_size,
+     uint32_t padding_size,
+     libcerror_error_t **error );
+
+int libewf_section_descriptor_read_data(
+     libewf_section_descriptor_t *section_descriptor,
+     const uint8_t *data,
+     size_t data_size,
+     off64_t file_offset,
+     uint8_t format_version,
+     libcerror_error_t **error );
+
+ssize_t libewf_section_descriptor_read_file_io_pool(
+         libewf_section_descriptor_t *section_descriptor,
+         libbfio_pool_t *file_io_pool,
+         int file_io_pool_entry,
+         off64_t file_offset,
+         uint8_t format_version,
+         libcerror_error_t **error );
+
+int libewf_section_descriptor_write_data(
+     libewf_section_descriptor_t *section_descriptor,
+     uint8_t *data,
+     size_t data_size,
+     uint8_t format_version,
+     libcerror_error_t **error );
+
+ssize_t libewf_section_descriptor_write_file_io_pool(
+         libewf_section_descriptor_t *section_descriptor,
+         libbfio_pool_t *file_io_pool,
+         int file_io_pool_entry,
+         uint8_t format_version,
+         libcerror_error_t **error );
 
 #if defined( __cplusplus )
 }

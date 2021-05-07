@@ -1,6 +1,6 @@
 # Files to ignore by git
 #
-# Version: 20191220
+# Version: 20200912
 
 # Generic auto-generated build files
 *~
@@ -61,6 +61,7 @@ stamp-h[1-9]
 /m4/gettext.m4
 /m4/glibc21.m4
 /m4/glibc2.m4
+/m4/host-cpu-c-abi.m4
 /m4/iconv.m4
 /m4/intdiv0.m4
 /m4/intldir.m4
@@ -138,9 +139,10 @@ stamp-h[1-9]
 /tests/ewf_test_analytical_data
 /tests/ewf_test_attribute
 /tests/ewf_test_bit_stream
-/tests/ewf_test_byte_size_string
 /tests/ewf_test_case_data
+/tests/ewf_test_checksum
 /tests/ewf_test_chunk_data
+/tests/ewf_test_chunk_descriptor
 /tests/ewf_test_chunk_group
 /tests/ewf_test_chunk_table
 /tests/ewf_test_compression
@@ -148,22 +150,19 @@ stamp-h[1-9]
 /tests/ewf_test_date_time
 /tests/ewf_test_date_time_values
 /tests/ewf_test_deflate
-/tests/ewf_test_device_handle
 /tests/ewf_test_device_information
-/tests/ewf_test_digest_hash
 /tests/ewf_test_digest_section
 /tests/ewf_test_error
 /tests/ewf_test_error2_section
 /tests/ewf_test_file_entry
+/tests/ewf_test_filename
 /tests/ewf_test_glob
-/tests/ewf_test_guid
 /tests/ewf_test_handle
 /tests/ewf_test_hash_sections
 /tests/ewf_test_hash_values
 /tests/ewf_test_header_sections
 /tests/ewf_test_header_values
 /tests/ewf_test_huffman_tree
-/tests/ewf_test_info_handle
 /tests/ewf_test_io_handle
 /tests/ewf_test_lef_extended_attribute
 /tests/ewf_test_lef_file_entry
@@ -175,11 +174,11 @@ stamp-h[1-9]
 /tests/ewf_test_media_values
 /tests/ewf_test_notify
 /tests/ewf_test_permission_group
-/tests/ewf_test_platform
 /tests/ewf_test_read_io_handle
 /tests/ewf_test_restart_data
 /tests/ewf_test_section_descriptor
 /tests/ewf_test_sector_range
+/tests/ewf_test_sector_range_list
 /tests/ewf_test_segment_file
 /tests/ewf_test_segment_table
 /tests/ewf_test_serialized_string
@@ -189,8 +188,23 @@ stamp-h[1-9]
 /tests/ewf_test_single_files
 /tests/ewf_test_source
 /tests/ewf_test_support
+/tests/ewf_test_table_section
+/tests/ewf_test_tools_byte_size_string
+/tests/ewf_test_tools_device_handle
+/tests/ewf_test_tools_digest_hash
+/tests/ewf_test_tools_export_handle
+/tests/ewf_test_tools_guid
+/tests/ewf_test_tools_imaging_handle
+/tests/ewf_test_tools_info_handle
+/tests/ewf_test_tools_log_handle
+/tests/ewf_test_tools_output
+/tests/ewf_test_tools_platform
+/tests/ewf_test_tools_signal
+/tests/ewf_test_tools_storage_media_buffer
+/tests/ewf_test_tools_system_string
+/tests/ewf_test_tools_verification_handle
 /tests/ewf_test_truncate
-/tests/ewf_test_verification_handle
+/tests/ewf_test_value_table
 /tests/ewf_test_volume_section
 /tests/ewf_test_write
 /tests/ewf_test_write_chunk

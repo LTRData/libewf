@@ -1,7 +1,7 @@
 /*
  * Library compression functions test program
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -1272,9 +1272,13 @@ int main(
 
 #if defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT )
 
+#if defined( HAVE_WRITE_SUPPORT )
+
 	EWF_TEST_RUN(
 	 "libewf_compress_data",
 	 ewf_test_compress_data );
+
+#endif /* defined( HAVE_WRITE_SUPPORT ) */
 
 	EWF_TEST_RUN(
 	 "libewf_decompress_data",
@@ -1284,7 +1288,11 @@ int main(
 
 	return( EXIT_SUCCESS );
 
+#if defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT )
+
 on_error:
 	return( EXIT_FAILURE );
+
+#endif /* defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT ) */
 }
 

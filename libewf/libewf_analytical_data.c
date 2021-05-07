@@ -1,7 +1,7 @@
 /*
  * Analytical data functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -63,6 +63,18 @@ int libewf_analytical_data_parse(
 		 LIBCERROR_ERROR_DOMAIN_CONVERSION,
 		 LIBCERROR_CONVERSION_ERROR_GENERIC,
 		 "%s: unable to determine analytical data string size.",
+		 function );
+
+		goto on_error;
+	}
+	if( ( analytical_data_string_size == 0 )
+	 || ( analytical_data_string_size > MEMORY_MAXIMUM_ALLOCATION_SIZE ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
+		 "%s: invalid analytical data string size value out of bounds.",
 		 function );
 
 		goto on_error;

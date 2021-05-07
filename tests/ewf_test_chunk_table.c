@@ -1,7 +1,7 @@
 /*
  * Library chunk_table type test program
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -1352,163 +1352,11 @@ int ewf_test_chunk_table_get_segment_file_chunk_group_by_offset(
 	          NULL,
 	          NULL,
 	          NULL,
-	          NULL,
 	          0,
 	          NULL,
 	          NULL,
 	          NULL,
 	          NULL,
-	          NULL,
-	          NULL,
-	          &error );
-
-	EWF_TEST_ASSERT_EQUAL_INT(
-	 "result",
-	 result,
-	 -1 );
-
-	EWF_TEST_ASSERT_IS_NOT_NULL(
-	 "error",
-	 error );
-
-	libcerror_error_free(
-	 &error );
-
-	/* Clean up
-	 */
-	result = libewf_chunk_table_free(
-	          &chunk_table,
-	          &error );
-
-	EWF_TEST_ASSERT_EQUAL_INT(
-	 "result",
-	 result,
-	 1 );
-
-	EWF_TEST_ASSERT_IS_NULL(
-	 "chunk_table",
-	 chunk_table );
-
-	EWF_TEST_ASSERT_IS_NULL(
-	 "error",
-	 error );
-
-	result = libewf_io_handle_free(
-	          &io_handle,
-	          &error );
-
-	EWF_TEST_ASSERT_EQUAL_INT(
-	 "result",
-	 result,
-	 1 );
-
-	EWF_TEST_ASSERT_IS_NULL(
-	 "io_handle",
-	 io_handle );
-
-	EWF_TEST_ASSERT_IS_NULL(
-	 "error",
-	 error );
-
-	return( 1 );
-
-on_error:
-	if( error != NULL )
-	{
-		libcerror_error_free(
-		 &error );
-	}
-	if( chunk_table != NULL )
-	{
-		libewf_chunk_table_free(
-		 &chunk_table,
-		 NULL );
-	}
-	if( io_handle != NULL )
-	{
-		libewf_io_handle_free(
-		 &io_handle,
-		 NULL );
-	}
-	return( 0 );
-}
-
-/* Tests the libewf_chunk_table_chunk_exists_for_offset function
- * Returns 1 if successful or 0 if not
- */
-int ewf_test_chunk_table_chunk_exists_for_offset(
-     void )
-{
-	libcerror_error_t *error          = NULL;
-	libewf_chunk_table_t *chunk_table = NULL;
-	libewf_io_handle_t *io_handle     = NULL;
-	int result                        = 0;
-
-	/* Initialize test
-	 */
-	result = libewf_io_handle_initialize(
-	          &io_handle,
-	          &error );
-
-	EWF_TEST_ASSERT_EQUAL_INT(
-	 "result",
-	 result,
-	 1 );
-
-	EWF_TEST_ASSERT_IS_NOT_NULL(
-	 "io_handle",
-	 io_handle );
-
-	EWF_TEST_ASSERT_IS_NULL(
-	 "error",
-	 error );
-
-	result = libewf_chunk_table_initialize(
-	          &chunk_table,
-	          io_handle,
-	          &error );
-
-	EWF_TEST_ASSERT_EQUAL_INT(
-	 "result",
-	 result,
-	 1 );
-
-	EWF_TEST_ASSERT_IS_NOT_NULL(
-	 "chunk_table",
-	 chunk_table );
-
-	EWF_TEST_ASSERT_IS_NULL(
-	 "error",
-	 error );
-
-	result = libewf_chunk_table_append_checksum_error(
-	          chunk_table,
-	          1024,
-	          16,
-	          &error );
-
-	EWF_TEST_ASSERT_EQUAL_INT(
-	 "result",
-	 result,
-	 1 );
-
-	EWF_TEST_ASSERT_IS_NULL(
-	 "error",
-	 error );
-
-	/* Test regular cases
-	 */
-/* TODO implement */
-
-	/* Test error cases
-	 */
-	result = libewf_chunk_table_chunk_exists_for_offset(
-	          NULL,
-	          0,
-	          NULL,
-	          NULL,
-	          NULL,
-	          0,
 	          &error );
 
 	EWF_TEST_ASSERT_EQUAL_INT(
@@ -1653,9 +1501,6 @@ int ewf_test_chunk_table_get_chunk_data_by_offset(
 	 */
 	result = libewf_chunk_table_get_chunk_data_by_offset(
 	          NULL,
-	          0,
-	          NULL,
-	          NULL,
 	          NULL,
 	          NULL,
 	          NULL,
@@ -1784,20 +1629,18 @@ int main(
 	 ewf_test_chunk_table_get_segment_file_chunk_group_by_offset );
 
 	EWF_TEST_RUN(
-	 "libewf_chunk_table_chunk_exists_for_offset",
-	 ewf_test_chunk_table_chunk_exists_for_offset );
-
-	EWF_TEST_RUN(
 	 "libewf_chunk_table_get_chunk_data_by_offset",
 	 ewf_test_chunk_table_get_chunk_data_by_offset );
-
-	/* TODO: add tests for libewf_chunk_table_set_chunk_data_by_offset */
 
 #endif /* defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT ) */
 
 	return( EXIT_SUCCESS );
 
+#if defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT )
+
 on_error:
 	return( EXIT_FAILURE );
+
+#endif /* defined( __GNUC__ ) && !defined( LIBEWF_DLL_IMPORT ) */
 }
 

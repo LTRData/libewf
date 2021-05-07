@@ -1,7 +1,7 @@
 /*
  * Hash values functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -85,52 +85,6 @@ int libewf_hash_values_get_identifier(
      uint32_t index,
      uint8_t *identifier,
      size_t identifier_size,
-     libcerror_error_t **error );
-
-int libewf_hash_values_get_utf8_value_size(
-     libfvalue_table_t *hash_values,
-     const uint8_t *identifier,
-     size_t identifier_length,
-     size_t *utf8_string_size,
-     libcerror_error_t **error );
-
-int libewf_hash_values_get_utf8_value(
-     libfvalue_table_t *hash_values,
-     const uint8_t *identifier,
-     size_t identifier_length,
-     uint8_t *utf8_string,
-     size_t utf8_string_size,
-     libcerror_error_t **error );
-
-int libewf_hash_values_set_utf8_value(
-     libfvalue_table_t *hash_values,
-     const uint8_t *identifier,
-     size_t identifier_length,
-     const uint8_t *utf8_string,
-     size_t utf8_string_length,
-     libcerror_error_t **error );
-
-int libewf_hash_values_get_utf16_value_size(
-     libfvalue_table_t *hash_values,
-     const uint8_t *identifier,
-     size_t identifier_length,
-     size_t *utf16_string_size,
-     libcerror_error_t **error );
-
-int libewf_hash_values_get_utf16_value(
-     libfvalue_table_t *hash_values,
-     const uint8_t *identifier,
-     size_t identifier_length,
-     uint16_t *utf16_string,
-     size_t utf16_string_size,
-     libcerror_error_t **error );
-
-int libewf_hash_values_set_utf16_value(
-     libfvalue_table_t *hash_values,
-     const uint8_t *identifier,
-     size_t identifier_length,
-     const uint16_t *utf16_string,
-     size_t utf16_string_length,
      libcerror_error_t **error );
 
 #if defined( __cplusplus )

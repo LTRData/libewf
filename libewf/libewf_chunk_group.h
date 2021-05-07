@@ -1,7 +1,7 @@
 /*
  * Chunk group functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -41,6 +41,14 @@ struct libewf_chunk_group
 	/* The chunks list
 	 */
 	libfdata_list_t *chunks_list;
+
+	/* The range start offset
+	 */
+	off64_t range_start_offset;
+
+	/* The range end offset
+	 */
+	off64_t range_end_offset;
 };
 
 int libewf_chunk_group_initialize(
@@ -68,7 +76,7 @@ int libewf_chunk_group_fill_v1(
      int file_io_pool_entry,
      libewf_section_descriptor_t *table_section,
      off64_t base_offset,
-     uint32_t number_of_offsets,
+     uint32_t number_of_entries,
      const uint8_t *table_entries_data,
      size_t table_entries_data_size,
      uint8_t tainted,
@@ -80,7 +88,7 @@ int libewf_chunk_group_fill_v2(
      size32_t chunk_size,
      int file_io_pool_entry,
      libewf_section_descriptor_t *table_section,
-     uint32_t number_of_offsets,
+     uint32_t number_of_entries,
      const uint8_t *table_entries_data,
      size_t table_entries_data_size,
      uint8_t tainted,
@@ -93,20 +101,10 @@ int libewf_chunk_group_correct_v1(
      int file_io_pool_entry,
      libewf_section_descriptor_t *table_section,
      off64_t base_offset,
-     uint32_t number_of_offsets,
+     uint32_t number_of_entries,
      const uint8_t *table_entries_data,
      size_t table_entries_data_size,
      uint8_t tainted,
-     libcerror_error_t **error );
-
-int libewf_chunk_group_generate_table_entries_data(
-     libewf_chunk_group_t *chunk_group,
-     uint64_t chunk_index,
-     uint8_t format_version,
-     uint8_t *table_entries_data,
-     size_t table_entries_data_size,
-     uint32_t number_of_entries,
-     off64_t base_offset,
      libcerror_error_t **error );
 
 #if defined( __cplusplus )

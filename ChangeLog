@@ -1,13 +1,33 @@
 TODO
-* fix issue with encase7 header value having invalid hex character
-* move libewf_hash_values_get_identifier_size libewf_hash_values_get_identifier into libfvalue
-* ewfinfo sanitize special characters in file names?
-* rename extended attribute to attribute
+* info_handle: move dfxml functions to seperate file
+* clean up libewf_chunk_group_correct_v1
+
+* ewfexport test with different bytes per sector between input and ouptput ?
+
+* ensure a multitude of sector size is written
+
+* handle corruption scenarios
+** missing single segment file
+** corrupted single segment file
+
+* rename attribute to extended attribute?
+
+* move overlapping/generic header and hash value functions into value table
+** libewf_hash_values_get_identifier_size
+** libewf_hash_values_get_identifier
+** move value table functions into libfvalue?
+
+* move use of libfvalue_table_get_value_by_identifier out of header_values and hash_values
+* refactor libewf_hash_sections_set_digest_from_hash_values move into hash_values?
+
+* is libewf_huffman_tree.[ch] still used ? remove ?
 * change single files tree to B-tree
-* ewftools ignore name of root - check ewfmount / ewfveriry
 * access control entry / permission group add get_owner and get_group functions
 * file entry add 0 if not set support for values
 * file entry get permission group from single files
+
+* ewftools ignore name of root - check ewfmount / ewfverify
+* ewfinfo sanitize special characters in file names?
 * ewfinfo -H complete bodyfile support
 
 * be able to handle large chunk tables for version 2
@@ -16,8 +36,10 @@ TODO
 * pattern fill chunk support (set chunk table entry, test)
 * complete: libewf_chunk_table_fill_v2
 
-* refactor libewf_internal_data_chunk_set_chunk_data not to clone ?
-* ewfacquire error when both secondary output and resume are set
+* move write resume functionality into ewfacquire ?
+* add support for write resume of images with ENCASE1/SMART table sections ?
+* check behavior of ewfacquire resume and specified offset
+
 * pass zero byte empty block compressed data cache as a pointer
   do not copy data to compressed chunk cache
 
@@ -28,13 +50,11 @@ TODO
 * speed of verification of Ex01 file? - debug outout related?
 
 * clean up TODO refactor notes
-* refactor libewf_hash_sections_set_digest_from_hash_values move into hash_values?
 * look into issues with high speed variations between chunk and non-chunk modes
 * process status change the code to have to determine decimal point only once
 
 * add multi threaded tool support
   - ewfmount - fuse multi thread support ?
-* chunk table get chunk from chunk_table->corrupted_chunks_list
 * throttle the size of the sections list?
 * ewfacquire allow to set the the maximum number of table entries?
 
@@ -71,7 +91,7 @@ Tests:
   - add non-unattended tests
   - add option sets for single/multi threaded, chunks
   - export of split RAW
-  - test writing to stdout and catch https://github.com/libyal/libewf/issues/23
+  - add support for different input and output chunk sizes?
 * ewfexport_logical:
   - add non-unattended tests
 * ewfinfo:
@@ -147,7 +167,6 @@ Further analysis of the EWF format:
 
 Features
 * add bzip2 support and tests
-* resume write support for ENCASE1/SMART table sections ?
 * implement low memory usage option
   - trade off IO versus memory use
 * disk full check
@@ -188,8 +207,6 @@ Error handling/tollerance
 * handle missing sections
 * handle missing segment files
 * handle corrupt segment files
-* write resume
-  - add support for ENCASE1/SMART table section
 
 Additional (integrity) checks:
 * read: check if successive headers match first header
@@ -284,8 +301,7 @@ Tools:
   - add support for unattended write resume ?
   - improve output when encountering a read error
   - add support to set device label header value
-  - allow for multi stage imaging, where user suspends and resumes
-    imaging process?
+  - allow for multi stage imaging, where user suspends and resumes imaging process?
   - add multi threading support
 * ewfacquirestream
   - implement stream handle
@@ -323,21 +339,10 @@ Tools:
   - add support for multi threaded logical verify
 
 Unsorted:
-* libewf:
-  - empty caches on close
-
-* check if empty block check or equiv is always done (except for no compression).
 * user header and header2 time difference to calculate the timezone
 
 * fix last_chunk_data_offset calculation for table2
   in combination with libewf_chunk_group_correct_v1
-* chunk data
-  - related calculation into chunk data
-  - change API to have chunk type
-* libewf_chunk_data_check_for_empty_block
-  - use memcmp instead?
-  - write a test at configure time to determine which approach is faster
-  - same for adler32 ?
 
   - sections list on write: cache section descriptors instead of free-ing them?
 
@@ -353,12 +358,6 @@ Unsorted:
   - use mapped offset to determine first chunk index (+/-)
     - what about base offset ?
     - make mapped offsets absolute ?
-
-  - refactor chunk table to:
-    - optimize use of libewf_chunk_table_chunk_exists_for_offset and
-      successive calls to fdata types
-    - refactor libewf_chunk_table_get_chunk_data_by_offset chunk data part
-      back to read IO handle ?
 
   - handle: replace chunk_index calcuations by current_chunk_index tracking ?
   - libewf_filename_create: change to accept ( segment_number - 1 )
@@ -380,8 +379,6 @@ Unsorted:
 * check alignment of:
   section_data_read CHS cylinders, SMART logs start sector
 
-* check behavior of ewfacquire resume and specified offset
-
 * complete ewfrecover
   - max segment size
   - try to read the chunks by calculating the checksums and see where they align
@@ -394,6 +391,7 @@ Unsorted:
     (for now use table if number of entries is not 0)
   - tainted table and table2
   - tainted table or table2 (use the one that is not tainted)
+* handle DEFLATE uncompressed block data with copy of uncompressed data size of 0?
 
 * add stream write support for EWF-S01 use fill space solution in table section
 

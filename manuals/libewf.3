@@ -1,4 +1,4 @@
-.Dd December 30, 2019
+.Dd December  2, 2020
 .Dt libewf 3
 .Os libewf
 .Sh NAME
@@ -278,6 +278,8 @@ Meta data functions
 Data chunk functions
 .Ft int
 .Fn libewf_data_chunk_free "libewf_data_chunk_t **data_chunk" "libewf_error_t **error"
+.Ft int
+.Fn libewf_data_chunk_is_corrupted "libewf_data_chunk_t *data_chunk" "libewf_error_t **error"
 .Ft ssize_t
 .Fn libewf_data_chunk_read_buffer "libewf_data_chunk_t *data_chunk" "void *buffer" "size_t buffer_size" "libewf_error_t **error"
 .Ft ssize_t
@@ -362,6 +364,8 @@ File entry functions
 .Fn libewf_file_entry_get_number_of_access_control_entries "libewf_file_entry_t *file_entry" "int *number_of_access_control_entries" "libewf_error_t **error"
 .Ft int
 .Fn libewf_file_entry_get_access_control_entry "libewf_file_entry_t *file_entry" "int access_control_entry_index" "libewf_access_control_entry_t **access_control_entry" "libewf_error_t **error"
+.Ft int
+.Fn libewf_file_entry_get_source "libewf_file_entry_t *file_entry" "libewf_source_t **source" "libewf_error_t **error"
 .Pp
 Attribute functions
 .Ft int
@@ -545,7 +549,7 @@ Please report bugs of any kind on the project issue tracker: https://github.com/
 .Sh AUTHOR
 These man pages are generated from "libewf.h".
 .Sh COPYRIGHT
-Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>.
+Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>.
 .sp
 This is free software; see the source for copying conditions.
 There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.

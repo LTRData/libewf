@@ -1,7 +1,7 @@
 /*
  * Chunk table functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -113,25 +113,6 @@ int libewf_chunk_table_initialize(
 
 		return( -1 );
 	}
-	if( libfdata_list_initialize(
-	     &( ( *chunk_table )->corrupted_chunks_list ),
-	     NULL,
-	     NULL,
-	     NULL,
-	     NULL,
-	     NULL,
-	     LIBFDATA_DATA_HANDLE_FLAG_NON_MANAGED,
-	     error ) != 1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create corrupted chunks list.",
-		 function );
-
-		goto on_error;
-	}
 	if( libcdata_range_list_initialize(
 	     &( ( *chunk_table )->checksum_errors ),
 	     error ) != 1 )
@@ -145,6 +126,34 @@ int libewf_chunk_table_initialize(
 
 		goto on_error;
 	}
+	if( libfcache_cache_initialize(
+	     &( ( *chunk_table )->chunk_data_cache ),
+	     LIBEWF_MAXIMUM_CACHE_ENTRIES_CHUNKS,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+		 "%s: unable to create chunk data cache.",
+		 function );
+
+		goto on_error;
+	}
+	if( libfcache_cache_initialize(
+	     &( ( *chunk_table )->single_chunk_data_cache ),
+	     1,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+		 "%s: unable to create single chunk data cache.",
+		 function );
+
+		goto on_error;
+	}
 	( *chunk_table )->io_handle = io_handle;
 
 	return( 1 );
@@ -152,10 +161,10 @@ int libewf_chunk_table_initialize(
 on_error:
 	if( *chunk_table != NULL )
 	{
-		if( ( *chunk_table )->corrupted_chunks_list != NULL )
+		if( ( *chunk_table )->chunk_data_cache != NULL )
 		{
-			libfdata_list_free(
-			 &( ( *chunk_table )->corrupted_chunks_list ),
+			libfcache_cache_free(
+			 &( ( *chunk_table )->chunk_data_cache ),
 			 NULL );
 		}
 		memory_free(
@@ -189,19 +198,6 @@ int libewf_chunk_table_free(
 	}
 	if( *chunk_table != NULL )
 	{
-		if( libfdata_list_free(
-		     &( ( *chunk_table )->corrupted_chunks_list ),
-		     error ) != 1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
-			 "%s: unable to free corrupted chunks list.",
-			 function );
-
-			result = -1;
-		}
 		if( libcdata_range_list_free(
 		     &( ( *chunk_table )->checksum_errors ),
 		     NULL,
@@ -212,6 +208,32 @@ int libewf_chunk_table_free(
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
 			 "%s: unable to free checksum errors range list.",
+			 function );
+
+			result = -1;
+		}
+		if( libfcache_cache_free(
+		     &( ( *chunk_table )->chunk_data_cache ),
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
+			 "%s: unable to free chunk data cache.",
+			 function );
+
+			result = -1;
+		}
+		if( libfcache_cache_free(
+		     &( ( *chunk_table )->single_chunk_data_cache ),
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
+			 "%s: unable to free single chunk data cache.",
 			 function );
 
 			result = -1;
@@ -295,10 +317,11 @@ int libewf_chunk_table_clone(
 
 		return( -1 );
 	}
-	( *destination_chunk_table )->corrupted_chunks_list = NULL;
-	( *destination_chunk_table )->checksum_errors       = NULL;
-
-/* TODO: clone corrupted_chunks_list */
+	( *destination_chunk_table )->current_chunk_group     = NULL;
+	( *destination_chunk_table )->current_chunk_data      = NULL;
+	( *destination_chunk_table )->checksum_errors         = NULL;
+	( *destination_chunk_table )->chunk_data_cache        = NULL;
+	( *destination_chunk_table )->single_chunk_data_cache = NULL;
 
 	if( libcdata_range_list_clone(
 	     &( ( *destination_chunk_table )->checksum_errors ),
@@ -316,11 +339,52 @@ int libewf_chunk_table_clone(
 
 		goto on_error;
 	}
+	if( libfcache_cache_clone(
+	     &( ( *destination_chunk_table )->chunk_data_cache ),
+	     source_chunk_table->chunk_data_cache,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+		 "%s: unable to create destination chunk data cache.",
+		 function );
+
+		goto on_error;
+	}
+	if( libfcache_cache_clone(
+	     &( ( *destination_chunk_table )->single_chunk_data_cache ),
+	     source_chunk_table->single_chunk_data_cache,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+		 "%s: unable to create destination single chunk data cache.",
+		 function );
+
+		goto on_error;
+	}
 	return( 1 );
 
 on_error:
 	if( *destination_chunk_table != NULL )
 	{
+		if( ( *destination_chunk_table )->chunk_data_cache != NULL )
+		{
+			libfcache_cache_free(
+			 &( ( *destination_chunk_table )->chunk_data_cache ),
+			 NULL );
+		}
+		if( ( *destination_chunk_table )->checksum_errors != NULL )
+		{
+			libcdata_range_list_free(
+			 &( ( *destination_chunk_table )->checksum_errors ),
+			 NULL,
+			 NULL );
+		}
 		memory_free(
 		 *destination_chunk_table );
 
@@ -472,25 +536,26 @@ int libewf_chunk_table_append_checksum_error(
 	return( 1 );
 }
 
-/* Retrieves the chunks group in a segment file at a specific offset
+/* Retrieves the chunk group in a segment file at a specific offset
  * Returns 1 if successful, 0 if not or -1 on error
  */
 int libewf_chunk_table_get_segment_file_chunk_group_by_offset(
      libewf_chunk_table_t *chunk_table,
      libbfio_pool_t *file_io_pool,
      libewf_segment_table_t *segment_table,
-     libfcache_cache_t *chunk_groups_cache,
      off64_t offset,
      uint32_t *segment_number,
-     off64_t *segment_file_data_offset,
-     libewf_segment_file_t **segment_file,
      int *chunk_groups_list_index,
      off64_t *chunk_group_data_offset,
      libewf_chunk_group_t **chunk_group,
      libcerror_error_t **error )
 {
-	static char *function = "libewf_chunk_table_get_segment_file_chunk_group_by_offset";
-	int result            = 0;
+	libewf_segment_file_t *segment_file  = NULL;
+	static char *function                = "libewf_chunk_table_get_segment_file_chunk_group_by_offset";
+	off64_t safe_chunk_group_data_offset = 0;
+	off64_t segment_file_data_offset     = 0;
+	uint32_t safe_segment_number         = 0;
+	int result                           = 0;
 
 	if( chunk_table == NULL )
 	{
@@ -510,28 +575,6 @@ int libewf_chunk_table_get_segment_file_chunk_group_by_offset(
 		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
 		 "%s: invalid segment number.",
-		 function );
-
-		return( -1 );
-	}
-	if( segment_file_data_offset == NULL )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-		 "%s: invalid segment file data offset.",
-		 function );
-
-		return( -1 );
-	}
-	if( segment_file == NULL )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-		 "%s: invalid segment file.",
 		 function );
 
 		return( -1 );
@@ -569,38 +612,27 @@ int libewf_chunk_table_get_segment_file_chunk_group_by_offset(
 
 		return( -1 );
 	}
-	result = libewf_segment_table_get_segment_file_at_offset(
-	          segment_table,
-	          offset,
-	          file_io_pool,
-	          segment_number,
-	          segment_file_data_offset,
-	          segment_file,
-	          error );
-
-	if( result == -1 )
+	if( ( chunk_table->current_chunk_group != NULL )
+	 && ( chunk_table->current_chunk_group->range_end_offset > 0 ) )
 	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-		 "%s: unable to retrieve segment file at 0x%08" PRIx64 " from segment files list.",
-		 function,
-		 offset );
+		if( ( offset >= chunk_table->current_chunk_group->range_start_offset )
+		 && ( offset < chunk_table->current_chunk_group->range_end_offset ) )
+		{
+			safe_chunk_group_data_offset = offset - chunk_table->current_chunk_group->range_start_offset;
 
-		return( -1 );
+			result = 1;
+		}
 	}
-	if( result != 0 )
+	if( result == 0 )
 	{
-		result = libewf_segment_file_get_chunk_group_by_offset(
-			  *segment_file,
-			  file_io_pool,
-			  chunk_groups_cache,
-			  *segment_file_data_offset,
-			  chunk_groups_list_index,
-			  chunk_group_data_offset,
-			  chunk_group,
-			  error );
+		result = libewf_segment_table_get_segment_file_at_offset(
+		          segment_table,
+		          offset,
+		          file_io_pool,
+		          &safe_segment_number,
+		          &segment_file_data_offset,
+		          &segment_file,
+		          error );
 
 		if( result == -1 )
 		{
@@ -608,166 +640,89 @@ int libewf_chunk_table_get_segment_file_chunk_group_by_offset(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-			 "%s: unable to retrieve chunk group from segment file: %" PRIu32 " at 0x%08" PRIx64 ".",
+			 "%s: unable to retrieve segment file for offset: %" PRIi64 " (0x%08" PRIx64 ").",
 			 function,
-			 *segment_number,
-			 *segment_file_data_offset );
+			 offset,
+			 offset );
 
 			return( -1 );
 		}
-	}
-	if( result != 0 )
-	{
-		if( *chunk_group == NULL )
+		else if( result == 0 )
 		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
-			 "%s: missing chunk group: %d.",
-			 function,
-			 *chunk_groups_list_index );
-
-			return( -1 );
-		}
-	}
-	return( result );
-}
-
-/* Determines if the chunk exists
- * Returns 1 if successful or -1 on error
- */
-int libewf_chunk_table_chunk_exists_for_offset(
-     libewf_chunk_table_t *chunk_table,
-     uint64_t chunk_index,
-     libbfio_pool_t *file_io_pool,
-     libewf_segment_table_t *segment_table,
-     libfcache_cache_t *chunk_groups_cache,
-     off64_t offset,
-     libcerror_error_t **error )
-{
-	libewf_chunk_group_t *chunk_group           = NULL;
-	libewf_segment_file_t *segment_file         = NULL;
-	libfdata_list_element_t *chunk_list_element = NULL;
-	static char *function                       = "libewf_chunk_table_chunk_exists_for_offset";
-	off64_t chunk_data_offset                   = 0;
-	off64_t chunk_group_data_offset             = 0;
-	off64_t segment_file_data_offset            = 0;
-	uint32_t segment_number                     = 0;
-	int chunk_groups_list_index                 = 0;
-	int chunks_list_index                       = 0;
-	int result                                  = 0;
-
-	if( chunk_table == NULL )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-		 "%s: invalid chunk table.",
-		 function );
-
-		return( -1 );
-	}
-	result = libewf_chunk_table_get_segment_file_chunk_group_by_offset(
-	          chunk_table,
-	          file_io_pool,
-	          segment_table,
-	          chunk_groups_cache,
-	          offset,
-	          &segment_number,
-	          &segment_file_data_offset,
-	          &segment_file,
-		  &chunk_groups_list_index,
-		  &chunk_group_data_offset,
-		  &chunk_group,
-	          error );
-
-	if( result == -1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-		 "%s: unable to retrieve segment file chunk group at 0x%08" PRIx64 ".",
-		 function,
-		 offset );
-
-		return( -1 );
-	}
-	if( result != 0 )
-	{
-		if( chunk_group == NULL )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
-			 "%s: missing chunks group: %d.",
-			 function,
-			 chunk_groups_list_index );
-
-			return( -1 );
-		}
-		result = libfdata_list_get_list_element_at_offset(
-			  chunk_group->chunks_list,
-			  chunk_group_data_offset,
-			  &chunks_list_index,
-			  &chunk_data_offset,
-			  &chunk_list_element,
-			  error );
-
-		if( result == -1 )
-		{
+/* TODO handle missing segment file */
 			libcerror_error_set(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-			 "%s: unable to retrieve chunk: %" PRIu64 " from chunk group: %d in segment file: %" PRIu32 " at 0x%08" PRIx64 ".",
+			 "%s: missing segment file for offset: %" PRIi64 " (0x%08" PRIx64 ").",
 			 function,
-			 chunk_index,
-			 chunk_groups_list_index,
-			 segment_number,
-			 segment_file_data_offset );
+			 offset,
+			 offset );
 
 			return( -1 );
 		}
+		else
+		{
+			result = libewf_segment_file_get_chunk_group_by_offset(
+				  segment_file,
+				  file_io_pool,
+				  segment_file_data_offset,
+				  &( chunk_table->current_chunk_group_index ),
+				  &safe_chunk_group_data_offset,
+				  &( chunk_table->current_chunk_group ),
+				  error );
+
+			if( result == -1 )
+			{
+				libcerror_error_set(
+				 error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+				 "%s: unable to retrieve chunk group from segment file: %" PRIu32 " for offset: %" PRIi64 " (0x%08" PRIx64 ").",
+				 function,
+				 safe_segment_number,
+				 offset,
+				 offset );
+
+				return( -1 );
+			}
+		}
+	}
+	if( result != 0 )
+	{
+		*segment_number          = safe_segment_number;
+		*chunk_groups_list_index = chunk_table->current_chunk_group_index;
+		*chunk_group_data_offset = safe_chunk_group_data_offset;
+		*chunk_group             = chunk_table->current_chunk_group;
 	}
 	return( result );
 }
 
 /* Retrieves the chunk data of a chunk at a specific offset
- * Adds a checksum error if the data is corrupted
  * Returns 1 if successful or -1 on error
  */
-int libewf_chunk_table_get_chunk_data_by_offset(
+int libewf_chunk_table_get_segment_file_chunk_data_by_offset(
      libewf_chunk_table_t *chunk_table,
-     uint64_t chunk_index,
      libewf_io_handle_t *io_handle,
      libbfio_pool_t *file_io_pool,
+     libfcache_cache_t *chunk_data_cache,
      libewf_media_values_t *media_values,
      libewf_segment_table_t *segment_table,
-     libfcache_cache_t *chunk_groups_cache,
-     libfcache_cache_t *chunks_cache,
      off64_t offset,
-     libewf_chunk_data_t **chunk_data,
      off64_t *chunk_data_offset,
+     libewf_chunk_data_t **chunk_data,
+     uint8_t read_flags,
      libcerror_error_t **error )
 {
-	libewf_chunk_data_t *corrupted_chunk_data = NULL;
-	libewf_chunk_group_t *chunk_group         = NULL;
-	libewf_segment_file_t *segment_file       = NULL;
-	static char *function                     = "libewf_chunk_table_get_chunk_data_by_offset";
-	off64_t chunk_offset                      = 0;
-	off64_t chunk_group_data_offset           = 0;
-	off64_t segment_file_data_offset          = 0;
-	size_t chunk_data_size                    = 0;
-	uint64_t start_sector                     = 0;
-	uint64_t number_of_sectors                = 0;
-	uint32_t segment_number                   = 0;
-	int chunk_groups_list_index               = 0;
-	int chunks_list_index                     = 0;
-	int result                                = 0;
+	libewf_chunk_group_t *chunk_group = NULL;
+	static char *function             = "libewf_chunk_table_get_segment_file_chunk_data_by_offset";
+	off64_t chunk_group_data_offset   = 0;
+	off64_t safe_chunk_data_offset    = 0;
+	uint64_t chunk_index              = 0;
+	uint32_t segment_number           = 0;
+	int chunk_groups_list_index       = 0;
+	int chunks_list_index             = 0;
+	int result                        = 0;
 
 	if( chunk_table == NULL )
 	{
@@ -802,13 +757,13 @@ int libewf_chunk_table_get_chunk_data_by_offset(
 
 		return( -1 );
 	}
-	if( chunk_data == NULL )
+	if( media_values->chunk_size == 0 )
 	{
 		libcerror_error_set(
 		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-		 "%s: invalid chunk data.",
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
+		 "%s: invalid media values - chunk size value out of bounds.",
 		 function );
 
 		return( -1 );
@@ -824,55 +779,39 @@ int libewf_chunk_table_get_chunk_data_by_offset(
 
 		return( -1 );
 	}
-	result = libewf_chunk_table_get_segment_file_chunk_group_by_offset(
-		  chunk_table,
-		  file_io_pool,
-		  segment_table,
-		  chunk_groups_cache,
-		  offset,
-		  &segment_number,
-		  &segment_file_data_offset,
-		  &segment_file,
-		  &chunk_groups_list_index,
-		  &chunk_group_data_offset,
-		  &chunk_group,
-		  error );
-
-	if( result == -1 )
+	if( chunk_data == NULL )
 	{
 		libcerror_error_set(
 		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-		 "%s: unable to retrieve segment file chunk group at 0x%08" PRIx64 ".",
-		 function,
-		 offset );
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid chunk data.",
+		 function );
 
-		goto on_error;
+		return( -1 );
 	}
-	if( result != 0 )
+	if( ( chunk_table->current_chunk_data != NULL )
+	 && ( chunk_table->current_chunk_data->range_end_offset > 0 ) )
 	{
-		if( chunk_group == NULL )
+		if( ( offset >= chunk_table->current_chunk_data->range_start_offset )
+		 && ( offset < chunk_table->current_chunk_data->range_end_offset ) )
 		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
-			 "%s: missing chunk group: %d.",
-			 function,
-			 chunk_groups_list_index );
+			safe_chunk_data_offset = offset - chunk_table->current_chunk_data->range_start_offset;
 
-			goto on_error;
+			result = 1;
 		}
-		result = libfdata_list_get_element_value_at_offset(
-			  chunk_group->chunks_list,
-			  (intptr_t *) file_io_pool,
-			  (libfdata_cache_t *) chunks_cache,
-			  chunk_group_data_offset,
-			  &chunks_list_index,
-			  chunk_data_offset,
-			  (intptr_t **) chunk_data,
-			  0,
+	}
+	if( result == 0 )
+	{
+		result = libewf_chunk_table_get_segment_file_chunk_group_by_offset(
+			  chunk_table,
+			  file_io_pool,
+			  segment_table,
+			  offset,
+			  &segment_number,
+			  &chunk_groups_list_index,
+			  &chunk_group_data_offset,
+			  &chunk_group,
 			  error );
 
 		if( result == -1 )
@@ -881,193 +820,126 @@ int libewf_chunk_table_get_chunk_data_by_offset(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-			 "%s: unable to retrieve chunk: %" PRIu64 " data from chunk group: %d in segment file: %" PRIu32 " at 0x%08" PRIx64 ".",
+			 "%s: unable to retrieve segment file chunk group for offset: %" PRIi64 " (0x%08" PRIx64 ").",
 			 function,
-			 chunk_index,
-			 chunk_groups_list_index,
-			 segment_number,
-			 segment_file_data_offset );
+			 offset,
+			 offset );
 
-			goto on_error;
+			return( -1 );
+		}
+		if( result != 0 )
+		{
+			if( chunk_group == NULL )
+			{
+				libcerror_error_set(
+				 error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
+				 "%s: missing chunk group: %d.",
+				 function,
+				 chunk_groups_list_index );
+
+				return( -1 );
+			}
+			chunk_index            = (uint64_t) offset / media_values->chunk_size;
+			chunks_list_index      = (int) ( chunk_group_data_offset / media_values->chunk_size );
+			safe_chunk_data_offset = chunk_group_data_offset - ( (off64_t) chunks_list_index * media_values->chunk_size );
+
+			if( libfdata_list_get_element_value_by_index(
+			     chunk_group->chunks_list,
+			     (intptr_t *) file_io_pool,
+			     (libfdata_cache_t *) chunk_data_cache,
+			     chunks_list_index,
+			     (intptr_t **) &( chunk_table->current_chunk_data ),
+			     read_flags,
+			     error ) != 1 )
+			{
+				libcerror_error_set(
+				 error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+				 "%s: unable to retrieve chunk: %" PRIu64 " data from chunk group: %d in segment file: %" PRIu32 " for offset: %" PRIi64 " (0x%08" PRIx64 ").",
+				 function,
+				 chunk_index,
+				 chunk_groups_list_index,
+				 segment_number,
+				 offset,
+				 offset );
+
+				return( -1 );
+			}
+			if( chunk_table->current_chunk_data == NULL )
+			{
+				libcerror_error_set(
+				 error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
+				 "%s: missing chunk data: %" PRIu64 ".",
+				 function,
+				 chunk_index );
+
+				return( -1 );
+			}
+			chunk_table->current_chunk_data->chunk_index = chunk_index;
+
+			if( libfdata_list_get_element_mapped_range(
+			     chunk_group->chunks_list,
+			     chunks_list_index,
+			     &( chunk_table->current_chunk_data->range_start_offset ),
+			     (size64_t *) &( chunk_table->current_chunk_data->range_end_offset ),
+			     error ) != 1 )
+			{
+				libcerror_error_set(
+				 error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+				 "%s: unable to retrieve list element: %d mapped range for chunk group: %d in segment file: %" PRIu32 ".",
+				 function,
+				 chunks_list_index,
+				 chunk_groups_list_index,
+				 segment_number );
+
+				return( -1 );
+			}
+			chunk_table->current_chunk_data->range_start_offset += chunk_table->current_chunk_group->range_start_offset;
+			chunk_table->current_chunk_data->range_end_offset   += chunk_table->current_chunk_data->range_start_offset;
+
+			if( (size64_t) chunk_table->current_chunk_data->range_end_offset > media_values->media_size )
+			{
+				chunk_table->current_chunk_data->range_end_offset = (off64_t) media_values->media_size;
+			}
 		}
 	}
 	if( result != 0 )
 	{
-		if( *chunk_data == NULL )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
-			 "%s: missing chunk: %" PRIu64 " data.",
-			 function,
-			 chunk_index );
-
-			goto on_error;
-		}
-		if( libewf_chunk_data_unpack(
-		     *chunk_data,
-		     io_handle,
-		     error ) != 1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_GENERIC,
-			 "%s: unable to unpack chunk: %" PRIu64 " data.",
-			 function,
-			 chunk_index );
-
-			goto on_error;
-		}
-		if( ( ( *chunk_data )->range_flags & LIBEWF_RANGE_FLAG_IS_CORRUPTED ) != 0 )
-		{
-			chunk_offset = offset - *chunk_data_offset;
-		}
+		*chunk_data_offset = safe_chunk_data_offset;
+		*chunk_data        = chunk_table->current_chunk_data;
 	}
-	else
-	{
-/* TODO get chunk from chunk_table->corrupted_chunks_list */
-
-		chunk_offset    = (off64_t) chunk_index * media_values->chunk_size;
-		chunk_data_size = media_values->chunk_size;
-
-		if( (size64_t) ( chunk_offset + chunk_data_size ) > media_values->media_size )
-		{
-			chunk_data_size = (size_t) ( media_values->media_size - chunk_offset );
-		}
-		if( libewf_chunk_data_initialize(
-		     &corrupted_chunk_data,
-		     media_values->chunk_size,
-		     1,
-		     error ) != 1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-			 "%s: unable to create chunk: %" PRIu64 " data.",
-			 function,
-			 chunk_index );
-
-			goto on_error;
-		}
-		if( corrupted_chunk_data == NULL )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
-			 "%s: missing chunk data: %" PRIu64 ".",
-			 function,
-			 chunk_index );
-
-			goto on_error;
-		}
-		corrupted_chunk_data->data_size    = chunk_data_size;
-		corrupted_chunk_data->range_flags |= LIBEWF_RANGE_FLAG_IS_CORRUPTED;
-
-		if( libfdata_list_cache_element_value(
-		     chunk_table->corrupted_chunks_list,
-		     (libfdata_cache_t *) chunks_cache,
-		     (int) chunk_index,
-		     (int) segment_number,
-		     chunk_offset,
-		     chunk_data_size,
-		     corrupted_chunk_data->range_flags,
-		     0,
-		     (intptr_t *) corrupted_chunk_data,
-		     (int (*)(intptr_t **, libcerror_error_t **)) &libewf_chunk_data_free,
-		     LIBFDATA_LIST_ELEMENT_VALUE_FLAG_MANAGED,
-		     error ) != 1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-			 "%s: unable to cache chunk: %" PRIu64 " data in segment file: %" PRIu32 " at 0x%08" PRIx64 ".",
-			 function,
-			 chunk_index,
-			 segment_number,
-			 chunk_offset );
-
-			return( -1 );
-		}
-		*chunk_data = corrupted_chunk_data;
-
-		/* chunks_cache takes over management of chunk_data
-		 */
-		corrupted_chunk_data = NULL;
-	}
-	if( ( ( *chunk_data )->range_flags & LIBEWF_RANGE_FLAG_IS_CORRUPTED ) != 0 )
-	{
-		/* Add checksum error
-		 */
-		start_sector      = chunk_offset / media_values->bytes_per_sector;
-		number_of_sectors = media_values->sectors_per_chunk;
-
-		if( ( start_sector + number_of_sectors ) > (uint64_t) media_values->number_of_sectors )
-		{
-			number_of_sectors = (uint64_t) media_values->number_of_sectors - start_sector;
-		}
-		result = libcdata_range_list_insert_range(
-		          chunk_table->checksum_errors,
-		          start_sector,
-		          number_of_sectors,
-		          NULL,
-		          NULL,
-		          NULL,
-		          error );
-
-		if( result == -1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-			 "%s: unable to insert checksum error in range list.",
-			 function );
-
-			goto on_error;
-		}
-	}
-	return( 1 );
-
-on_error:
-	if( corrupted_chunk_data != NULL )
-	{
-		libewf_chunk_data_free(
-		 &corrupted_chunk_data,
-		 NULL );
-	}
-	*chunk_data = NULL;
-
-	return( -1 );
+	return( result );
 }
 
-/* Sets the chunk data of a chunk at a specific offset
+/* Retrieves the chunk data of a chunk at a specific offset
  * Adds a checksum error if the data is corrupted
  * Returns 1 if successful or -1 on error
  */
-int libewf_chunk_table_set_chunk_data_by_offset(
+int libewf_chunk_table_get_chunk_data_by_offset(
      libewf_chunk_table_t *chunk_table,
-     uint64_t chunk_index,
+     libewf_io_handle_t *io_handle,
      libbfio_pool_t *file_io_pool,
+     libewf_media_values_t *media_values,
      libewf_segment_table_t *segment_table,
-     libfcache_cache_t *chunk_groups_cache,
-     libfcache_cache_t *chunks_cache,
      off64_t offset,
-     libewf_chunk_data_t *chunk_data,
+     off64_t *chunk_data_offset,
+     libewf_chunk_data_t **chunk_data,
      libcerror_error_t **error )
 {
-	libewf_chunk_group_t *chunk_group   = NULL;
-	libewf_segment_file_t *segment_file = NULL;
-	static char *function               = "libewf_chunk_table_set_chunk_data_by_offset";
-	off64_t chunk_group_data_offset     = 0;
-	off64_t segment_file_data_offset    = 0;
-	uint32_t segment_number             = 0;
-	int chunk_groups_list_index         = 0;
-	int result                          = 0;
+	libewf_chunk_data_t *safe_chunk_data = NULL;
+	static char *function                = "libewf_chunk_table_get_chunk_data_by_offset";
+	off64_t safe_chunk_data_offset       = 0;
+	uint64_t chunk_index                 = 0;
+	uint64_t number_of_sectors           = 0;
+	uint64_t start_sector                = 0;
+	int result                           = 0;
 
 	if( chunk_table == NULL )
 	{
@@ -1076,6 +948,50 @@ int libewf_chunk_table_set_chunk_data_by_offset(
 		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
 		 "%s: invalid chunk table.",
+		 function );
+
+		return( -1 );
+	}
+	if( io_handle == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid IO handle.",
+		 function );
+
+		return( -1 );
+	}
+	if( media_values == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid media values.",
+		 function );
+
+		return( -1 );
+	}
+	if( media_values->chunk_size == 0 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
+		 "%s: invalid media values - chunk size value out of bounds.",
+		 function );
+
+		return( -1 );
+	}
+	if( chunk_data_offset == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid chunk data offset.",
 		 function );
 
 		return( -1 );
@@ -1091,69 +1007,159 @@ int libewf_chunk_table_set_chunk_data_by_offset(
 
 		return( -1 );
 	}
-	result = libewf_chunk_table_get_segment_file_chunk_group_by_offset(
+	result = libewf_chunk_table_get_segment_file_chunk_data_by_offset(
 		  chunk_table,
+		  io_handle,
 		  file_io_pool,
+	          chunk_table->chunk_data_cache,
+		  media_values,
 		  segment_table,
-		  chunk_groups_cache,
 		  offset,
-		  &segment_number,
-		  &segment_file_data_offset,
-		  &segment_file,
-		  &chunk_groups_list_index,
-		  &chunk_group_data_offset,
-		  &chunk_group,
+		  &safe_chunk_data_offset,
+		  &safe_chunk_data,
+		  0,
 		  error );
 
-	if( result != 1 )
+	if( result == -1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-		 "%s: unable to retrieve segment file chunk group at 0x%08" PRIx64 ".",
+		 "%s: unable to retrieve segment file chunk data for offset: %" PRIi64 " (0x%08" PRIx64 ").",
 		 function,
+		 offset,
 		 offset );
 
 		return( -1 );
 	}
-	if( chunk_group == NULL )
+	else if( result != 0 )
+	{
+		if( libewf_chunk_data_unpack(
+		     safe_chunk_data,
+		     io_handle,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_GENERIC,
+			 "%s: unable to unpack chunk: %" PRIu64 " data.",
+			 function,
+			 chunk_index );
+
+			return( -1 );
+		}
+		if( ( safe_chunk_data->range_flags & LIBEWF_RANGE_FLAG_IS_CORRUPTED ) != 0 )
+		{
+			/* Add checksum error
+			 */
+			start_sector      = safe_chunk_data->range_start_offset / media_values->bytes_per_sector;
+			number_of_sectors = media_values->sectors_per_chunk;
+
+			if( ( start_sector + number_of_sectors ) > (uint64_t) media_values->number_of_sectors )
+			{
+				number_of_sectors = (uint64_t) media_values->number_of_sectors - start_sector;
+			}
+			if( libcdata_range_list_insert_range(
+			     chunk_table->checksum_errors,
+			     start_sector,
+			     number_of_sectors,
+			     NULL,
+			     NULL,
+			     NULL,
+			     error ) == -1 )
+			{
+				libcerror_error_set(
+				 error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
+				 "%s: unable to insert checksum error in range list.",
+				 function );
+
+				return( -1 );
+			}
+		}
+	}
+	if( result != 0 )
+	{
+		*chunk_data_offset = safe_chunk_data_offset;
+		*chunk_data        = safe_chunk_data;
+	}
+	return( result );
+}
+
+/* Retrieves the chunk data of a chunk at a specific offset
+ * Returns 1 if successful or -1 on error
+ */
+int libewf_chunk_table_get_chunk_data_by_offset_no_cache(
+     libewf_chunk_table_t *chunk_table,
+     libewf_io_handle_t *io_handle,
+     libbfio_pool_t *file_io_pool,
+     libewf_media_values_t *media_values,
+     libewf_segment_table_t *segment_table,
+     off64_t offset,
+     off64_t *chunk_data_offset,
+     libewf_chunk_data_t **chunk_data,
+     libcerror_error_t **error )
+{
+	static char *function = "libewf_chunk_table_get_chunk_data_by_offset_no_cache";
+	int result            = 0;
+
+	if( chunk_table == NULL )
 	{
 		libcerror_error_set(
 		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
-		 "%s: missing chunk group: %d.",
-		 function,
-		 chunk_groups_list_index );
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid chunk table.",
+		 function );
 
 		return( -1 );
 	}
-	result = libfdata_list_set_element_value_at_offset(
-		  chunk_group->chunks_list,
-		  (intptr_t *) file_io_pool,
-		  (libfdata_cache_t *) chunks_cache,
-		  chunk_group_data_offset,
-		  (intptr_t *) chunk_data,
-		  (int (*)(intptr_t **, libcerror_error_t **)) &libewf_chunk_data_free,
-		  LIBFDATA_LIST_ELEMENT_VALUE_FLAG_MANAGED,
+	result = libewf_chunk_table_get_segment_file_chunk_data_by_offset(
+		  chunk_table,
+		  io_handle,
+		  file_io_pool,
+	          chunk_table->single_chunk_data_cache,
+		  media_values,
+		  segment_table,
+		  offset,
+		  chunk_data_offset,
+		  chunk_data,
+		  LIBFDATA_READ_FLAG_IGNORE_CACHE,
 		  error );
 
-	if( result != 1 )
+	if( result == -1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-		 "%s: unable to set chunk: %" PRIu64 " data in chunk group: %d in segment file: %" PRIu32 " at 0x%08" PRIx64 ".",
+		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+		 "%s: unable to retrieve segment file chunk data for offset: %" PRIi64 " (0x%08" PRIx64 ").",
 		 function,
-		 chunk_index,
-		 chunk_groups_list_index,
-		 segment_number,
-		 segment_file_data_offset );
+		 offset,
+		 offset );
 
 		return( -1 );
 	}
-	return( 1 );
+	else if( result != 0 )
+	{
+		if( libfcache_cache_clear_value_by_index(
+		     chunk_table->single_chunk_data_cache,
+		     0,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
+			 "%s: unable to clear single chunk data cache entry: 0.",
+			 function );
+
+			return( -1 );
+		}
+	}
+	return( result );
 }
 

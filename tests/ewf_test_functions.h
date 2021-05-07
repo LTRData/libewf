@@ -1,7 +1,7 @@
 /*
  * Functions for testing
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -52,6 +52,7 @@ int ewf_test_open_file_io_handle(
      libbfio_handle_t **file_io_handle,
      uint8_t *data,
      size_t data_size,
+     int access_flags,
      libcerror_error_t **error );
 
 int ewf_test_close_file_io_handle(
@@ -62,6 +63,7 @@ int ewf_test_open_file_io_pool(
      libbfio_pool_t **file_io_pool,
      uint8_t *data,
      size_t data_size,
+     int access_flags,
      libcerror_error_t **error );
 
 int ewf_test_close_file_io_pool(

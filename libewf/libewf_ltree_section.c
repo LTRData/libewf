@@ -1,7 +1,7 @@
 /*
  * Ltree section functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -62,7 +62,7 @@ int libewf_ltree_section_read_data(
 	uint32_t calculated_checksum = 0;
 	uint32_t stored_checksum     = 0;
 
-#if defined( HAVE_DEBUG_OUTPUT ) || defined( HAVE_VERBOSE_OUTPUT )
+#if defined( HAVE_DEBUG_OUTPUT )
 	size_t trailing_data_size    = 0;
 #endif
 
@@ -335,10 +335,10 @@ int libewf_ltree_section_read_data(
 		{
 			if( stored_data_size < (uint64_t) data_size )
 			{
+#if defined( HAVE_DEBUG_OUTPUT )
 				data_offset       += stored_data_size;
 				trailing_data_size = data_size - stored_data_size;
 
-#if defined( HAVE_DEBUG_OUTPUT )
 				libcnotify_printf(
 				 "%s: trailing data:\n",
 				 function );
@@ -570,7 +570,7 @@ ssize_t libewf_ltree_section_write_file_io_pool(
 
 		return( -1 );
 	}
-	if( libewf_section_set_values(
+	if( libewf_section_descriptor_set(
 	     section_descriptor,
 	     LIBEWF_SECTION_TYPE_SINGLE_FILES_DATA,
 	     (uint8_t *) "ltree",
@@ -585,14 +585,14 @@ ssize_t libewf_ltree_section_write_file_io_pool(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-		 "%s: unable to set section values.",
+		 "%s: unable to set section descriptor.",
 		 function );
 
 		return( -1 );
 	}
 	if( format_version == 1 )
 	{
-		write_count = libewf_section_descriptor_write(
+		write_count = libewf_section_descriptor_write_file_io_pool(
 			       section_descriptor,
 			       file_io_pool,
 			       file_io_pool_entry,
@@ -784,7 +784,7 @@ ssize_t libewf_ltree_section_write_file_io_pool(
 
 	if( format_version == 2 )
 	{
-		write_count = libewf_section_descriptor_write(
+		write_count = libewf_section_descriptor_write_file_io_pool(
 			       section_descriptor,
 			       file_io_pool,
 			       file_io_pool_entry,

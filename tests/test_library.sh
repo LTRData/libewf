@@ -1,13 +1,13 @@
 #!/bin/bash
 # Tests library functions and types.
 #
-# Version: 20190216
+# Version: 20200705
 
 EXIT_SUCCESS=0;
 EXIT_FAILURE=1;
 EXIT_IGNORE=77;
 
-LIBRARY_TESTS="access_control_entry analytical_data attribute bit_stream case_data chunk_data chunk_group chunk_table compression data_chunk date_time date_time_values deflate device_information digest_section error error2_section file_entry hash_sections hash_values header_sections header_values huffman_tree io_handle lef_extended_attribute lef_file_entry lef_permission lef_source lef_subject ltree_section md5_hash_section media_values notify permission_group read_io_handle restart_data section_descriptor sector_range segment_file segment_table serialized_string session_section sha1_hash_section single_file_tree single_files source volume_section write_io_handle";
+LIBRARY_TESTS="access_control_entry analytical_data attribute bit_stream case_data checksum chunk_data chunk_group chunk_table compression data_chunk date_time date_time_values deflate device_information digest_section error error2_section file_entry filename hash_sections hash_values header_sections header_values huffman_tree io_handle lef_extended_attribute lef_file_entry lef_permission lef_source lef_subject ltree_section md5_hash_section media_values notify permission_group read_io_handle restart_data section_descriptor sector_range sector_range_list segment_file segment_table serialized_string session_section sha1_hash_section single_file_tree single_files source table_section value_table volume_section write_io_handle";
 LIBRARY_TESTS_WITH_INPUT="handle support";
 OPTION_SETS="";
 
@@ -129,7 +129,7 @@ run_test_with_input()
 	return ${RESULT};
 }
 
-if ! test -z ${SKIP_LIBRARY_TESTS};
+if test -n "${SKIP_LIBRARY_TESTS}";
 then
 	exit ${EXIT_IGNORE};
 fi

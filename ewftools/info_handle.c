@@ -1,7 +1,7 @@
 /*
  * Info handle
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -48,6 +48,7 @@
 
 #if !defined( USE_LIBEWF_GET_HASH_VALUE_MD5 ) && !defined( USE_LIBEWF_GET_MD5_HASH )
 #define USE_LIBEWF_GET_HASH_VALUE_MD5
+#define DIGEST_HASH_STRING_SIZE_MD5		33
 #endif
 
 /* Creates an info handle
@@ -2660,15 +2661,15 @@ int info_handle_media_information_fprint(
 		}
 		else
 		{
-			if( compression_level == LIBEWF_COMPRESSION_NONE )
+			if( compression_level == LIBEWF_COMPRESSION_LEVEL_NONE )
 			{
 				value_string = _SYSTEM_STRING( "no compression" );
 			}
-			else if( compression_level == LIBEWF_COMPRESSION_FAST )
+			else if( compression_level == LIBEWF_COMPRESSION_LEVEL_FAST )
 			{
 				value_string = _SYSTEM_STRING( "good (fast) compression" );
 			}
-			else if( compression_level == LIBEWF_COMPRESSION_BEST )
+			else if( compression_level == LIBEWF_COMPRESSION_LEVEL_BEST )
 			{
 				value_string = _SYSTEM_STRING( "best compression" );
 			}
@@ -3648,7 +3649,7 @@ int info_handle_acquiry_errors_fprint(
 				}
 				fprintf(
 				 info_handle->notify_stream,
-				 "\tat sector(s): %" PRIu64 " - %" PRIu64 " number: %" PRIu64 "\n",
+				 "\tat sector(s): %" PRIu64 " - %" PRIu64 " (number: %" PRIu64 ")\n",
 				 start_sector,
 				 last_sector,
 				 number_of_sectors );
@@ -3793,7 +3794,7 @@ int info_handle_sessions_fprint(
 				}
 				fprintf(
 				 info_handle->notify_stream,
-				 "\tat sector(s): %" PRIu64 " - %" PRIu64 " number: %" PRIu64 "\n",
+				 "\tat sector(s): %" PRIu64 " - %" PRIu64 " (number: %" PRIu64 ")\n",
 				 start_sector,
 				 last_sector,
 				 number_of_sectors );
@@ -3938,7 +3939,7 @@ int info_handle_tracks_fprint(
 				}
 				fprintf(
 				 info_handle->notify_stream,
-				 "\tat sector(s): %" PRIu64 " - %" PRIu64 " number: %" PRIu64 "\n",
+				 "\tat sector(s): %" PRIu64 " - %" PRIu64 " (number: %" PRIu64 ")\n",
 				 start_sector,
 				 last_sector,
 				 number_of_sectors );
@@ -7133,7 +7134,7 @@ int info_handle_image_fprint(
 	if( info_handle->output_format == INFO_HANDLE_OUTPUT_FORMAT_DFXML )
 	{
 		if( info_handle_dfxml_header_fprint(
-		     info_handle,
+		     info_handle->notify_stream,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
@@ -7239,7 +7240,7 @@ int info_handle_image_fprint(
 	if( info_handle->output_format == INFO_HANDLE_OUTPUT_FORMAT_DFXML )
 	{
 		if( info_handle_dfxml_footer_fprint(
-		     info_handle,
+		     info_handle->notify_stream,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
@@ -7259,34 +7260,34 @@ int info_handle_image_fprint(
  * Returns 1 if successful or -1 on error
  */
 int info_handle_dfxml_header_fprint(
-     info_handle_t *info_handle,
+     FILE *stream,
      libcerror_error_t **error )
 {
 	static char *function = "info_handle_dfxml_header_fprint";
 
-	if( info_handle == NULL )
+	if( stream == NULL )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-		 "%s: invalid info handle.",
+		 "%s: invalid stream.",
 		 function );
 
 		return( -1 );
 	}
 	fprintf(
-	 info_handle->notify_stream,
+	 stream,
 	 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" );
 
 	/* TODO what about DTD or XSD ? */
 
 	fprintf(
-	 info_handle->notify_stream,
+	 stream,
 	 "<ewfobjects version=\"0.1\">\n" );
 
 	fprintf(
-	 info_handle->notify_stream,
+	 stream,
 	 "\t<metadata xmlns=\"http://libewf.sourceforge.net/\"\n"
 	 "\t          xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
 	 "\t          xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n"
@@ -7294,14 +7295,14 @@ int info_handle_dfxml_header_fprint(
 	 "\t</metadata>\n" );
 
 	fprintf(
-	 info_handle->notify_stream,
+	 stream,
 	 "\t<creator>\n"
 	 "\t\t<program>ewfinfo</program>\n"
 	 "\t\t<version>%s</version>\n",
 	 LIBEWF_VERSION_STRING );
 
-	if( dfxml_build_environment_fprint(
-	     info_handle->notify_stream,
+	if( info_handle_dfxml_build_environment_fprint(
+	     stream,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -7313,8 +7314,8 @@ int info_handle_dfxml_header_fprint(
 
 		return( -1 );
 	}
-	if( dfxml_execution_environment_fprint(
-	     info_handle->notify_stream,
+	if( info_handle_dfxml_execution_environment_fprint(
+	     stream,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
@@ -7327,7 +7328,7 @@ int info_handle_dfxml_header_fprint(
 		return( -1 );
 	}
 	fprintf(
-	 info_handle->notify_stream,
+	 stream,
 	 "\t</creator>\n"
 	 "\t<ewfinfo>\n" );
 
@@ -7338,24 +7339,24 @@ int info_handle_dfxml_header_fprint(
  * Returns 1 if successful or -1 on error
  */
 int info_handle_dfxml_footer_fprint(
-     info_handle_t *info_handle,
+     FILE *stream,
      libcerror_error_t **error )
 {
 	static char *function = "info_handle_dfxml_footer_fprint";
 
-	if( info_handle == NULL )
+	if( stream == NULL )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-		 "%s: invalid info handle.",
+		 "%s: invalid stream.",
 		 function );
 
 		return( -1 );
 	}
 	fprintf(
-	 info_handle->notify_stream,
+	 stream,
 	 "\t</ewfinfo>\n"
 	 "</ewfobjects>\n"
 	 "\n" );
@@ -7366,11 +7367,11 @@ int info_handle_dfxml_footer_fprint(
 /* Prints the DFXML build environment
  * Returns 1 if successful or -1 on error
  */
-int dfxml_build_environment_fprint(
+int info_handle_dfxml_build_environment_fprint(
      FILE *stream,
      libcerror_error_t **error )
 {
-	static char *function      = "dfxml_build_environment_fprint";
+	static char *function      = "info_handle_dfxml_build_environment_fprint";
 
 #if defined( _MSC_VER ) || defined( __BORLANDC__ )
 	const char *compiler_name  = NULL;
@@ -7537,7 +7538,7 @@ int dfxml_build_environment_fprint(
 /* Prints the DFXML execution environment
  * Returns 1 if successful or -1 on error
  */
-int dfxml_execution_environment_fprint(
+int info_handle_dfxml_execution_environment_fprint(
      FILE *stream,
      libcerror_error_t **error )
 {
@@ -7548,7 +7549,7 @@ int dfxml_execution_environment_fprint(
 	system_character_t operating_system[ 32 ];
 #endif
 
-	static char *function = "dfxml_execution_environment_fprint";
+	static char *function = "info_handle_dfxml_execution_environment_fprint";
 
 	if( stream == NULL )
 	{

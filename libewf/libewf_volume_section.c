@@ -1,7 +1,7 @@
 /*
  * Volume section functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -63,17 +63,6 @@ int libewf_volume_section_e01_read_data(
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
 		 "%s: missing data.",
-		 function );
-
-		return( -1 );
-	}
-	if( data_size > (size_t) SSIZE_MAX )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
-		 "%s: invalid data size value exceeds maximum.",
 		 function );
 
 		return( -1 );
@@ -207,7 +196,7 @@ int libewf_volume_section_e01_read_data(
 		 ( (ewf_volume_t *) data )->chs_cylinders,
 		 value_32bit );
 		libcnotify_printf(
-		 "%s: CHS number of cylinders\t\t\t: %" PRIu32 "\n",
+		 "%s: CHS number of cylinders\t\t: %" PRIu32 "\n",
 		 function,
 		 value_32bit );
 
@@ -215,7 +204,7 @@ int libewf_volume_section_e01_read_data(
 		 ( (ewf_volume_t *) data )->chs_heads,
 		 value_32bit );
 		libcnotify_printf(
-		 "%s: CHS number of heads\t\t\t: %" PRIu32 "\n",
+		 "%s: CHS number of heads\t\t: %" PRIu32 "\n",
 		 function,
 		 value_32bit );
 
@@ -223,12 +212,12 @@ int libewf_volume_section_e01_read_data(
 		 ( (ewf_volume_t *) data )->chs_sectors,
 		 value_32bit );
 		libcnotify_printf(
-		 "%s: CHS number of sectors\t\t\t: %" PRIu32 "\n",
+		 "%s: CHS number of sectors\t\t: %" PRIu32 "\n",
 		 function,
 		 value_32bit );
 
 		libcnotify_printf(
-		 "%s: media flags\t\t\t\t: 0x%02" PRIx8 "\n",
+		 "%s: media flags\t\t\t: 0x%02" PRIx8 "\n",
 		 function,
 		 media_values->media_flags );
 
@@ -260,7 +249,7 @@ int libewf_volume_section_e01_read_data(
 		 ( (ewf_volume_t *) data )->smart_logs_start_sector,
 		 value_32bit );
 		libcnotify_printf(
-		 "%s: SMART logs start sector\t\t\t: %" PRIu32 "\n",
+		 "%s: SMART logs start sector\t\t: %" PRIu32 "\n",
 		 function,
 		 value_32bit );
 
@@ -322,7 +311,8 @@ int libewf_volume_section_e01_read_data(
 		libcnotify_printf(
 		 "\n" );
 	}
-#endif
+#endif /* defined( HAVE_DEBUG_OUTPUT ) */
+
 	if( libewf_checksum_calculate_adler32(
 	     &calculated_checksum,
 	     data,
@@ -458,17 +448,6 @@ int libewf_volume_section_e01_write_data(
 
 		return( -1 );
 	}
-	if( data_size > (size_t) SSIZE_MAX )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
-		 "%s: invalid data size value exceeds maximum.",
-		 function );
-
-		return( -1 );
-	}
 	if( data_size != (size_t) sizeof( ewf_volume_t ) )
 	{
 		libcerror_error_set(
@@ -520,7 +499,7 @@ int libewf_volume_section_e01_write_data(
 	if( libcnotify_verbose != 0 )
 	{
 		libcnotify_printf(
-		 "%s: media type\t\t\t\t: 0x%02" PRIx8 "\n",
+		 "%s: media type\t\t\t: 0x%02" PRIx8 "\n",
 		 function,
 		 media_values->media_type );
 
@@ -545,7 +524,7 @@ int libewf_volume_section_e01_write_data(
 		 media_values->number_of_sectors );
 
 		libcnotify_printf(
-		 "%s: media flags\t\t\t\t: 0x%02" PRIx8 "\n",
+		 "%s: media flags\t\t\t: 0x%02" PRIx8 "\n",
 		 function,
 		 media_values->media_flags );
 
@@ -668,11 +647,10 @@ ssize_t libewf_volume_section_e01_write_file_io_pool(
          libewf_media_values_t *media_values,
          libcerror_error_t **error )
 {
-	uint8_t *section_data        = NULL;
-	static char *function        = "libewf_volume_section_e01_write_file_io_pool";
-	ssize_t total_write_count    = 0;
-	ssize_t write_count          = 0;
-	uint32_t calculated_checksum = 0;
+	uint8_t *section_data     = NULL;
+	static char *function     = "libewf_volume_section_e01_write_file_io_pool";
+	ssize_t total_write_count = 0;
+	ssize_t write_count       = 0;
 
 	if( section_descriptor == NULL )
 	{
@@ -718,7 +696,7 @@ ssize_t libewf_volume_section_e01_write_file_io_pool(
 
 		return( -1 );
 	}
-	if( libewf_section_set_values(
+	if( libewf_section_descriptor_set(
 	     section_descriptor,
 	     0,
 	     (uint8_t *) "volume",
@@ -733,12 +711,12 @@ ssize_t libewf_volume_section_e01_write_file_io_pool(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-		 "%s: unable to set section values.",
+		 "%s: unable to set section descriptor.",
 		 function );
 
 		goto on_error;
 	}
-	write_count = libewf_section_descriptor_write(
+	write_count = libewf_section_descriptor_write_file_io_pool(
 	               section_descriptor,
 	               file_io_pool,
 	               file_io_pool_entry,
@@ -845,17 +823,6 @@ int libewf_volume_section_s01_read_data(
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
 		 "%s: missing data.",
-		 function );
-
-		return( -1 );
-	}
-	if( data_size > (size_t) SSIZE_MAX )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
-		 "%s: invalid data size value exceeds maximum.",
 		 function );
 
 		return( -1 );
@@ -988,7 +955,8 @@ int libewf_volume_section_s01_read_data(
 		libcnotify_printf(
 		 "\n" );
 	}
-#endif
+#endif /* defined( HAVE_DEBUG_OUTPUT ) */
+
 	if( memory_compare(
 	     (void *) ( (ewf_volume_smart_t *) data )->signature,
 	     (void *) "SMART",
@@ -1137,17 +1105,6 @@ int libewf_volume_section_s01_write_data(
 
 		return( -1 );
 	}
-	if( data_size > (size_t) SSIZE_MAX )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
-		 "%s: invalid data size value exceeds maximum.",
-		 function );
-
-		return( -1 );
-	}
 	if( data_size != (size_t) sizeof( ewf_volume_smart_t ) )
 	{
 		libcerror_error_set(
@@ -1226,7 +1183,8 @@ int libewf_volume_section_s01_write_data(
 		libcnotify_printf(
 		 "\n" );
 	}
-#endif
+#endif /* defined( HAVE_DEBUG_OUTPUT ) */
+
 	( (ewf_volume_smart_t *) data )->unknown1[ 0 ] = 1;
 
 	byte_stream_copy_from_uint32_little_endian(
@@ -1305,11 +1263,10 @@ ssize_t libewf_volume_section_s01_write_file_io_pool(
          libewf_media_values_t *media_values,
          libcerror_error_t **error )
 {
-	uint8_t *section_data        = NULL;
-	static char *function        = "libewf_volume_section_s01_write_file_io_pool";
-	ssize_t total_write_count    = 0;
-	ssize_t write_count          = 0;
-	uint32_t calculated_checksum = 0;
+	uint8_t *section_data     = NULL;
+	static char *function     = "libewf_volume_section_s01_write_file_io_pool";
+	ssize_t total_write_count = 0;
+	ssize_t write_count       = 0;
 
 	if( section_descriptor == NULL )
 	{
@@ -1355,7 +1312,7 @@ ssize_t libewf_volume_section_s01_write_file_io_pool(
 
 		return( -1 );
 	}
-	if( libewf_section_set_values(
+	if( libewf_section_descriptor_set(
 	     section_descriptor,
 	     0,
 	     (uint8_t *) "volume",
@@ -1370,12 +1327,12 @@ ssize_t libewf_volume_section_s01_write_file_io_pool(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-		 "%s: unable to set section values.",
+		 "%s: unable to set section descriptor.",
 		 function );
 
 		goto on_error;
 	}
-	write_count = libewf_section_descriptor_write(
+	write_count = libewf_section_descriptor_write_file_io_pool(
 	               section_descriptor,
 	               file_io_pool,
 	               file_io_pool_entry,

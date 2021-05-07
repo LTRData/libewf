@@ -1,7 +1,7 @@
 /*
  * Error2 section functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -1007,7 +1007,7 @@ ssize_t libewf_error2_section_write_file_io_pool(
 	                  + error_entries_data_size
 	                  + error_footer_data_size;
 
-	if( libewf_section_set_values(
+	if( libewf_section_descriptor_set(
 	     section_descriptor,
 	     LIBEWF_SECTION_TYPE_ERROR_TABLE,
 	     (uint8_t *) "error2",
@@ -1022,14 +1022,14 @@ ssize_t libewf_error2_section_write_file_io_pool(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-		 "%s: unable to set section values.",
+		 "%s: unable to set section descriptor.",
 		 function );
 
 		goto on_error;
 	}
 	if( format_version == 1 )
 	{
-		write_count = libewf_section_descriptor_write(
+		write_count = libewf_section_descriptor_write_file_io_pool(
 			       section_descriptor,
 			       file_io_pool,
 			       file_io_pool_entry,
@@ -1048,6 +1048,18 @@ ssize_t libewf_error2_section_write_file_io_pool(
 			goto on_error;
 		}
 		total_write_count += write_count;
+	}
+	if( ( section_data_size == 0 )
+	 || ( section_data_size > MEMORY_MAXIMUM_ALLOCATION_SIZE ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
+		 "%s: invalid section data size value out of bounds.",
+		 function );
+
+		goto on_error;
 	}
 	section_data = (uint8_t *) memory_allocate(
 	                            section_data_size );
@@ -1108,7 +1120,7 @@ ssize_t libewf_error2_section_write_file_io_pool(
 
 	if( format_version == 2 )
 	{
-		write_count = libewf_section_descriptor_write(
+		write_count = libewf_section_descriptor_write_file_io_pool(
 			       section_descriptor,
 			       file_io_pool,
 			       file_io_pool_entry,

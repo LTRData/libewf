@@ -1,7 +1,7 @@
 /*
  * Python object definition of the sequence and iterator object of file entries
  *
- * Copyright (C) 2008-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -69,23 +69,23 @@ PyObject *pyewf_file_entries_new(
            int number_of_items );
 
 int pyewf_file_entries_init(
-     pyewf_file_entries_t *file_entries_object );
+     pyewf_file_entries_t *sequence_object );
 
 void pyewf_file_entries_free(
-      pyewf_file_entries_t *file_entries_object );
+      pyewf_file_entries_t *sequence_object );
 
 Py_ssize_t pyewf_file_entries_len(
-            pyewf_file_entries_t *file_entries_object );
+            pyewf_file_entries_t *sequence_object );
 
 PyObject *pyewf_file_entries_getitem(
-           pyewf_file_entries_t *file_entries_object,
+           pyewf_file_entries_t *sequence_object,
            Py_ssize_t item_index );
 
 PyObject *pyewf_file_entries_iter(
-           pyewf_file_entries_t *file_entries_object );
+           pyewf_file_entries_t *sequence_object );
 
 PyObject *pyewf_file_entries_iternext(
-           pyewf_file_entries_t *file_entries_object );
+           pyewf_file_entries_t *sequence_object );
 
 #if defined( __cplusplus )
 }

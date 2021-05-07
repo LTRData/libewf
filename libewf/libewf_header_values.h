@@ -1,7 +1,7 @@
 /*
  * Header values functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -98,20 +98,16 @@ enum LIBEWF_HEADER_STRING_TYPE
 	LIBEWF_HEADER_STRING_TYPE_7	= 7,
 
 	/* header string: linen7
-	 * header2 string: EnCase7
 	 */
-	LIBEWF_HEADER_STRING_TYPE_8	= 8
+	LIBEWF_HEADER_STRING_TYPE_8	= 8,
+
+	/* header2 string: EnCase7
+	 */
+	LIBEWF_HEADER_STRING_TYPE_9	= 9
 };
 
 int libewf_header_values_initialize(
      libfvalue_table_t **header_values,
-     libcerror_error_t **error );
-
-int libewf_header_values_set_value_by_index(
-     libfvalue_table_t *header_values,
-     int value_index,
-     const uint8_t *identifier,
-     size_t identifier_size,
      libcerror_error_t **error );
 
 int libewf_convert_date_header_value(
@@ -153,6 +149,19 @@ int libewf_header_values_parse_utf8_header_string(
      uint8_t *format,
      libcerror_error_t **error );
 
+int libewf_header_values_parse_utf8_header_string_value(
+     libfvalue_table_t *header_values,
+     uint8_t *type_string,
+     size_t type_string_size,
+     uint8_t *value_string,
+     size_t value_string_size,
+     int value_index,
+     uint8_t header_section_number,
+     uint8_t number_of_sections,
+     uint8_t *format,
+     uint8_t *acquiry_software_version,
+     libcerror_error_t **error );
+
 int libewf_header_values_parse_header(
      libfvalue_table_t *header_values,
      uint8_t *header,
@@ -178,6 +187,7 @@ int libewf_header_values_convert_utf8_header_string_to_header(
 
 int libewf_header_values_generate_utf8_header_string(
      libfvalue_table_t *header_values,
+     uint8_t header_type,
      uint8_t header_string_type,
      uint8_t *newline_string,
      size_t newline_string_length,
@@ -322,14 +332,6 @@ int libewf_header_values_get_utf8_value(
      size_t utf8_string_size,
      libcerror_error_t **error );
 
-int libewf_header_values_set_utf8_value(
-     libfvalue_table_t *header_values,
-     const uint8_t *identifier,
-     size_t identifier_length,
-     const uint8_t *utf8_string,
-     size_t utf8_string_length,
-     libcerror_error_t **error );
-
 int libewf_header_values_get_utf16_value_size(
      libfvalue_table_t *header_values,
      const uint8_t *identifier,
@@ -345,14 +347,6 @@ int libewf_header_values_get_utf16_value(
      int date_format,
      uint16_t *utf16_string,
      size_t utf16_string_size,
-     libcerror_error_t **error );
-
-int libewf_header_values_set_utf16_value(
-     libfvalue_table_t *header_values,
-     const uint8_t *identifier,
-     size_t identifier_length,
-     const uint16_t *utf16_string,
-     size_t utf16_string_length,
      libcerror_error_t **error );
 
 #if defined( __cplusplus )

@@ -1,7 +1,7 @@
 /*
  * Section reading/writing functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -53,32 +53,6 @@ int libewf_section_get_data_offset(
      uint8_t format_version,
      off64_t *data_offset,
      libcerror_error_t **error );
-
-int libewf_section_set_values(
-     libewf_section_descriptor_t *section_descriptor,
-     uint32_t type,
-     const uint8_t *type_string,
-     size_t type_string_length,
-     off64_t section_offset,
-     size64_t section_size,
-     size64_t data_size,
-     uint32_t padding_size,
-     libcerror_error_t **error );
-
-ssize_t libewf_section_descriptor_read(
-         libewf_section_descriptor_t *section_descriptor,
-         libbfio_pool_t *file_io_pool,
-         int file_io_pool_entry,
-         off64_t file_offset,
-         uint8_t format_version,
-         libcerror_error_t **error );
-
-ssize_t libewf_section_descriptor_write(
-         libewf_section_descriptor_t *section_descriptor,
-         libbfio_pool_t *file_io_pool,
-         int file_io_pool_entry,
-         uint8_t format_version,
-         libcerror_error_t **error );
 
 ssize_t libewf_section_read_data(
          libewf_section_descriptor_t *section_descriptor,
@@ -152,43 +126,6 @@ ssize_t libewf_section_sectors_write(
          off64_t section_offset,
          size64_t chunks_data_size,
          uint32_t chunks_padding_size,
-         libcerror_error_t **error );
-
-ssize_t libewf_section_table_read(
-         libewf_section_descriptor_t *section_descriptor,
-         libewf_io_handle_t *io_handle,
-         libbfio_pool_t *file_io_pool,
-         int file_io_pool_entry,
-         uint8_t format_version,
-         uint8_t segment_file_type,
-         uint8_t **section_data,
-         size_t *section_data_size,
-         uint64_t *first_chunk_index,
-         uint64_t *base_offset,
-         uint8_t **table_entries_data,
-         size_t *table_entries_data_size,
-         uint32_t *number_of_entries,
-         uint8_t *entries_corrupted,
-         libcerror_error_t **error );
-
-ssize_t libewf_section_table_write(
-         libewf_section_descriptor_t *section_descriptor,
-         libewf_io_handle_t *io_handle,
-         libbfio_pool_t *file_io_pool,
-         int file_io_pool_entry,
-         uint8_t format_version,
-         uint8_t segment_file_type,
-         uint8_t *type_string,
-         size_t type_string_length,
-         off64_t section_offset,
-         uint8_t *section_data,
-         size_t section_data_size,
-         uint64_t first_chunk_index,
-         uint64_t base_offset,
-         uint8_t *table_entries_data,
-         size_t table_entries_data_size,
-         uint32_t number_of_entries,
-         size64_t chunks_data_size,
          libcerror_error_t **error );
 
 #if defined( __cplusplus )

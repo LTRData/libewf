@@ -1,7 +1,7 @@
 /*
  * SHA1 hash section functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -59,17 +59,6 @@ int libewf_sha1_hash_section_read_data(
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
 		 "%s: missing data.",
-		 function );
-
-		return( -1 );
-	}
-	if( data_size > (size_t) SSIZE_MAX )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
-		 "%s: invalid data size value exceeds maximum.",
 		 function );
 
 		return( -1 );
@@ -136,7 +125,8 @@ int libewf_sha1_hash_section_read_data(
 		 8,
 		 0 );
 	}
-#endif
+#endif /* defined( HAVE_DEBUG_OUTPUT ) */
+
 	data_size -= 8;
 
 	if( libewf_checksum_calculate_adler32(
@@ -307,17 +297,6 @@ int libewf_sha1_hash_section_write_data(
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
 		 "%s: missing data.",
-		 function );
-
-		return( -1 );
-	}
-	if( data_size > (size_t) SSIZE_MAX )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
-		 "%s: invalid data size value exceeds maximum.",
 		 function );
 
 		return( -1 );
@@ -500,7 +479,7 @@ ssize_t libewf_sha1_hash_section_write_file_io_pool(
 
 		return( -1 );
 	}
-	if( libewf_section_set_values(
+	if( libewf_section_descriptor_set(
 	     section_descriptor,
 	     LIBEWF_SECTION_TYPE_SHA1_HASH,
 	     NULL,
@@ -515,7 +494,7 @@ ssize_t libewf_sha1_hash_section_write_file_io_pool(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-		 "%s: unable to set section values.",
+		 "%s: unable to set section descriptor.",
 		 function );
 
 		goto on_error;
@@ -576,7 +555,7 @@ ssize_t libewf_sha1_hash_section_write_file_io_pool(
 
 	section_data = NULL;
 
-	write_count = libewf_section_descriptor_write(
+	write_count = libewf_section_descriptor_write_file_io_pool(
 		       section_descriptor,
 		       file_io_pool,
 		       file_io_pool_entry,

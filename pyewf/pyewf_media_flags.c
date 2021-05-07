@@ -1,7 +1,7 @@
 /*
  * Python object definition of the libewf media flags
  *
- * Copyright (C) 2008-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -26,8 +26,8 @@
 #include <stdlib.h>
 #endif
 
-#include "pyewf_media_flags.h"
 #include "pyewf_libewf.h"
+#include "pyewf_media_flags.h"
 #include "pyewf_python.h"
 #include "pyewf_unused.h"
 
@@ -242,7 +242,7 @@ on_error:
 	return( NULL );
 }
 
-/* Intializes a media flags object
+/* Initializes a media flags object
  * Returns 0 if successful or -1 on error
  */
 int pyewf_media_flags_init(

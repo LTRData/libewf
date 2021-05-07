@@ -1,7 +1,7 @@
 /*
  * Library bit_stream type test program
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -365,6 +365,57 @@ int ewf_test_bit_stream_read(
 	 "bit_stream->bit_buffer_size",
 	 bit_stream->bit_buffer_size,
 	 (uint8_t) 16 );
+
+	result = libewf_bit_stream_read(
+	          bit_stream,
+	          32,
+	          &error );
+
+	EWF_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	EWF_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	EWF_TEST_ASSERT_EQUAL_SIZE(
+	 "bit_stream->byte_stream_offset",
+	 bit_stream->byte_stream_offset,
+	 (size_t) 4 );
+
+	EWF_TEST_ASSERT_EQUAL_UINT8(
+	 "bit_stream->bit_buffer_size",
+	 bit_stream->bit_buffer_size,
+	 (uint8_t) 32 );
+
+	bit_stream->byte_stream_offset = 15;
+	bit_stream->bit_buffer_size    = 0;
+
+	result = libewf_bit_stream_read(
+	          bit_stream,
+	          32,
+	          &error );
+
+	EWF_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	EWF_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	EWF_TEST_ASSERT_EQUAL_SIZE(
+	 "bit_stream->byte_stream_offset",
+	 bit_stream->byte_stream_offset,
+	 (size_t) 16 );
+
+	EWF_TEST_ASSERT_EQUAL_UINT8(
+	 "bit_stream->bit_buffer_size",
+	 bit_stream->bit_buffer_size,
+	 (uint8_t) 8 );
 
 	/* Test error cases
 	 */

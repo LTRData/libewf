@@ -1,7 +1,7 @@
 /*
  * Digest section functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -59,17 +59,6 @@ int libewf_digest_section_read_data(
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
 		 "%s: missing data.",
-		 function );
-
-		return( -1 );
-	}
-	if( data_size > (size_t) SSIZE_MAX )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_VALUE_EXCEEDS_MAXIMUM,
-		 "%s: invalid data size value exceeds maximum.",
 		 function );
 
 		return( -1 );
@@ -433,7 +422,7 @@ int libewf_digest_section_write_data(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_MEMORY,
 			 LIBCERROR_MEMORY_ERROR_COPY_FAILED,
-			 "%s: unable to set MD5 hash.",
+			 "%s: unable to set SHA1 hash.",
 			 function );
 
 			return( -1 );
@@ -524,7 +513,7 @@ ssize_t libewf_digest_section_write_file_io_pool(
 
 		return( -1 );
 	}
-	if( libewf_section_set_values(
+	if( libewf_section_descriptor_set(
 	     section_descriptor,
 	     0,
 	     (uint8_t *) "digest",
@@ -539,12 +528,12 @@ ssize_t libewf_digest_section_write_file_io_pool(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-		 "%s: unable to set section values.",
+		 "%s: unable to set section descriptor.",
 		 function );
 
 		return( -1 );
 	}
-	write_count = libewf_section_descriptor_write(
+	write_count = libewf_section_descriptor_write_file_io_pool(
 	               section_descriptor,
 	               file_io_pool,
 	               file_io_pool_entry,

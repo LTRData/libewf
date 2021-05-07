@@ -1,7 +1,7 @@
 /*
  * Verification handle
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -57,7 +57,7 @@
 int verification_handle_initialize(
      verification_handle_t **verification_handle,
      uint8_t calculate_md5,
-     uint8_t use_chunk_data_functions,
+     uint8_t use_data_chunk_functions,
      libcerror_error_t **error )
 {
 	static char *function = "verification_handle_initialize";
@@ -208,7 +208,7 @@ int verification_handle_initialize(
 	}
 	( *verification_handle )->input_format             = VERIFICATION_HANDLE_INPUT_FORMAT_RAW;
 	( *verification_handle )->calculate_md5            = calculate_md5;
-	( *verification_handle )->use_chunk_data_functions = use_chunk_data_functions;
+	( *verification_handle )->use_data_chunk_functions = use_data_chunk_functions;
 	( *verification_handle )->header_codepage          = LIBEWF_CODEPAGE_ASCII;
 	( *verification_handle )->process_buffer_size      = EWFCOMMON_PROCESS_BUFFER_SIZE;
 	( *verification_handle )->notify_stream            = VERIFICATION_HANDLE_NOTIFY_STREAM;
@@ -1106,6 +1106,10 @@ int verification_handle_process_storage_media_buffer_callback(
 
 		goto on_error;
 	}
+	if( verification_handle->abort != 0 )
+	{
+		return( 1 );
+	}
 	process_count = storage_media_buffer_read_process(
 			 storage_media_buffer,
 			 &error );
@@ -1113,7 +1117,8 @@ int verification_handle_process_storage_media_buffer_callback(
 	if( process_count < 0 )
 	{
 #if defined( HAVE_VERBOSE_OUTPUT )
-		if( libcnotify_verbose != 0 )
+		if( ( libcnotify_verbose != 0 )
+		 && ( error != NULL ) )
 		{
 			libcnotify_print_error_backtrace(
 			 error );
@@ -1124,23 +1129,7 @@ int verification_handle_process_storage_media_buffer_callback(
 
 		process_count = verification_handle->chunk_size;
 
-		/* Append a read error
-		 */
-		if( verification_handle_append_read_error(
-		     verification_handle,
-		     storage_media_buffer->storage_media_offset,
-		     (size_t) verification_handle->chunk_size,
-		     &error ) != 1 )
-		{
-			libcerror_error_set(
-			 &error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-			 "%s: unable to append read error.",
-			 function );
-
-			goto on_error;
-		}
+		storage_media_buffer->is_corrupted = 1;
 	}
 	if( libcthreads_thread_pool_push(
 	     verification_handle->output_thread_pool,
@@ -1192,6 +1181,12 @@ on_error:
 		libcerror_error_free(
 		 &error );
 	}
+	if( verification_handle->abort == 0 )
+	{
+		verification_handle_signal_abort(
+		 verification_handle,
+		 NULL );
+	}
 	return( -1 );
 }
 
@@ -1209,6 +1204,7 @@ int verification_handle_output_storage_media_buffer_callback(
 	uint8_t *data                         = NULL;
         static char *function                 = "verification_handle_process_storage_media_buffer_callback";
 	size_t data_size                      = 0;
+	int result                            = 0;
 
 	if( verification_handle == NULL )
 	{
@@ -1231,6 +1227,10 @@ int verification_handle_output_storage_media_buffer_callback(
 		 function );
 
 		goto on_error;
+	}
+	if( verification_handle->abort != 0 )
+	{
+		return( 1 );
 	}
 	if( libcdata_list_insert_value(
 	     verification_handle->output_list,
@@ -1266,6 +1266,10 @@ int verification_handle_output_storage_media_buffer_callback(
 	}
 	while( element != NULL )
 	{
+		if( verification_handle->abort != 0 )
+		{
+			break;
+		}
 		if( libcdata_list_element_get_value(
 		     element,
 		     (intptr_t **) &storage_media_buffer,
@@ -1296,6 +1300,45 @@ int verification_handle_output_storage_media_buffer_callback(
 		if( storage_media_buffer->storage_media_offset != verification_handle->last_offset_hashed )
 		{
 			break;
+		}
+		result = storage_media_buffer_is_corrupted(
+		          storage_media_buffer,
+		          &error );
+
+		if( result == -1 )
+		{
+			libcerror_error_set(
+			 &error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+			 "%s: unable to determine if storage media buffer is corrupted.",
+			 function );
+
+			storage_media_buffer = NULL;
+
+			goto on_error;
+		}
+		else if( result != 0 )
+		{
+			/* Append a read error
+			 */
+			if( verification_handle_append_read_error(
+			     verification_handle,
+			     storage_media_buffer->storage_media_offset,
+			     (size_t) verification_handle->chunk_size,
+			     &error ) != 1 )
+			{
+				libcerror_error_set(
+				 &error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
+				 "%s: unable to append read error.",
+				 function );
+
+				storage_media_buffer = NULL;
+
+				goto on_error;
+			}
 		}
 		if( storage_media_buffer_get_data(
 		     storage_media_buffer,
@@ -1449,6 +1492,12 @@ on_error:
 		libcerror_error_free(
 		 &error );
 	}
+	if( verification_handle->abort == 0 )
+	{
+		verification_handle_signal_abort(
+		 verification_handle,
+		 NULL );
+	}
 	return( -1 );
 }
 
@@ -1595,18 +1644,19 @@ int verification_handle_verify_input(
 	storage_media_buffer_t *storage_media_buffer = NULL;
 	uint8_t *data                                = NULL;
 	static char *function                        = "verification_handle_verify_input";
-	off64_t storage_media_offset                 = 0;
 	size64_t remaining_media_size                = 0;
 	size_t data_size                             = 0;
 	size_t process_buffer_size                   = 0;
 	size_t read_size                             = 0;
 	ssize_t process_count                        = 0;
 	ssize_t read_count                           = 0;
+	off64_t storage_media_offset                 = 0;
 	uint32_t number_of_checksum_errors           = 0;
 	uint8_t storage_media_buffer_mode            = 0;
 	int is_corrupted                             = 0;
 	int maximum_number_of_queued_items           = 0;
 	int md5_hash_compare                         = 0;
+	int result                                   = 0;
 	int sha1_hash_compare                        = 0;
 	int sha256_hash_compare                      = 0;
 	int status                                   = PROCESS_STATUS_COMPLETED;
@@ -1682,7 +1732,7 @@ int verification_handle_verify_input(
 
 		goto on_error;
 	}
-	if( verification_handle->use_chunk_data_functions != 0 )
+	if( verification_handle->use_data_chunk_functions != 0 )
 	{
 		process_buffer_size       = verification_handle->chunk_size;
 		storage_media_buffer_mode = STORAGE_MEDIA_BUFFER_MODE_CHUNK_DATA;
@@ -1771,7 +1821,8 @@ int verification_handle_verify_input(
 			goto on_error;
 		}
 	}
-#endif
+#endif /* defined( HAVE_MULTI_THREAD_SUPPORT ) */
+
 	if( verification_handle_initialize_integrity_hash(
 	     verification_handle,
 	     error ) != 1 )
@@ -1872,7 +1923,8 @@ int verification_handle_verify_input(
 				goto on_error;
 			}
 		}
-#endif
+#endif /* defined( HAVE_MULTI_THREAD_SUPPORT ) */
+
 		read_size = process_buffer_size;
 
 		if( remaining_media_size < read_size )
@@ -1932,7 +1984,7 @@ int verification_handle_verify_input(
 			storage_media_buffer = NULL;
 		}
 		else
-#endif
+#endif /* defined( HAVE_MULTI_THREAD_SUPPORT ) */
 		{
 			process_count = storage_media_buffer_read_process(
 			                 storage_media_buffer,
@@ -1953,6 +2005,25 @@ int verification_handle_verify_input(
 
 				process_count = verification_handle->chunk_size;
 
+				storage_media_buffer->is_corrupted = 1;
+			}
+			result = storage_media_buffer_is_corrupted(
+			          storage_media_buffer,
+			          error );
+
+			if( result == -1 )
+			{
+				libcerror_error_set(
+				 error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+				 "%s: unable to determine if storage media buffer is corrupted.",
+				 function );
+
+				goto on_error;
+			}
+			else if( result != 0 )
+			{
 				/* Append a read error
 				 */
 				if( verification_handle_append_read_error(
@@ -2115,7 +2186,8 @@ int verification_handle_verify_input(
 			goto on_error;
 		}
 	}
-#endif
+#endif /* defined( HAVE_MULTI_THREAD_SUPPORT ) */
+
 	if( verification_handle_finalize_integrity_hash(
 	     verification_handle,
 	     error ) != 1 )
@@ -2385,7 +2457,8 @@ on_error:
 		 &( verification_handle->storage_media_buffer_queue ),
 		 NULL );
 	}
-#endif
+#endif /* defined( HAVE_MULTI_THREAD_SUPPORT ) */
+
 	return( -1 );
 }
 
@@ -3286,7 +3359,9 @@ int verification_handle_get_integrity_hash_from_input(
 		return( -1 );
 	}
 	verification_handle->stored_md5_hash_available = result;
-#endif
+
+#endif /* defined( USE_LIBEWF_GET_MD5_HASH ) */
+
 #if defined( HAVE_WIDE_SYSTEM_CHARACTER )
 	result = libewf_handle_get_utf16_hash_value(
 		  verification_handle->input_handle,
@@ -4018,7 +4093,7 @@ int verification_handle_append_read_error(
 
 		return( -1 );
 	}
-	if( verification_handle->use_chunk_data_functions != 0 )
+	if( verification_handle->use_data_chunk_functions != 0 )
 	{
 		start_sector      = start_offset / verification_handle->bytes_per_sector;
 		number_of_sectors = number_of_bytes / verification_handle->bytes_per_sector;

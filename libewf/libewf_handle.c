@@ -1,7 +1,7 @@
 /*
  * Handle functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -27,6 +27,7 @@
 
 #include "libewf_analytical_data.h"
 #include "libewf_case_data.h"
+#include "libewf_case_data_section.h"
 #include "libewf_chunk_data.h"
 #include "libewf_chunk_table.h"
 #include "libewf_codepage.h"
@@ -35,6 +36,7 @@
 #include "libewf_debug.h"
 #include "libewf_definitions.h"
 #include "libewf_device_information.h"
+#include "libewf_device_information_section.h"
 #include "libewf_digest_section.h"
 #include "libewf_error2_section.h"
 #include "libewf_file_entry.h"
@@ -59,6 +61,7 @@
 #include "libewf_section.h"
 #include "libewf_section_descriptor.h"
 #include "libewf_sector_range.h"
+#include "libewf_sector_range_list.h"
 #include "libewf_segment_file.h"
 #include "libewf_session_section.h"
 #include "libewf_sha1_hash_section.h"
@@ -66,6 +69,7 @@
 #include "libewf_single_files.h"
 #include "libewf_types.h"
 #include "libewf_unused.h"
+#include "libewf_value_table.h"
 #include "libewf_write_io_handle.h"
 
 #include "ewf_data.h"
@@ -678,40 +682,6 @@ int libewf_handle_clone(
 			goto on_error;
 		}
 	}
-	if( internal_source_handle->chunk_groups_cache != NULL )
-	{
-		if( libfcache_cache_clone(
-		     &( internal_destination_handle->chunk_groups_cache ),
-		     internal_source_handle->chunk_groups_cache,
-		     error ) != 1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-			 "%s: unable to create destination chunks groups cache.",
-			 function );
-
-			goto on_error;
-		}
-	}
-	if( internal_source_handle->chunks_cache != NULL )
-	{
-		if( libfcache_cache_clone(
-		     &( internal_destination_handle->chunks_cache ),
-		     internal_source_handle->chunks_cache,
-		     error ) != 1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-			 "%s: unable to create destination chunks cache.",
-			 function );
-
-			goto on_error;
-		}
-	}
 	if( internal_source_handle->hash_sections != NULL )
 	{
 		if( libewf_hash_sections_clone(
@@ -791,18 +761,6 @@ on_error:
 		{
 			libewf_hash_sections_free(
 			 &( internal_destination_handle->hash_sections ),
-			 NULL );
-		}
-		if( internal_destination_handle->chunks_cache != NULL )
-		{
-			libfcache_cache_free(
-			 &( internal_destination_handle->chunks_cache ),
-			 NULL );
-		}
-		if( internal_destination_handle->chunk_groups_cache != NULL )
-		{
-			libfcache_cache_free(
-			 &( internal_destination_handle->chunk_groups_cache ),
 			 NULL );
 		}
 		if( internal_destination_handle->chunk_table != NULL )
@@ -971,6 +929,19 @@ int libewf_handle_open(
 
 		return( -1 );
 	}
+#if !defined( HAVE_WRITE_SUPPORT )
+	if( ( access_flags & LIBEWF_ACCESS_FLAG_WRITE ) != 0 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
+		 "%s: write access currently not supported - compiled without zlib.",
+		 function );
+
+		return( -1 );
+	}
+#endif
 #if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
 	if( libcthreads_read_write_lock_grab_for_read(
 	     internal_handle->read_write_lock,
@@ -1214,6 +1185,10 @@ int libewf_handle_open(
 		 "%s: unable to open handle using a file IO pool.",
 		 function );
 
+		libbfio_pool_free(
+		 &file_io_pool,
+		 NULL );
+
 		result = -1;
 	}
 	else
@@ -1323,6 +1298,19 @@ int libewf_handle_open_wide(
 
 		return( -1 );
 	}
+#if !defined( HAVE_WRITE_SUPPORT )
+	if( ( access_flags & LIBEWF_ACCESS_FLAG_WRITE ) != 0 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
+		 "%s: write access currently not supported - compiled without zlib.",
+		 function );
+
+		return( -1 );
+	}
+#endif
 #if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
 	if( libcthreads_read_write_lock_grab_for_read(
 	     internal_handle->read_write_lock,
@@ -1640,8 +1628,8 @@ int libewf_internal_handle_open_read_segment_file_section_data(
 	size_t string_data_size                   = 0;
 	ssize_t read_count                        = 0;
 	off64_t section_data_offset               = 0;
-	int header_section_found                  = 0;
-	int initialize_chunk_values               = 0;
+	uint8_t header_section_found              = 0;
+	uint8_t initialize_chunk_values           = 0;
 	int number_of_sections                    = 0;
 	int read_table_sections                   = 0;
 	int result                                = 0;
@@ -1759,127 +1747,6 @@ int libewf_internal_handle_open_read_segment_file_section_data(
 
 		goto on_error;
 	}
-	/* Make sure to read the device information section first so we
-	 * have the correct chunk size when reading Lx01 files.
-	 */
-	if( segment_file->device_information_section_index >= 0 )
-	{
-		if( libfdata_list_get_element_value_by_index(
-		     segment_file->sections_list,
-		     (intptr_t *) file_io_pool,
-		     (libfdata_cache_t *) sections_cache,
-		     segment_file->device_information_section_index,
-		     (intptr_t **) &section,
-		     0,
-		     error ) != 1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-			 "%s: unable to retrieve section: %d from sections list.",
-			 function,
-			 segment_file->device_information_section_index );
-
-			goto on_error;
-		}
-		if( section == NULL )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
-			 "%s: missing section: %d.",
-			 function,
-			 segment_file->device_information_section_index );
-
-			goto on_error;
-		}
-		if( libewf_segment_file_seek_offset(
-		     segment_file,
-		     file_io_pool,
-		     file_io_pool_entry,
-		     section->start_offset,
-		     error ) == -1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_IO,
-			 LIBCERROR_IO_ERROR_OPEN_FAILED,
-			 "%s: unable to seek section: %d data offset: %" PRIu64 ".",
-			 function,
-			 segment_file->device_information_section_index,
-			 section->start_offset );
-
-			goto on_error;
-		}
-		read_count = libewf_section_compressed_string_read(
-			      section,
-			      internal_handle->io_handle,
-			      file_io_pool,
-			      file_io_pool_entry,
-			      internal_handle->io_handle->compression_method,
-			      &string_data,
-			      &string_data_size,
-			      error );
-
-		if( read_count == -1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_IO,
-			 LIBCERROR_IO_ERROR_READ_FAILED,
-			 "%s: unable to read device information file object string.",
-			 function );
-
-			goto on_error;
-		}
-		else if( read_count != 0 )
-		{
-			if( internal_handle->read_io_handle->device_information == NULL )
-			{
-				if( libewf_device_information_parse(
-				     string_data,
-				     string_data_size,
-				     internal_handle->media_values,
-				     internal_handle->header_values,
-				     error ) != 1 )
-				{
-					libcerror_error_set(
-					 error,
-					 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-					 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-					 "%s: unable to parse device information.",
-					 function );
-
-					goto on_error;
-				}
-				internal_handle->read_io_handle->device_information      = string_data;
-				internal_handle->read_io_handle->device_information_size = string_data_size;
-			}
-			else
-			{
-				if( ( internal_handle->read_io_handle->device_information_size != string_data_size )
-				 || ( memory_compare(
-				       internal_handle->read_io_handle->device_information,
-				       string_data,
-				       16 ) != 0 ) )
-				{
-					libcerror_error_set(
-					 error,
-					 LIBCERROR_ERROR_DOMAIN_INPUT,
-					 LIBCERROR_INPUT_ERROR_VALUE_MISMATCH,
-					 "%s: device information value mismatch.",
-					 function );
-
-					goto on_error;
-				}
-				memory_free(
-				 string_data );
-			}
-			string_data = NULL;
-		}
-	}
 	for( section_index = 0;
 	     section_index < number_of_sections;
 	     section_index++ )
@@ -1965,90 +1832,42 @@ int libewf_internal_handle_open_read_segment_file_section_data(
 					 segment_file->current_offset );
 				}
 			}
-#endif
+#endif /* defined( HAVE_DEBUG_OUTPUT ) */
 		}
 		if( section->type != 0 )
 		{
 			switch( section->type )
 			{
 				case LIBEWF_SECTION_TYPE_DEVICE_INFORMATION:
-					/* Since we already parsed it nothing to do for the device information section
-					 */
+					read_count = libewf_device_information_section_read_file_io_pool(
+						      section,
+						      internal_handle->io_handle,
+						      file_io_pool,
+						      file_io_pool_entry,
+						      internal_handle->read_io_handle,
+						      internal_handle->media_values,
+						      internal_handle->header_values,
+						      error );
 #if defined( HAVE_VERBOSE_OUTPUT )
 					known_section = 1;
 #endif
 					break;
 
 				case LIBEWF_SECTION_TYPE_CASE_DATA:
-					read_count = libewf_section_compressed_string_read(
+					if( internal_handle->read_io_handle->case_data == NULL )
+					{
+						initialize_chunk_values = 1;
+					}
+					read_count = libewf_case_data_section_read_file_io_pool(
 						      section,
 						      internal_handle->io_handle,
 						      file_io_pool,
 						      file_io_pool_entry,
-						      internal_handle->io_handle->compression_method,
-						      &string_data,
-						      &string_data_size,
+						      internal_handle->read_io_handle,
+						      internal_handle->media_values,
+						      internal_handle->header_values,
 						      error );
 
-					if( read_count == -1 )
-					{
-						libcerror_error_set(
-						 error,
-						 LIBCERROR_ERROR_DOMAIN_IO,
-						 LIBCERROR_IO_ERROR_READ_FAILED,
-						 "%s: unable to read case data file object string.",
-						 function );
-
-						goto on_error;
-					}
-					else if( read_count != 0 )
-					{
-						if( internal_handle->read_io_handle->case_data == NULL )
-						{
-							if( libewf_case_data_parse(
-							     string_data,
-							     string_data_size,
-							     internal_handle->media_values,
-							     internal_handle->header_values,
-							     &( internal_handle->io_handle->format ),
-							     error ) != 1 )
-							{
-								libcerror_error_set(
-								 error,
-								 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-								 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-								 "%s: unable to parse case data.",
-								 function );
-
-								goto on_error;
-							}
-							internal_handle->read_io_handle->case_data      = string_data;
-							internal_handle->read_io_handle->case_data_size = string_data_size;
-
-							initialize_chunk_values = 1;
-						}
-						else
-						{
-							if( ( internal_handle->read_io_handle->case_data_size != string_data_size )
-							 || ( memory_compare(
-							       internal_handle->read_io_handle->case_data,
-							       string_data,
-							       16 ) != 0 ) )
-							{
-								libcerror_error_set(
-								 error,
-								 LIBCERROR_ERROR_DOMAIN_INPUT,
-								 LIBCERROR_INPUT_ERROR_VALUE_MISMATCH,
-								 "%s: case data value mismatch.",
-								 function );
-
-								goto on_error;
-							}
-							memory_free(
-							 string_data );
-						}
-						string_data = NULL;
-					}
 #if defined( HAVE_VERBOSE_OUTPUT )
 					known_section = 1;
 #endif
@@ -3043,13 +2862,21 @@ int libewf_internal_handle_open_read_segment_files(
 
 		return( -1 );
 	}
-	if( number_of_segments == 0 )
+	/* Make sure to read the device information section first so we
+	 * have the correct chunk size when reading Lx01 files.
+	 */
+	if( libewf_internal_handle_open_read_device_information(
+	     internal_handle,
+	     file_io_pool,
+	     segment_table,
+	     number_of_segments,
+	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
-		 "%s: invalid number of segments value out of bounds.",
+		 LIBCERROR_ERROR_DOMAIN_IO,
+		 LIBCERROR_IO_ERROR_READ_FAILED,
+		 "%s: unable to read device information.",
 		 function );
 
 		return( -1 );
@@ -3285,6 +3112,242 @@ int libewf_internal_handle_open_read_segment_files(
 	return( 1 );
 }
 
+/* Reads the device information from the segment files
+ * Returns 1 if successful or -1 on error
+ */
+int libewf_internal_handle_open_read_device_information(
+     libewf_internal_handle_t *internal_handle,
+     libbfio_pool_t *file_io_pool,
+     libewf_segment_table_t *segment_table,
+     uint32_t number_of_segments,
+     libcerror_error_t **error )
+{
+	libewf_section_descriptor_t *section_descriptor = NULL;
+	libewf_segment_file_t *segment_file             = NULL;
+	libfcache_cache_t *sections_cache               = NULL;
+	static char *function                           = "libewf_internal_handle_open_read_device_information";
+	size64_t segment_file_size                      = 0;
+	ssize_t read_count                              = 0;
+	uint32_t segment_number                         = 0;
+	int file_io_pool_entry                          = 0;
+
+	if( internal_handle == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid handle.",
+		 function );
+
+		return( -1 );
+	}
+	if( number_of_segments == 0 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
+		 "%s: invalid number of segments value out of bounds.",
+		 function );
+
+		return( -1 );
+	}
+	if( libewf_segment_table_get_segment_file_by_index(
+	     segment_table,
+	     segment_number,
+	     file_io_pool,
+	     &segment_file,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+		 "%s: unable to retrieve segment file: %" PRIu32 " from segment table.",
+		 function,
+		 segment_number );
+
+		goto on_error;
+	}
+	if( segment_file == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
+		 "%s: missing segment file: %" PRIu32 ".",
+		 function,
+		 segment_number );
+
+		goto on_error;
+	}
+	if( segment_file->major_version != 2 )
+	{
+		return( 1 );
+	}
+	if( segment_file->device_information_section_index == -1 )
+	{
+		/* Lx01 stores the device information in the last segment file
+		 */
+		segment_number = number_of_segments - 1;
+
+		if( libewf_segment_table_get_segment_file_by_index(
+		     segment_table,
+		     segment_number,
+		     file_io_pool,
+		     &segment_file,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+			 "%s: unable to retrieve segment file: %" PRIu32 " from segment table.",
+			 function,
+			 segment_number );
+
+			goto on_error;
+		}
+		if( segment_file == NULL )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
+			 "%s: missing segment file: %" PRIu32 ".",
+			 function,
+			 segment_number );
+
+			goto on_error;
+		}
+	}
+	if( segment_file->device_information_section_index == -1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
+		 "%s: unable to locate a device information section.",
+		 function );
+
+		goto on_error;
+	}
+	if( libewf_segment_table_get_segment_by_index(
+	     segment_table,
+	     segment_number,
+	     &file_io_pool_entry,
+	     &segment_file_size,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+		 "%s: unable to retrieve segment: %" PRIu32 " from segment table.",
+		 function,
+		 segment_number );
+
+		goto on_error;
+	}
+	if( libfcache_cache_initialize(
+	     &sections_cache,
+	     LIBEWF_MAXIMUM_CACHE_ENTRIES_SECTIONS,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+		 "%s: unable to create sections cache.",
+		 function );
+
+		goto on_error;
+	}
+	if( libfdata_list_get_element_value_by_index(
+	     segment_file->sections_list,
+	     (intptr_t *) file_io_pool,
+	     (libfdata_cache_t *) sections_cache,
+	     segment_file->device_information_section_index,
+	     (intptr_t **) &section_descriptor,
+	     0,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+		 "%s: unable to retrieve section: %d from sections list.",
+		 function,
+		 segment_file->device_information_section_index );
+
+		goto on_error;
+	}
+	if( libewf_segment_file_seek_offset(
+	     segment_file,
+	     file_io_pool,
+	     file_io_pool_entry,
+	     section_descriptor->start_offset,
+	     error ) == -1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_IO,
+		 LIBCERROR_IO_ERROR_OPEN_FAILED,
+		 "%s: unable to seek section: %d data offset: %" PRIu64 " (0x%08%" PRIx64 ").",
+		 function,
+		 segment_file->device_information_section_index,
+		 section_descriptor->start_offset );
+
+		goto on_error;
+	}
+	read_count = libewf_device_information_section_read_file_io_pool(
+		      section_descriptor,
+		      internal_handle->io_handle,
+		      file_io_pool,
+		      file_io_pool_entry,
+		      internal_handle->read_io_handle,
+		      internal_handle->media_values,
+		      internal_handle->header_values,
+		      error );
+
+	if( read_count == -1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_IO,
+		 LIBCERROR_IO_ERROR_READ_FAILED,
+		 "%s: unable to read device information section: %d.",
+		 function,
+		 segment_file->device_information_section_index );
+
+		goto on_error;
+	}
+	if( libfcache_cache_free(
+	     &sections_cache,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
+		 "%s: unable to free sections cache.",
+		 function );
+
+		goto on_error;
+	}
+	return( 1 );
+
+on_error:
+	if( sections_cache != NULL )
+	{
+		libfcache_cache_free(
+		 &sections_cache,
+		 NULL );
+	}
+	return( -1 );
+}
+
 /* Opens a set of EWF file(s) using a Basic File IO (bfio) pool
  * This function is not multi-thread safe acquire write lock before call
  * Returns 1 if successful or -1 on error
@@ -3344,28 +3407,6 @@ int libewf_internal_handle_open_file_io_pool(
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_VALUE_ALREADY_SET,
 		 "%s: invalid handle - chunk table value already set.",
-		 function );
-
-		return( -1 );
-	}
-	if( internal_handle->chunk_groups_cache != NULL )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_VALUE_ALREADY_SET,
-		 "%s: invalid handle - chunks group cache value already set.",
-		 function );
-
-		return( -1 );
-	}
-	if( internal_handle->chunks_cache != NULL )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_VALUE_ALREADY_SET,
-		 "%s: invalid handle - chunks cache value already set.",
 		 function );
 
 		return( -1 );
@@ -3460,34 +3501,6 @@ int libewf_internal_handle_open_file_io_pool(
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
 		 "%s: unable to create chunk table.",
-		 function );
-
-		goto on_error;
-	}
-	if( libfcache_cache_initialize(
-	     &( internal_handle->chunk_groups_cache ),
-	     LIBEWF_MAXIMUM_CACHE_ENTRIES_CHUNK_GROUPS,
-	     error ) != 1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create chunk groups cache.",
-		 function );
-
-		goto on_error;
-	}
-	if( libfcache_cache_initialize(
-	     &( internal_handle->chunks_cache ),
-	     LIBEWF_MAXIMUM_CACHE_ENTRIES_CHUNKS,
-	     error ) != 1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create chunks cache.",
 		 function );
 
 		goto on_error;
@@ -3636,7 +3649,7 @@ int libewf_internal_handle_open_file_io_pool(
 				 file_io_pool_entry );
 			}
 #endif
-			read_count = libewf_segment_file_read_file_header(
+			read_count = libewf_segment_file_read_file_header_file_io_pool(
 				      segment_file,
 				      file_io_pool,
 				      file_io_pool_entry,
@@ -3785,7 +3798,6 @@ int libewf_internal_handle_open_file_io_pool(
 		     file_io_pool,
 		     internal_handle->media_values,
 		     segment_table,
-		     internal_handle->chunk_table,
 		     internal_handle->read_io_handle,
 		     &( internal_handle->current_offset ),
 		     error ) != 1 )
@@ -3828,18 +3840,6 @@ on_error:
 	{
 		libfvalue_table_free(
 		 &( internal_handle->header_values ),
-		 NULL );
-	}
-	if( internal_handle->chunks_cache != NULL )
-	{
-		libfcache_cache_free(
-		 &( internal_handle->chunks_cache ),
-		 NULL );
-	}
-	if( internal_handle->chunk_groups_cache != NULL )
-	{
-		libfcache_cache_free(
-		 &( internal_handle->chunk_groups_cache ),
 		 NULL );
 	}
 	if( internal_handle->chunk_table != NULL )
@@ -3900,6 +3900,19 @@ int libewf_handle_open_file_io_pool(
 
 		return( -1 );
 	}
+#if !defined( HAVE_WRITE_SUPPORT )
+	if( ( access_flags & LIBEWF_ACCESS_FLAG_WRITE ) != 0 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
+		 "%s: write access currently not supported - compiled without zlib.",
+		 function );
+
+		return( -1 );
+	}
+#endif
 #if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
 	if( libcthreads_read_write_lock_grab_for_write(
 	     internal_handle->read_write_lock,
@@ -4146,38 +4159,6 @@ int libewf_handle_close(
 			result = -1;
 		}
 	}
-	if( internal_handle->chunk_groups_cache != NULL )
-	{
-		if( libfcache_cache_free(
-		     &( internal_handle->chunk_groups_cache ),
-		     error ) != 1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
-			 "%s: unable to free chunk groups cache.",
-			 function );
-
-			result = -1;
-		}
-	}
-	if( internal_handle->chunks_cache != NULL )
-	{
-		if( libfcache_cache_free(
-		     &( internal_handle->chunks_cache ),
-		     error ) != 1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
-			 "%s: unable to free chunks cache.",
-			 function );
-
-			result = -1;
-		}
-	}
 	if( internal_handle->hash_sections != NULL )
 	{
 		if( libewf_hash_sections_free(
@@ -4342,7 +4323,6 @@ ssize_t libewf_internal_handle_read_buffer_from_file_io_pool(
 	libewf_chunk_data_t *chunk_data = NULL;
 	static char *function           = "libewf_internal_handle_read_buffer_from_file_io_pool";
 	off64_t chunk_data_offset       = 0;
-	uint64_t chunk_index            = 0;
 	size_t buffer_offset            = 0;
 	size_t read_size                = 0;
 
@@ -4444,31 +4424,27 @@ ssize_t libewf_internal_handle_read_buffer_from_file_io_pool(
 	{
 		buffer_size = (size_t) ( internal_handle->media_values->media_size - internal_handle->current_offset );
 	}
-	chunk_index = internal_handle->current_offset / internal_handle->media_values->chunk_size;
-
 	while( buffer_size > 0 )
 	{
 		if( libewf_chunk_table_get_chunk_data_by_offset(
 		     internal_handle->chunk_table,
-		     chunk_index,
 		     internal_handle->io_handle,
 		     file_io_pool,
 		     internal_handle->media_values,
 		     internal_handle->segment_table,
-		     internal_handle->chunk_groups_cache,
-		     internal_handle->chunks_cache,
 		     internal_handle->current_offset,
-		     &chunk_data,
 		     &chunk_data_offset,
+		     &chunk_data,
 		     error ) != 1 )
 		{
 			libcerror_error_set(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-			 "%s: unable to read chunk: %" PRIu64 " data.",
+			 "%s: unable to retrieve chunk data for offset: %" PRIi64 " (0x%08" PRIx64 ").",
 			 function,
-			 chunk_index );
+			 internal_handle->current_offset,
+			 internal_handle->current_offset );
 
 			return( -1 );
 		}
@@ -4478,9 +4454,10 @@ ssize_t libewf_internal_handle_read_buffer_from_file_io_pool(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
-			 "%s: missing chunk: %" PRIu64 " data.",
+			 "%s: missing chunk data for offset: %" PRIi64 " (0x%08" PRIx64 ").",
 			 function,
-			 chunk_index );
+			 internal_handle->current_offset,
+			 internal_handle->current_offset );
 
 			return( -1 );
 		}
@@ -4492,7 +4469,7 @@ ssize_t libewf_internal_handle_read_buffer_from_file_io_pool(
 			 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
 			 "%s: chunk: %" PRIu64 " offset exceeds data size.",
 			 function,
-			 chunk_index );
+			 chunk_data->chunk_index );
 
 			return( -1 );
 		}
@@ -4517,13 +4494,12 @@ ssize_t libewf_internal_handle_read_buffer_from_file_io_pool(
 			 LIBCERROR_MEMORY_ERROR_COPY_FAILED,
 			 "%s: unable to copy chunk: %" PRIu64 " data to buffer.",
 			 function,
-			 chunk_index );
+			 chunk_data->chunk_index );
 
 			return( -1 );
 		}
-		buffer_offset    += read_size;
-		buffer_size      -= read_size;
-		chunk_index      += 1;
+		buffer_offset += read_size;
+		buffer_size   -= read_size;
 
 		internal_handle->current_offset += (off64_t) read_size;
 
@@ -4699,7 +4675,7 @@ ssize_t libewf_handle_read_buffer_at_offset(
 
 		read_count = -1;
 	}
-	else
+	if( read_count != -1 )
 	{
 		read_count = libewf_internal_handle_read_buffer_from_file_io_pool(
 		              internal_handle,
@@ -4752,11 +4728,11 @@ ssize_t libewf_internal_handle_write_buffer_to_file_io_pool(
          libcerror_error_t **error )
 {
 	static char *function     = "libewf_internal_handle_write_buffer_to_file_io_pool";
-	off64_t chunk_data_offset = 0;
 	size_t buffer_offset      = 0;
 	size_t input_data_size    = 0;
 	size_t write_size         = 0;
 	ssize_t write_count       = 0;
+	off64_t chunk_data_offset = 0;
 	uint64_t chunk_index      = 0;
 	int write_chunk           = 0;
 
@@ -4921,7 +4897,7 @@ ssize_t libewf_internal_handle_write_buffer_to_file_io_pool(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 			 LIBCERROR_RUNTIME_ERROR_VALUE_ALREADY_SET,
-			 "%s: chunk: %" PRIu64 " already set.",
+			 "%s: chunk: %" PRIu64 " already exists.",
 			 function,
 			 chunk_index );
 
@@ -5169,26 +5145,29 @@ ssize_t libewf_handle_write_buffer(
 			 "%s: unable to initialize write IO handle values.",
 			 function );
 
-			goto on_error;
+			write_count = -1;
 		}
 	}
-	write_count = libewf_internal_handle_write_buffer_to_file_io_pool(
-	               internal_handle,
-	               internal_handle->file_io_pool,
-	               buffer,
-	               buffer_size,
-	               error );
-
-	if( write_count == -1 )
+	if( write_count != -1 )
 	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_IO,
-		 LIBCERROR_IO_ERROR_READ_FAILED,
-		 "%s: unable to write buffer.",
-		 function );
+		write_count = libewf_internal_handle_write_buffer_to_file_io_pool(
+		               internal_handle,
+		               internal_handle->file_io_pool,
+		               buffer,
+		               buffer_size,
+		               error );
 
-		goto on_error;
+		if( write_count == -1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_IO,
+			 LIBCERROR_IO_ERROR_READ_FAILED,
+			 "%s: unable to write buffer.",
+			 function );
+
+			write_count = -1;
+		}
 	}
 #if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
 	if( libcthreads_read_write_lock_release_for_write(
@@ -5206,14 +5185,6 @@ ssize_t libewf_handle_write_buffer(
 	}
 #endif
 	return( write_count );
-
-on_error:
-#if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
-	libcthreads_read_write_lock_release_for_write(
-	 internal_handle->read_write_lock,
-	 NULL );
-#endif
-	return( -1 );
 }
 
 /* Writes (media) data at a specific offset,
@@ -5287,41 +5258,47 @@ ssize_t libewf_handle_write_buffer_at_offset(
 			 "%s: unable to initialize write IO handle values.",
 			 function );
 
-			goto on_error;
+			write_count = -1;
 		}
 	}
-	if( libewf_internal_handle_seek_offset(
-	     internal_handle,
-	     offset,
-	     SEEK_SET,
-	     error ) == -1 )
+	if( write_count != -1 )
 	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_IO,
-		 LIBCERROR_IO_ERROR_SEEK_FAILED,
-		 "%s: unable to seek offset.",
-		 function );
+		if( libewf_internal_handle_seek_offset(
+		     internal_handle,
+		     offset,
+		     SEEK_SET,
+		     error ) == -1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_IO,
+			 LIBCERROR_IO_ERROR_SEEK_FAILED,
+			 "%s: unable to seek offset.",
+			 function );
 
-		goto on_error;
+			write_count = -1;
+		}
 	}
-	write_count = libewf_internal_handle_write_buffer_to_file_io_pool(
-	               internal_handle,
-	               internal_handle->file_io_pool,
-	               buffer,
-	               buffer_size,
-	               error );
-
-	if( write_count == -1 )
+	if( write_count != -1 )
 	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_IO,
-		 LIBCERROR_IO_ERROR_READ_FAILED,
-		 "%s: unable to write buffer.",
-		 function );
+		write_count = libewf_internal_handle_write_buffer_to_file_io_pool(
+		               internal_handle,
+		               internal_handle->file_io_pool,
+		               buffer,
+		               buffer_size,
+		               error );
 
-		goto on_error;
+		if( write_count == -1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_IO,
+			 LIBCERROR_IO_ERROR_READ_FAILED,
+			 "%s: unable to write buffer.",
+			 function );
+
+			write_count = -1;
+		}
 	}
 #if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
 	if( libcthreads_read_write_lock_release_for_write(
@@ -5339,14 +5316,6 @@ ssize_t libewf_handle_write_buffer_at_offset(
 	}
 #endif
 	return( write_count );
-
-on_error:
-#if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
-	libcthreads_read_write_lock_release_for_write(
-	 internal_handle->read_write_lock,
-	 NULL );
-#endif
-	return( -1 );
 }
 
 /* Retrieves a (media) data chunk
@@ -5359,6 +5328,7 @@ int libewf_handle_get_data_chunk(
 {
 	libewf_internal_handle_t *internal_handle = NULL;
 	static char *function                     = "libewf_handle_get_data_chunk";
+	int result                                = 1;
 
 	if( handle == NULL )
 	{
@@ -5438,23 +5408,26 @@ int libewf_handle_get_data_chunk(
 			 "%s: unable to initialize write IO handle values.",
 			 function );
 
-			goto on_error;
+			result = -1;
 		}
 	}
-	if( libewf_data_chunk_initialize(
-	     data_chunk,
-	     internal_handle->io_handle,
-	     internal_handle->write_io_handle,
-	     error ) != 1 )
+	if( result != -1 )
 	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create data chunk.",
-		 function );
+		if( libewf_data_chunk_initialize(
+		     data_chunk,
+		     internal_handle->io_handle,
+		     internal_handle->write_io_handle,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
+			 "%s: unable to create data chunk.",
+			 function );
 
-		goto on_error;
+			result = -1;
+		}
 	}
 #if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
 	if( libcthreads_read_write_lock_release_for_write(
@@ -5471,20 +5444,12 @@ int libewf_handle_get_data_chunk(
 		return( -1 );
 	}
 #endif
-	return( 1 );
-
-on_error:
-#if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
-	libcthreads_read_write_lock_release_for_write(
-	 internal_handle->read_write_lock,
-	 NULL );
-#endif
-	return( -1 );
+	return( result );
 }
 
 /* Reads a (media) data chunk at the current offset
  * This function is not multi-thread safe acquire write lock before call
- * Returns the number of bytes read, 0 when no longer data can be read or -1 on error
+ * Returns the number of bytes in the data chunk, 0 when no longer data can be read or -1 on error
  */
 ssize_t libewf_internal_handle_read_data_chunk_from_file_io_pool(
          libewf_internal_handle_t *internal_handle,
@@ -5495,7 +5460,7 @@ ssize_t libewf_internal_handle_read_data_chunk_from_file_io_pool(
 	libewf_chunk_data_t *chunk_data = NULL;
 	static char *function           = "libewf_internal_handle_read_data_chunk_from_file_io_pool";
 	off64_t chunk_data_offset       = 0;
-	ssize_t read_count              = 0;
+	size_t read_count               = 0;
 
 	if( internal_handle == NULL )
 	{
@@ -5552,62 +5517,31 @@ ssize_t libewf_internal_handle_read_data_chunk_from_file_io_pool(
 
 		return( -1 );
 	}
-	if( internal_handle->media_values->chunk_size == 0 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
-		 "%s: invalid handle - invalid media values - missing chunk size.",
-		 function );
-
-		return( -1 );
-	}
-	if( internal_data_chunk == NULL )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-		 "%s: invalid data chunk.",
-		 function );
-
-		return( -1 );
-	}
 	if( (size64_t) internal_handle->current_offset >= internal_handle->media_values->media_size )
 	{
 		return( 0 );
 	}
-/* TODO remove need to calculate */
-	internal_handle->current_chunk_index = internal_handle->current_offset
-	                                     / internal_handle->media_values->chunk_size;
-
-	internal_handle->current_offset = (off64_t) internal_handle->current_chunk_index
-	                                * (off64_t) internal_handle->media_values->chunk_size;
-
-	if( libewf_chunk_table_get_chunk_data_by_offset(
+	if( libewf_chunk_table_get_chunk_data_by_offset_no_cache(
 	     internal_handle->chunk_table,
-	     internal_handle->current_chunk_index,
 	     internal_handle->io_handle,
 	     file_io_pool,
 	     internal_handle->media_values,
 	     internal_handle->segment_table,
-	     internal_handle->chunk_groups_cache,
-	     internal_handle->chunks_cache,
 	     internal_handle->current_offset,
-	     &chunk_data,
 	     &chunk_data_offset,
+	     &chunk_data,
 	     error ) != 1 )
 	{
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-		 "%s: unable to retrieve chunk: %" PRIu64 " data.",
+		 "%s: unable to retrieve chunk data for offset: %" PRIi64 " (0x%08" PRIx64 ").",
 		 function,
-		 internal_handle->current_chunk_index );
+		 internal_handle->current_offset,
+		 internal_handle->current_offset );
 
-		return( -1 );
+		goto on_error;
 	}
 	if( chunk_data == NULL )
 	{
@@ -5615,17 +5549,17 @@ ssize_t libewf_internal_handle_read_data_chunk_from_file_io_pool(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
-		 "%s: missing chunk: %" PRIu64 " data.",
+		 "%s: missing chunk data for offset: %" PRIi64 " (0x%08" PRIx64 ").",
 		 function,
-		 internal_handle->current_chunk_index );
+		 internal_handle->current_offset,
+		 internal_handle->current_offset );
 
-		return( -1 );
+		goto on_error;
 	}
-	read_count = (ssize_t) chunk_data->data_size;
-
+	/* data_chunk takes over management of chunk_data
+	 */
 	if( libewf_internal_data_chunk_set_chunk_data(
 	     internal_data_chunk,
-	     internal_handle->current_chunk_index,
 	     chunk_data,
 	     error ) != 1 )
 	{
@@ -5635,19 +5569,29 @@ ssize_t libewf_internal_handle_read_data_chunk_from_file_io_pool(
 		 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
 		 "%s: unable to set chunk: %" PRIu64 " data in data chunk.",
 		 function,
-		 internal_handle->current_chunk_index );
+		 chunk_data->chunk_index );
 
-		return( -1 );
+		goto on_error;
 	}
-	internal_handle->current_offset += read_count;
+	internal_handle->current_offset = chunk_data->range_end_offset;
 
-	internal_handle->current_chunk_index++;
+	read_count = (ssize_t) ( chunk_data->range_end_offset - chunk_data->range_start_offset );
 
 	return( read_count );
+
+on_error:
+	if( chunk_data != NULL )
+	{
+		libewf_chunk_data_free(
+		 &chunk_data,
+		 NULL );
+	}
+	return( -1 );
 }
 
 /* Reads a (media) data chunk at the current offset
  * Returns the number of bytes read, 0 when no longer data can be read or -1 on error
+ * Returns the number of bytes in the data chunk, 0 when no longer data can be read or -1 on error
  */
 ssize_t libewf_handle_read_data_chunk(
          libewf_handle_t *handle,
@@ -5742,10 +5686,10 @@ ssize_t libewf_internal_handle_write_data_chunk_to_file_io_pool(
          libewf_internal_data_chunk_t *internal_data_chunk,
          libcerror_error_t **error )
 {
-	static char *function = "libewf_internal_handle_write_data_chunk_to_file_io_pool";
-	size_t data_size      = 0;
-	ssize_t write_count   = 0;
-	int chunk_exists      = 0;
+	static char *function        = "libewf_internal_handle_write_data_chunk_to_file_io_pool";
+	size_t data_size             = 0;
+	ssize_t write_count          = 0;
+	uint64_t current_chunk_index = 0;
 
 	if( internal_handle == NULL )
 	{
@@ -5857,11 +5801,9 @@ ssize_t libewf_internal_handle_write_data_chunk_to_file_io_pool(
 		}
 	}
 /* TODO remove need to calculate */
-	internal_handle->current_chunk_index = internal_handle->current_offset
-	                                     / internal_handle->media_values->chunk_size;
+	current_chunk_index = internal_handle->current_offset / internal_handle->media_values->chunk_size;
 
-	internal_handle->current_offset = (off64_t) internal_handle->current_chunk_index
-	                                * (off64_t) internal_handle->media_values->chunk_size;
+	internal_handle->current_offset = (off64_t) current_chunk_index * (off64_t) internal_handle->media_values->chunk_size;
 
 #if defined( HAVE_DEBUG_OUTPUT )
 	if( libcnotify_verbose != 0 )
@@ -5869,32 +5811,11 @@ ssize_t libewf_internal_handle_write_data_chunk_to_file_io_pool(
 		libcnotify_printf(
 		 "%s: writing chunk: %" PRIu64 " of size: %" PRIzd ".\n",
 		 function,
-		 internal_handle->current_chunk_index,
+		 current_chunk_index,
 		 data_size );
 	}
 #endif
-	chunk_exists = libewf_chunk_table_chunk_exists_for_offset(
-	                internal_handle->chunk_table,
-	                internal_handle->current_chunk_index,
-	                file_io_pool,
-	                internal_handle->segment_table,
-	                internal_handle->chunk_groups_cache,
-	                internal_handle->current_offset,
-			error );
-
-	if( chunk_exists == -1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-		 "%s: unable to determine if the chunk: %" PRIu64 " exists.",
-		 function,
-		 internal_handle->current_chunk_index );
-
-		return( -1 );
-	}
-	else if( chunk_exists != 0 )
+	if( current_chunk_index < internal_handle->write_io_handle->number_of_chunks_written )
 	{
 		libcerror_error_set(
 		 error,
@@ -5902,7 +5823,7 @@ ssize_t libewf_internal_handle_write_data_chunk_to_file_io_pool(
 		 LIBCERROR_RUNTIME_ERROR_VALUE_ALREADY_SET,
 		 "%s: chunk: %" PRIu64 " already exists.",
 		 function,
-		 internal_handle->current_chunk_index );
+		 current_chunk_index );
 
 		return( -1 );
 	}
@@ -5918,7 +5839,7 @@ ssize_t libewf_internal_handle_write_data_chunk_to_file_io_pool(
 	               internal_handle->sessions,
 	               internal_handle->tracks,
 	               internal_handle->acquiry_errors,
-	               internal_handle->current_chunk_index,
+	               current_chunk_index,
 	               internal_data_chunk->chunk_data,
 	               data_size,
 	               error );
@@ -6042,8 +5963,6 @@ ssize_t libewf_internal_handle_write_finalize_file_io_pool(
 	ssize_t write_finalize_count        = 0;
 	uint64_t chunk_index                = 0;
 	uint32_t number_of_segments         = 0;
-	uint32_t segment_number             = 0;
-	int chunk_exists                    = 0;
 	int file_io_pool_entry              = -1;
 
 	if( internal_handle == NULL )
@@ -6140,28 +6059,7 @@ ssize_t libewf_internal_handle_write_finalize_file_io_pool(
 	{
 		chunk_index = internal_handle->current_offset / internal_handle->media_values->chunk_size;
 
-		chunk_exists = libewf_chunk_table_chunk_exists_for_offset(
-				internal_handle->chunk_table,
-				chunk_index,
-				file_io_pool,
-				internal_handle->segment_table,
-				internal_handle->chunk_groups_cache,
-				internal_handle->current_offset,
-				error );
-
-		if( chunk_exists == -1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-			 "%s: unable to determine if the chunk: %" PRIu64 " exists.",
-			 function,
-			 chunk_index );
-
-			return( -1 );
-		}
-		if( chunk_exists != 0 )
+		if( chunk_index < internal_handle->write_io_handle->number_of_chunks_written )
 		{
 			libcerror_error_set(
 			 error,
@@ -6223,30 +6121,19 @@ ssize_t libewf_internal_handle_write_finalize_file_io_pool(
 		}
 		write_finalize_count += write_count;
 
-		if( libfcache_cache_set_value_by_index(
-		     internal_handle->chunks_cache,
-		     chunk_index % LIBEWF_MAXIMUM_CACHE_ENTRIES_CHUNKS,
-		     0,
-		     internal_handle->current_offset,
-		     0,
-		     (intptr_t *) internal_handle->chunk_data,
-		     (int (*)(intptr_t **, libcerror_error_t **)) &libewf_chunk_data_free,
-		     LIBFCACHE_CACHE_VALUE_FLAG_MANAGED,
+		if( libewf_chunk_data_free(
+		     &( internal_handle->chunk_data ),
 		     error ) != 1 )
 		{
 			libcerror_error_set(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-			 "%s: unable to set chunk: %" PRIu64 " data.",
-			 function,
-			 chunk_index );
+			 LIBCERROR_RUNTIME_ERROR_FINALIZE_FAILED,
+			 "%s: unable to free chunk data.",
+			 function );
 
 			return( -1 );
 		}
-		/* chunks_cache takes over management of chunk_data
-		 */
-		internal_handle->chunk_data = NULL;
 	}
 	/* Check if all media data has been written
 	 */
@@ -6328,13 +6215,13 @@ ssize_t libewf_internal_handle_write_finalize_file_io_pool(
 		}
 		write_finalize_count += write_count;
 	}
-	else
+	/* Check if the last segment file is still open for writing
+	 */
+	else if( internal_handle->write_io_handle->current_segment_file != NULL )
 	{
-		segment_number = number_of_segments - 1;
-
 		if( libewf_segment_table_get_segment_by_index(
 		     internal_handle->segment_table,
-		     segment_number,
+		     internal_handle->write_io_handle->current_segment_number,
 		     &file_io_pool_entry,
 		     &segment_file_size,
 		     error ) != 1 )
@@ -6345,68 +6232,10 @@ ssize_t libewf_internal_handle_write_finalize_file_io_pool(
 			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
 			 "%s: unable to retrieve segment: %" PRIu32 " from segment table.",
 			 function,
-			 segment_number );
+			 internal_handle->write_io_handle->current_segment_number );
 
 			return( -1 );
 		}
-		if( libewf_segment_table_get_segment_file_by_index(
-		     internal_handle->segment_table,
-		     segment_number,
-		     file_io_pool,
-		     &segment_file,
-		     error ) != 1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-			 "%s: unable to retrieve segment file: %" PRIu32 " from segment table.",
-			 function,
-			 segment_number );
-
-			return( -1 );
-		}
-		if( segment_file == NULL )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
-			 "%s: missing segment file: %" PRIu32 ".",
-			 function,
-			 segment_number );
-
-			return( -1 );
-		}
-	}
-	/* Set segment file to the correct offset if write is resumed
-	 */
-	if( internal_handle->write_io_handle->resume_segment_file_offset > 0 )
-	{
-		if( libbfio_pool_seek_offset(
-		     file_io_pool,
-		     file_io_pool_entry,
-		     internal_handle->write_io_handle->resume_segment_file_offset,
-		     SEEK_SET,
-		     error ) == -1 )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_IO,
-			 LIBCERROR_IO_ERROR_OPEN_FAILED,
-			 "%s: unable to seek resume segment file offset: %" PRIi64 " in segment file: %" PRIu32 ".",
-			 function,
-			 internal_handle->write_io_handle->resume_segment_file_offset,
-			 segment_number );
-
-			return( -1 );
-		}
-		internal_handle->write_io_handle->resume_segment_file_offset = 0;
-	}
-	/* Check if the last segment file is still open for writing
-	 */
-	if( ( segment_file->flags & LIBEWF_SEGMENT_FILE_FLAG_WRITE_OPEN ) != 0 )
-	{
 		/* Check if chunks section needs to be corrected
 		 */
 		if( internal_handle->write_io_handle->chunks_section_offset != 0 )
@@ -6416,7 +6245,7 @@ ssize_t libewf_internal_handle_write_finalize_file_io_pool(
 			               internal_handle->io_handle,
 				       file_io_pool,
 				       file_io_pool_entry,
-			               segment_file,
+			               internal_handle->write_io_handle->current_segment_file,
 			               error );
 
 			if( write_count == -1 )
@@ -6425,8 +6254,9 @@ ssize_t libewf_internal_handle_write_finalize_file_io_pool(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_IO,
 				 LIBCERROR_IO_ERROR_WRITE_FAILED,
-				 "%s: unable to write chunks section end.",
-				 function );
+				 "%s: unable to write chunks section end: %" PRIu32 ".",
+				 function,
+				 internal_handle->write_io_handle->current_segment_number );
 
 				return( -1 );
 			}
@@ -6438,12 +6268,13 @@ ssize_t libewf_internal_handle_write_finalize_file_io_pool(
 		if( libcnotify_verbose != 0 )
 		{
 			libcnotify_printf(
-			 "%s: closing last segment file.\n",
-			 function );
+			 "%s: closing last segment file: %" PRIu32 ".\n",
+			 function,
+			 internal_handle->write_io_handle->current_segment_number );
 		}
 #endif
 		write_count = libewf_segment_file_write_close(
-		               segment_file,
+		               internal_handle->write_io_handle->current_segment_file,
 		               file_io_pool,
 		               file_io_pool_entry,
 		               internal_handle->write_io_handle->number_of_chunks_written_to_segment_file,
@@ -6463,12 +6294,15 @@ ssize_t libewf_internal_handle_write_finalize_file_io_pool(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_IO,
 			 LIBCERROR_IO_ERROR_WRITE_FAILED,
-			 "%s: unable to close segment file.",
-			 function );
+			 "%s: unable to close segment file: %" PRIu32 ".",
+			 function,
+			 internal_handle->write_io_handle->current_segment_number );
 
 			return( -1 );
 		}
 		write_finalize_count += write_count;
+
+		internal_handle->write_io_handle->current_segment_file = NULL;
 	}
 	/* Correct the media values if streamed write was used
 	 */
@@ -8225,8 +8059,9 @@ int libewf_internal_handle_get_file_io_handle(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-		 "%s: unable to retrieve segment at offset: 0x%08" PRIx64 " from segment table.",
+		 "%s: unable to retrieve segment at offset: %" PRIi64 " (0x%08" PRIx64 ") from segment table.",
 		 function,
+		 internal_handle->current_offset,
 		 internal_handle->current_offset );
 
 		return( -1 );
@@ -8340,9 +8175,10 @@ int libewf_internal_handle_get_media_values(
 {
 	libewf_chunk_data_t *chunk_data = NULL;
 	static char *function           = "libewf_internal_handle_get_media_values";
-	off64_t chunk_data_offset       = 0;
 	size64_t chunks_data_size       = 0;
 	size64_t sector_data_size       = 0;
+	size32_t chunk_size             = 0;
+	off64_t chunk_data_offset       = 0;
 	uint64_t chunk_index            = 0;
 
 	if( internal_handle == NULL )
@@ -8378,37 +8214,36 @@ int libewf_internal_handle_get_media_values(
 
 		return( -1 );
 	}
-	sector_data_size  = internal_handle->media_values->number_of_sectors;
-	sector_data_size *= internal_handle->media_values->bytes_per_sector;
+	sector_data_size = (size64_t) internal_handle->media_values->number_of_sectors * internal_handle->media_values->bytes_per_sector;
 
 	if( ( ( internal_handle->io_handle->access_flags & LIBEWF_ACCESS_FLAG_READ ) != 0 )
 	 && ( ( internal_handle->io_handle->access_flags & LIBEWF_ACCESS_FLAG_RESUME ) == 0 ) )
 	{
+		chunk_size = (size32_t) internal_handle->media_values->sectors_per_chunk * internal_handle->media_values->bytes_per_sector;
+
 		if( internal_handle->media_values->number_of_chunks > 0 )
 		{
-			chunk_index = internal_handle->media_values->number_of_chunks - 1;
+			internal_handle->current_offset = ( (off64_t) internal_handle->media_values->number_of_chunks - 1 ) * chunk_size;
 
 			if( libewf_chunk_table_get_chunk_data_by_offset(
 			     internal_handle->chunk_table,
-			     chunk_index,
 			     internal_handle->io_handle,
 			     internal_handle->file_io_pool,
 			     internal_handle->media_values,
 			     internal_handle->segment_table,
-			     internal_handle->chunk_groups_cache,
-			     internal_handle->chunks_cache,
 			     internal_handle->current_offset,
-			     &chunk_data,
 			     &chunk_data_offset,
+			     &chunk_data,
 			     error ) != 1 )
 			{
 				libcerror_error_set(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 				 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-				 "%s: unable to retrieve chunk: %" PRIu64 " data.",
+				 "%s: unable to retrieve chunk data for offset: %" PRIi64 " (0x%08" PRIx64 ").",
 				 function,
-				 chunk_index );
+				 internal_handle->current_offset,
+				 internal_handle->current_offset );
 
 				return( -1 );
 			}
@@ -8418,18 +8253,14 @@ int libewf_internal_handle_get_media_values(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 				 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
-				 "%s: missing chunk: %" PRIu64 " data.",
+				 "%s: missing chunk data for offset: %" PRIi64 " (0x%08" PRIx64 ").",
 				 function,
-				 chunk_index );
+				 internal_handle->current_offset,
+				 internal_handle->current_offset );
 
 				return( -1 );
 			}
-			chunks_data_size = chunk_index
-			                 * internal_handle->media_values->sectors_per_chunk
-			                 * internal_handle->media_values->bytes_per_sector;
-
-			/* The only way to determine the size of the last compressed chunk
-			 * is to decompress it
+			/* The only way to determine the size of the last compressed chunk is to unpack it
 			 */
 			if( libewf_chunk_data_unpack(
 			     chunk_data,
@@ -8446,6 +8277,8 @@ int libewf_internal_handle_get_media_values(
 
 				return( -1 );
 			}
+			chunks_data_size = chunk_index * chunk_size;
+
 			if( ( chunk_data->range_flags & LIBEWF_RANGE_FLAG_IS_CORRUPTED ) == 0 )
 			{
 				chunks_data_size += chunk_data->data_size;
@@ -10486,9 +10319,9 @@ int libewf_handle_set_compression_values(
 
 		return( -1 );
 	}
-	if( ( compression_level != LIBEWF_COMPRESSION_NONE )
-	 && ( compression_level != LIBEWF_COMPRESSION_FAST )
-	 && ( compression_level != LIBEWF_COMPRESSION_BEST ) )
+	if( ( compression_level != LIBEWF_COMPRESSION_LEVEL_NONE )
+	 && ( compression_level != LIBEWF_COMPRESSION_LEVEL_FAST )
+	 && ( compression_level != LIBEWF_COMPRESSION_LEVEL_BEST ) )
 	{
 		libcerror_error_set(
 		 error,
@@ -13208,8 +13041,8 @@ int libewf_handle_get_session(
      libcerror_error_t **error )
 {
 	libewf_internal_handle_t *internal_handle = NULL;
-	libewf_sector_range_t *sector_range       = NULL;
 	static char *function                     = "libewf_handle_get_session";
+	int result                                = 1;
 
 	if( handle == NULL )
 	{
@@ -13239,24 +13072,9 @@ int libewf_handle_get_session(
 		return( -1 );
 	}
 #endif
-	if( libcdata_array_get_entry_by_index(
+	if( libewf_sector_range_list_get_range(
 	     internal_handle->sessions,
-	     (int) index,
-	     (intptr_t **) &sector_range,
-	     error ) != 1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-		 "%s: unable to retrieve session sector range: %" PRIu32 " from array.",
-		 function,
-		 index );
-
-		goto on_error;
-	}
-	if( libewf_sector_range_get(
-	     sector_range,
+	     index,
 	     start_sector,
 	     number_of_sectors,
 	     error ) != 1 )
@@ -13269,7 +13087,7 @@ int libewf_handle_get_session(
 		 function,
 		 index );
 
-		goto on_error;
+		result = -1;
 	}
 #if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
 	if( libcthreads_read_write_lock_release_for_read(
@@ -13286,15 +13104,7 @@ int libewf_handle_get_session(
 		return( -1 );
 	}
 #endif
-	return( 1 );
-
-on_error:
-#if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
-	libcthreads_read_write_lock_release_for_read(
-	 internal_handle->read_write_lock,
-	 NULL );
-#endif
-	return( -1 );
+	return( result );
 }
 
 /* Appends a session
@@ -13307,9 +13117,8 @@ int libewf_handle_append_session(
      libcerror_error_t **error )
 {
 	libewf_internal_handle_t *internal_handle = NULL;
-	libewf_sector_range_t *sector_range       = NULL;
 	static char *function                     = "libewf_handle_append_session";
-	int entry_index                           = 0;
+	int result                                = 1;
 
 	if( handle == NULL )
 	{
@@ -13339,21 +13148,8 @@ int libewf_handle_append_session(
 		return( -1 );
 	}
 #endif
-	if( libewf_sector_range_initialize(
-	     &sector_range,
-	     error ) != 1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create session sector range.",
-		 function );
-
-		goto on_error;
-	}
-	if( libewf_sector_range_set(
-	     sector_range,
+	if( libewf_sector_range_list_append_range(
+	     internal_handle->sessions,
 	     start_sector,
 	     number_of_sectors,
 	     error ) != 1 )
@@ -13361,26 +13157,11 @@ int libewf_handle_append_session(
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-		 "%s: unable to set session sector range.",
-		 function );
-
-		goto on_error;
-	}
-	if( libcdata_array_append_entry(
-	     internal_handle->sessions,
-	     &entry_index,
-	     (intptr_t *) sector_range,
-	     error ) != 1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-		 "%s: unable to append session sector range to array.",
+		 "%s: unable to append session sector range.",
 		 function );
 
-		goto on_error;
+		result = -1;
 	}
 #if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
 	if( libcthreads_read_write_lock_release_for_write(
@@ -13397,21 +13178,7 @@ int libewf_handle_append_session(
 		return( -1 );
 	}
 #endif
-	return( 1 );
-
-on_error:
-	if( sector_range != NULL )
-	{
-		libewf_sector_range_free(
-		 &sector_range,
-		 NULL );
-	}
-#if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
-	libcthreads_read_write_lock_release_for_write(
-	 internal_handle->read_write_lock,
-	 NULL );
-#endif
-	return( -1 );
+	return( result );
 }
 
 /* Retrieves the number of tracks
@@ -13532,8 +13299,8 @@ int libewf_handle_get_track(
      libcerror_error_t **error )
 {
 	libewf_internal_handle_t *internal_handle = NULL;
-	libewf_sector_range_t *sector_range       = NULL;
 	static char *function                     = "libewf_handle_get_track";
+	int result                                = 1;
 
 	if( handle == NULL )
 	{
@@ -13563,24 +13330,9 @@ int libewf_handle_get_track(
 		return( -1 );
 	}
 #endif
-	if( libcdata_array_get_entry_by_index(
+	if( libewf_sector_range_list_get_range(
 	     internal_handle->tracks,
-	     (int) index,
-	     (intptr_t **) &sector_range,
-	     error ) != 1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
-		 "%s: unable to retrieve track sector range: %" PRIu32 " from array.",
-		 function,
-		 index );
-
-		goto on_error;
-	}
-	if( libewf_sector_range_get(
-	     sector_range,
+	     index,
 	     start_sector,
 	     number_of_sectors,
 	     error ) != 1 )
@@ -13593,7 +13345,7 @@ int libewf_handle_get_track(
 		 function,
 		 index );
 
-		goto on_error;
+		result = -1;
 	}
 #if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
 	if( libcthreads_read_write_lock_release_for_read(
@@ -13610,15 +13362,7 @@ int libewf_handle_get_track(
 		return( -1 );
 	}
 #endif
-	return( 1 );
-
-on_error:
-#if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
-	libcthreads_read_write_lock_release_for_read(
-	 internal_handle->read_write_lock,
-	 NULL );
-#endif
-	return( -1 );
+	return( result );
 }
 
 /* Appends a track
@@ -13631,9 +13375,8 @@ int libewf_handle_append_track(
      libcerror_error_t **error )
 {
 	libewf_internal_handle_t *internal_handle = NULL;
-	libewf_sector_range_t *sector_range       = NULL;
 	static char *function                     = "libewf_handle_append_track";
-	int entry_index                           = 0;
+	int result                                = 1;
 
 	if( handle == NULL )
 	{
@@ -13663,21 +13406,8 @@ int libewf_handle_append_track(
 		return( -1 );
 	}
 #endif
-	if( libewf_sector_range_initialize(
-	     &sector_range,
-	     error ) != 1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_INITIALIZE_FAILED,
-		 "%s: unable to create track sector range.",
-		 function );
-
-		goto on_error;
-	}
-	if( libewf_sector_range_set(
-	     sector_range,
+	if( libewf_sector_range_list_append_range(
+	     internal_handle->tracks,
 	     start_sector,
 	     number_of_sectors,
 	     error ) != 1 )
@@ -13685,26 +13415,11 @@ int libewf_handle_append_track(
 		libcerror_error_set(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-		 "%s: unable to set track sector range.",
-		 function );
-
-		goto on_error;
-	}
-	if( libcdata_array_append_entry(
-	     internal_handle->tracks,
-	     &entry_index,
-	     (intptr_t *) sector_range,
-	     error ) != 1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_APPEND_FAILED,
-		 "%s: unable to append track sector range to array.",
+		 "%s: unable to append track sector range.",
 		 function );
 
-		goto on_error;
+		result = -1;
 	}
 #if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
 	if( libcthreads_read_write_lock_release_for_write(
@@ -13721,21 +13436,7 @@ int libewf_handle_append_track(
 		return( -1 );
 	}
 #endif
-	return( 1 );
-
-on_error:
-	if( sector_range != NULL )
-	{
-		libewf_sector_range_free(
-		 &sector_range,
-		 NULL );
-	}
-#if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
-	libcthreads_read_write_lock_release_for_write(
-	 internal_handle->read_write_lock,
-	 NULL );
-#endif
-	return( -1 );
+	return( result );
 }
 
 /* Retrieves the header codepage
@@ -14593,7 +14294,7 @@ int libewf_handle_set_utf8_header_value(
 	}
 	if( result == 1 )
 	{
-		result = libewf_header_values_set_utf8_value(
+		result = libewf_value_table_copy_value_from_utf8_string(
 			  internal_handle->header_values,
 			  identifier,
 			  identifier_length,
@@ -14889,7 +14590,7 @@ int libewf_handle_set_utf16_header_value(
 	}
 	if( result == 1 )
 	{
-		result = libewf_header_values_set_utf16_value(
+		result = libewf_value_table_copy_value_from_utf16_string(
 		          internal_handle->header_values,
 		          identifier,
 		          identifier_length,
@@ -15286,7 +14987,7 @@ int libewf_handle_get_number_of_hash_values(
 	*number_of_values = (uint32_t) number_of_hash_values;
 
 #if defined( HAVE_LIBEWF_MULTI_THREAD_SUPPORT )
-	if( libcthreads_read_write_lock_release_for_read(
+	if( libcthreads_read_write_lock_release_for_write(
 	     internal_handle->read_write_lock,
 	     error ) != 1 )
 	{
@@ -15294,7 +14995,7 @@ int libewf_handle_get_number_of_hash_values(
 		 error,
 		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
 		 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-		 "%s: unable to release read/write lock for reading.",
+		 "%s: unable to release read/write lock for writing.",
 		 function );
 
 		return( -1 );
@@ -15570,7 +15271,7 @@ int libewf_handle_get_utf8_hash_value_size(
 #endif
 	if( internal_handle->hash_values != NULL )
 	{
-		result = libewf_hash_values_get_utf8_value_size(
+		result = libewf_value_table_get_utf8_value_size(
 		          internal_handle->hash_values,
 		          identifier,
 		          identifier_length,
@@ -15669,7 +15370,7 @@ int libewf_handle_get_utf8_hash_value(
 #endif
 	if( internal_handle->hash_values != NULL )
 	{
-		result = libewf_hash_values_get_utf8_value(
+		result = libewf_value_table_get_utf8_value(
 		          internal_handle->hash_values,
 		          identifier,
 		          identifier_length,
@@ -15793,7 +15494,7 @@ int libewf_handle_set_utf8_hash_value(
 	}
 	if( result == 1 )
 	{
-		result = libewf_hash_values_set_utf8_value(
+		result = libewf_value_table_copy_value_from_utf8_string(
 		          internal_handle->hash_values,
 		          identifier,
 		          identifier_length,
@@ -15911,7 +15612,7 @@ int libewf_handle_get_utf16_hash_value_size(
 #endif
 	if( internal_handle->hash_values != NULL )
 	{
-		result = libewf_hash_values_get_utf16_value_size(
+		result = libewf_value_table_get_utf16_value_size(
 		          internal_handle->hash_values,
 		          identifier,
 		          identifier_length,
@@ -16010,7 +15711,7 @@ int libewf_handle_get_utf16_hash_value(
 #endif
 	if( internal_handle->hash_values != NULL )
 	{
-		result = libewf_hash_values_get_utf16_value(
+		result = libewf_value_table_get_utf16_value(
 		          internal_handle->hash_values,
 		          identifier,
 		          identifier_length,
@@ -16134,7 +15835,7 @@ int libewf_handle_set_utf16_hash_value(
 	}
 	if( result == 1 )
 	{
-		result = libewf_hash_values_set_utf16_value(
+		result = libewf_value_table_copy_value_from_utf16_string(
 		          internal_handle->hash_values,
 		          identifier,
 		          identifier_length,

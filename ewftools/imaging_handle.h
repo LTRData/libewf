@@ -1,7 +1,7 @@
 /*
  * Imaging handle
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -202,9 +202,9 @@ struct imaging_handle
 	 */
 	system_character_t *calculated_sha256_hash_string;
 
-	/* Value to indicate if the chunk data instead of the buffered read and write functions should be used
+	/* Value to indicate if the data chunk functions instead of the buffered read and write functions should be used
 	 */
-	uint8_t use_chunk_data_functions;
+	uint8_t use_data_chunk_functions;
 
 	/* The process buffer size
 	 */
@@ -266,7 +266,7 @@ struct imaging_handle
 int imaging_handle_initialize(
      imaging_handle_t **imaging_handle,
      uint8_t calculate_md5,
-     uint8_t use_chunk_data_functions,
+     uint8_t use_data_chunk_functions,
      libcerror_error_t **error );
 
 int imaging_handle_free(
@@ -342,6 +342,16 @@ int imaging_handle_finalize_integrity_hash(
 
 #if defined( HAVE_MULTI_THREAD_SUPPORT )
 
+int imaging_handle_threads_start(
+     imaging_handle_t *imaging_handle,
+     size_t process_buffer_size,
+     uint8_t storage_media_buffer_mode,
+     libcerror_error_t **error );
+
+int imaging_handle_threads_stop(
+     imaging_handle_t *imaging_handle,
+     libcerror_error_t **error );
+
 int imaging_handle_process_storage_media_buffer_callback(
      storage_media_buffer_t *storage_media_buffer,
      imaging_handle_t *imaging_handle );
@@ -356,9 +366,10 @@ int imaging_handle_empty_output_list(
 
 #endif /* defined( HAVE_MULTI_THREAD_SUPPORT ) */
 
-int imaging_handle_get_chunk_size(
+int imaging_handle_get_process_buffer_size(
      imaging_handle_t *imaging_handle,
-     size32_t *chunk_size,
+     uint8_t use_data_chunk_functions,
+     size_t *process_buffer_size,
      libcerror_error_t **error );
 
 int imaging_handle_prompt_for_string(
@@ -553,9 +564,24 @@ int imaging_handle_append_track(
      uint64_t number_of_sectors,
      libcerror_error_t **error );
 
-ssize_t imaging_handle_finalize(
-         imaging_handle_t *imaging_handle,
-         libcerror_error_t **error );
+int imaging_handle_start(
+     imaging_handle_t *imaging_handle,
+     uint8_t print_status_information,
+     libcerror_error_t **error );
+
+int imaging_handle_update(
+     imaging_handle_t *imaging_handle,
+     storage_media_buffer_t *storage_media_buffer,
+     ssize_t read_count,
+     off64_t resume_acquiry_offset,
+     uint8_t swap_byte_pairs,
+     libcerror_error_t **error );
+
+int imaging_handle_stop(
+     imaging_handle_t *imaging_handle,
+     off64_t resume_acquiry_offset,
+     int status,
+     libcerror_error_t **error );
 
 int imaging_handle_print_parameters(
      imaging_handle_t *imaging_handle,

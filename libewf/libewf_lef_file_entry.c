@@ -1,7 +1,7 @@
 /*
  * Logical Evidence File (LEF) file entry functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -773,7 +773,8 @@ int libewf_lef_file_entry_read_extended_attributes(
 
 		goto on_error;
 	}
-	if( byte_stream_size > (size_t) SSIZE_MAX )
+	if( ( byte_stream_size == 0 )
+	 || ( byte_stream_size > (size_t) MEMORY_MAXIMUM_ALLOCATION_SIZE ) )
 	{
 		libcerror_error_set(
 		 error,

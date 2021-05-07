@@ -1,7 +1,7 @@
 /*
  * Shows information stored in an EWF file
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -610,7 +610,8 @@ int main( int argc, char * const argv[] )
 
 		goto on_error;
 	}
-#endif
+#endif /* defined( HAVE_GETRLIMIT ) */
+
 	if( ewftools_signal_attach(
 	     ewfinfo_signal_handler,
 	     &error ) != 1 )

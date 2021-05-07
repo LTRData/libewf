@@ -1,7 +1,7 @@
 /*
  * Chunk data functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -38,6 +38,10 @@ typedef struct libewf_chunk_data libewf_chunk_data_t;
 
 struct libewf_chunk_data
 {
+	/* The chunk index
+	 */
+	uint64_t chunk_index;
+
 	/* The chunk size
 	 */
 	size32_t chunk_size;
@@ -85,6 +89,14 @@ struct libewf_chunk_data
 	/* The chunk IO flags
 	 */
 	int8_t chunk_io_flags;
+
+	/* The range start offset
+	 */
+	off64_t range_start_offset;
+
+	/* The range end offset
+	 */
+	off64_t range_end_offset;
 };
 
 int libewf_chunk_data_initialize(
@@ -95,11 +107,6 @@ int libewf_chunk_data_initialize(
 
 int libewf_chunk_data_free(
      libewf_chunk_data_t **chunk_data,
-     libcerror_error_t **error );
-
-int libewf_chunk_data_clone(
-     libewf_chunk_data_t **destination_chunk_data,
-     libewf_chunk_data_t *source_chunk_data,
      libcerror_error_t **error );
 
 ssize_t libewf_chunk_data_read_buffer(
@@ -113,6 +120,27 @@ ssize_t libewf_chunk_data_write_buffer(
          const uint8_t *buffer,
          size_t buffer_size,
          libcerror_error_t **error );
+
+int libewf_chunk_data_pack_determine_pack_flags(
+     libewf_chunk_data_t *chunk_data,
+     libewf_io_handle_t *io_handle,
+     uint8_t *pack_flags,
+     libcerror_error_t **error );
+
+int libewf_chunk_data_pack_with_64_bit_pattern_fill(
+     libewf_chunk_data_t *chunk_data,
+     libcerror_error_t **error );
+
+int libewf_chunk_data_pack_with_empty_block_compression(
+     libewf_chunk_data_t *chunk_data,
+     const uint8_t *compressed_zero_byte_empty_block,
+     size_t compressed_zero_byte_empty_block_size,
+     libcerror_error_t **error );
+
+int libewf_chunk_data_pack_with_compression(
+     libewf_chunk_data_t *chunk_data,
+     libewf_io_handle_t *io_handle,
+     libcerror_error_t **error );
 
 int libewf_chunk_data_pack(
      libewf_chunk_data_t *chunk_data,

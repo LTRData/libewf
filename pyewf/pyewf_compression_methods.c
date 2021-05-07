@@ -1,7 +1,7 @@
 /*
  * Python object definition of the libewf compression methods
  *
- * Copyright (C) 2008-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -242,7 +242,7 @@ on_error:
 	return( NULL );
 }
 
-/* Intializes a compression methods object
+/* Initializes a compression methods object
  * Returns 0 if successful or -1 on error
  */
 int pyewf_compression_methods_init(

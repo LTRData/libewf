@@ -1,7 +1,7 @@
 /*
  * Data chunk functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -41,10 +41,6 @@ typedef struct libewf_internal_data_chunk libewf_internal_data_chunk_t;
 
 struct libewf_internal_data_chunk
 {
-	/* The chunk index
-	 */
-	uint64_t chunk_index;
-
 	/* The data size
 	 */
 	size_t data_size;
@@ -81,8 +77,12 @@ int libewf_data_chunk_free(
 
 int libewf_internal_data_chunk_set_chunk_data(
      libewf_internal_data_chunk_t *internal_data_chunk,
-     uint64_t chunk_index,
      libewf_chunk_data_t *chunk_data,
+     libcerror_error_t **error );
+
+LIBEWF_EXTERN \
+int libewf_data_chunk_is_corrupted(
+     libewf_data_chunk_t *data_chunk,
      libcerror_error_t **error );
 
 LIBEWF_EXTERN \

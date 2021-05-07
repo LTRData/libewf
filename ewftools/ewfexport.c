@@ -1,7 +1,7 @@
 /*
  * Export media data from EWF files to a file
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -198,8 +198,8 @@ void usage_fprint(
 	fprintf( stream, "\t-v:        verbose output to stderr\n" );
 	fprintf( stream, "\t-V:        print version\n" );
 	fprintf( stream, "\t-w:        zero sectors on checksum error (mimic EnCase like behavior)\n" );
-	fprintf( stream, "\t-x:        use the chunk data instead of the buffered read and write\n"
-	                 "\t           functions.\n" );
+	fprintf( stream, "\t-x:        use the data chunk functions instead of the buffered read and\n"
+	                 "\t           write functions.\n" );
 }
 
 /* Signal handler for ewfexport
@@ -282,7 +282,7 @@ int main( int argc, char * const argv[] )
 	uint8_t calculate_md5                              = 1;
 	uint8_t print_status_information                   = 1;
 	uint8_t swap_byte_pairs                            = 0;
-	uint8_t use_chunk_data_functions                   = 0;
+	uint8_t use_data_chunk_functions                   = 0;
 	uint8_t verbose                                    = 0;
 	uint8_t zero_chunk_on_error                        = 0;
 	int interactive_mode                               = 1;
@@ -476,7 +476,7 @@ int main( int argc, char * const argv[] )
 				break;
 
 			case (system_integer_t) 'x':
-				use_chunk_data_functions = 1;
+				use_data_chunk_functions = 1;
 
 				break;
 		}
@@ -554,7 +554,7 @@ int main( int argc, char * const argv[] )
 	if( export_handle_initialize(
 	     &ewfexport_export_handle,
 	     calculate_md5,
-	     use_chunk_data_functions,
+	     use_data_chunk_functions,
 	     &error ) != 1 )
 	{
 		fprintf(
@@ -591,7 +591,8 @@ int main( int argc, char * const argv[] )
 
 		goto on_error;
 	}
-#endif
+#endif /* defined( HAVE_GETRLIMIT ) */
+
 	if( ewftools_signal_attach(
 	     ewfexport_signal_handler,
 	     &error ) != 1 )
@@ -778,8 +779,19 @@ int main( int argc, char * const argv[] )
 			fprintf(
 			 stderr,
 			 "Unsupported sectors per chunk defaulting to: %" PRIu32 ".\n",
-			 ewfexport_export_handle->sectors_per_chunk );
+			 ewfexport_export_handle->output_sectors_per_chunk );
 		}
+		if( use_data_chunk_functions != 0 )
+		{
+			fprintf(
+			 stderr,
+			 "Setting sectors per chunk when using data chunk functions currently not supported defaulting to: %" PRIu32 ".\n",
+			 ewfexport_export_handle->input_sectors_per_chunk );
+		}
+	}
+	if( use_data_chunk_functions != 0 )
+	{
+		ewfexport_export_handle->output_sectors_per_chunk = ewfexport_export_handle->input_sectors_per_chunk;
 	}
 	if( option_maximum_segment_size != NULL )
 	{

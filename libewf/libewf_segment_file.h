@@ -1,7 +1,7 @@
 /*
  * Segment file reading/writing functions
  *
- * Copyright (C) 2006-2020, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2021, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -114,9 +114,9 @@ struct libewf_segment_file
 	 */
 	libfdata_list_t *chunk_groups_list;
 
-	/* The (current) chunk groups index
+	/* The current chunk groups index
 	 */
-	int chunk_groups_index;
+	int current_chunk_group_index;
 
 	/* The storage media size (in the segment file)
 	 */
@@ -141,6 +141,18 @@ struct libewf_segment_file
 	/* Flags
 	 */
 	uint8_t flags;
+
+	/* The range start offset
+	 */
+	off64_t range_start_offset;
+
+	/* The range end offset
+	 */
+	off64_t range_end_offset;
+
+	/* The chunk groups cache
+	 */
+	libfcache_cache_t *chunk_groups_cache;
 };
 
 int libewf_segment_file_initialize(
@@ -170,7 +182,13 @@ int libewf_segment_file_get_section_by_index(
      libewf_section_descriptor_t **section,
      libcerror_error_t **error );
 
-ssize_t libewf_segment_file_read_file_header(
+int libewf_segment_file_read_file_header_data(
+     libewf_segment_file_t *segment_file,
+     const uint8_t *data,
+     size_t data_size,
+     libcerror_error_t **error );
+
+ssize_t libewf_segment_file_read_file_header_file_io_pool(
          libewf_segment_file_t *segment_file,
          libbfio_pool_t *file_io_pool,
          int file_io_pool_entry,
@@ -411,7 +429,6 @@ int libewf_segment_file_read_chunk_group_element_data(
 int libewf_segment_file_get_chunk_group_by_offset(
      libewf_segment_file_t *segment_file,
      libbfio_pool_t *file_io_pool,
-     libfcache_cache_t *chunk_groups_cache,
      off64_t offset,
      int *chunk_group_index,
      off64_t *chunk_group_data_offset,
