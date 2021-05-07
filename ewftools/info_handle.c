@@ -4638,7 +4638,7 @@ int info_handle_attribute_value_fprint(
 	{
 		fprintf(
 		 info_handle->notify_stream,
-		 "\t\t%s",
+		 "\t\t%" PRIs_SYSTEM,
 		 name_string );
 
 		do

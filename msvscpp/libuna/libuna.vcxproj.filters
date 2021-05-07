@@ -147,6 +147,9 @@
     <ClCompile Include="..\..\libuna\libuna_utf8_string.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\libuna\libuna_scsu.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\libuna\libuna_base16_stream.h">

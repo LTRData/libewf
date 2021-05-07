@@ -1695,7 +1695,7 @@ ssize_t libewf_segment_file_read_table2_section(
 	{
 		segment_file->flags |= LIBEWF_SEGMENT_FILE_FLAG_IS_CORRUPTED;
 
-		table_section->number_of_entries = chunk_group_number_of_entries;
+		table_section->number_of_entries = (uint32_t) chunk_group_number_of_entries;
 	}
 	else if( number_of_entries_mismatch != 0 )
 	{
@@ -1704,7 +1704,7 @@ ssize_t libewf_segment_file_read_table2_section(
 		{
 			/* If the number of entries in the table section are not 0 prefer the table section
 			 */
-			table_section->number_of_entries = chunk_group_number_of_entries;
+			table_section->number_of_entries = (uint32_t) chunk_group_number_of_entries;
 		}
 		else
 		{

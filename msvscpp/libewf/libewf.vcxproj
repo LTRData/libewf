@@ -320,8 +320,10 @@
     <ClCompile Include="..\..\libewf\libewf_attribute.c" />
     <ClCompile Include="..\..\libewf\libewf_bit_stream.c" />
     <ClCompile Include="..\..\libewf\libewf_case_data.c" />
+    <ClCompile Include="..\..\libewf\libewf_case_data_section.c" />
     <ClCompile Include="..\..\libewf\libewf_checksum.c" />
     <ClCompile Include="..\..\libewf\libewf_chunk_data.c" />
+    <ClCompile Include="..\..\libewf\libewf_chunk_descriptor.c" />
     <ClCompile Include="..\..\libewf\libewf_chunk_group.c" />
     <ClCompile Include="..\..\libewf\libewf_chunk_table.c" />
     <ClCompile Include="..\..\libewf\libewf_compression.c" />
@@ -331,6 +333,7 @@
     <ClCompile Include="..\..\libewf\libewf_debug.c" />
     <ClCompile Include="..\..\libewf\libewf_deflate.c" />
     <ClCompile Include="..\..\libewf\libewf_device_information.c" />
+    <ClCompile Include="..\..\libewf\libewf_device_information_section.c" />
     <ClCompile Include="..\..\libewf\libewf_digest_section.c" />
     <ClCompile Include="..\..\libewf\libewf_error.c" />
     <ClCompile Include="..\..\libewf\libewf_error2_section.c" />
@@ -358,6 +361,7 @@
     <ClCompile Include="..\..\libewf\libewf_section.c" />
     <ClCompile Include="..\..\libewf\libewf_section_descriptor.c" />
     <ClCompile Include="..\..\libewf\libewf_sector_range.c" />
+    <ClCompile Include="..\..\libewf\libewf_sector_range_list.c" />
     <ClCompile Include="..\..\libewf\libewf_segment_file.c" />
     <ClCompile Include="..\..\libewf\libewf_segment_table.c" />
     <ClCompile Include="..\..\libewf\libewf_serialized_string.c" />
@@ -367,6 +371,8 @@
     <ClCompile Include="..\..\libewf\libewf_single_file_tree.c" />
     <ClCompile Include="..\..\libewf\libewf_source.c" />
     <ClCompile Include="..\..\libewf\libewf_support.c" />
+    <ClCompile Include="..\..\libewf\libewf_table_section.c" />
+    <ClCompile Include="..\..\libewf\libewf_value_table.c" />
     <ClCompile Include="..\..\libewf\libewf_volume_section.c" />
     <ClCompile Include="..\..\libewf\libewf_write_io_handle.c" />
   </ItemGroup>

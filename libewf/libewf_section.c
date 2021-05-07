@@ -227,7 +227,7 @@ ssize_t libewf_section_read_data(
 		return( -1 );
 	}
 	safe_section_data = (uint8_t *) memory_allocate(
-	                                 sizeof( uint8_t ) * section_descriptor->data_size );
+	                                 sizeof( uint8_t ) * (size_t)section_descriptor->data_size );
 
 	if( safe_section_data == NULL )
 	{

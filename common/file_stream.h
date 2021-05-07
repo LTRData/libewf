@@ -35,6 +35,26 @@
 extern "C" {
 #endif
 
+#if defined( UNICODE ) || defined( _UNICODE )
+
+#define FILE_STREAM_OPEN_APPEND_W			L"a"
+#define FILE_STREAM_OPEN_READ_W				L"r"
+#define FILE_STREAM_OPEN_WRITE_W			L"w"
+
+#if defined( WINAPI )
+#define FILE_STREAM_BINARY_OPEN_APPEND_W	L"ab"
+#define FILE_STREAM_BINARY_OPEN_READ_W		L"rb"
+#define FILE_STREAM_BINARY_OPEN_WRITE_W		L"wb"
+
+#else
+#define FILE_STREAM_BINARY_OPEN_APPEND_W	L"a"
+#define FILE_STREAM_BINARY_OPEN_READ_W		L"r"
+#define FILE_STREAM_BINARY_OPEN_WRITE_W		L"w"
+
+#endif
+
+#endif
+
 #define FILE_STREAM_OPEN_APPEND			"a"
 #define FILE_STREAM_OPEN_READ			"r"
 #define FILE_STREAM_OPEN_WRITE			"w"
