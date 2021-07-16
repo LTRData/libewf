@@ -88,6 +88,7 @@
     <Import Project="..\..\libewf.props" />
     <Import Project="..\..\libewf_x86.props" />
     <Import Project="..\..\libewf_all.props" />
+    <Import Project="..\Posix API Base Names.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='VSDebug|ARM'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -102,12 +103,14 @@
     <Import Project="..\..\libewf.props" />
     <Import Project="..\..\libewf_x64.props" />
     <Import Project="..\..\libewf_all.props" />
+    <Import Project="..\Posix API Base Names.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\..\libewf.props" />
     <Import Project="..\..\libewf_x86.props" />
     <Import Project="..\..\libewf_all.props" />
+    <Import Project="..\Posix API Base Names.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -122,6 +125,7 @@
     <Import Project="..\..\libewf.props" />
     <Import Project="..\..\libewf_x64.props" />
     <Import Project="..\..\libewf_all.props" />
+    <Import Project="..\Posix API Base Names.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>

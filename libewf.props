@@ -10,7 +10,7 @@
   <ItemDefinitionGroup>
     <ClCompile />
     <ClCompile>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;OLD_MSC_INT;HAVE_V1_API;vsnprintf=_vsnprintf;open=_open;read=_read;close=_close;write=_write;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;OLD_MSC_INT;HAVE_V1_API;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <Link>
