@@ -238,6 +238,7 @@ stamp-h[1-9]
 Release/
 VSDebug/
 .vs/
+**/.vs/
 *.user
 *.ilk
 *.db
