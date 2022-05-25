@@ -82,8 +82,8 @@ check_PROGRAMS = \
 	ewf_test_access_control_entry \
 	ewf_test_analytical_data \
 	ewf_test_attribute \
-	ewf_test_bit_stream \
 	ewf_test_case_data \
+	ewf_test_case_data_section \
 	ewf_test_checksum \
 	ewf_test_chunk_data \
 	ewf_test_chunk_descriptor \
@@ -95,6 +95,7 @@ check_PROGRAMS = \
 	ewf_test_date_time_values \
 	ewf_test_deflate \
 	ewf_test_device_information \
+	ewf_test_device_information_section \
 	ewf_test_digest_section \
 	ewf_test_error \
 	ewf_test_error2_section \
@@ -106,7 +107,6 @@ check_PROGRAMS = \
 	ewf_test_hash_values \
 	ewf_test_header_sections \
 	ewf_test_header_values \
-	ewf_test_huffman_tree \
 	ewf_test_io_handle \
 	ewf_test_lef_extended_attribute \
 	ewf_test_lef_file_entry \
@@ -201,18 +201,6 @@ ewf_test_attribute_LDADD = \
 	@LIBCERROR_LIBADD@ \
 	@PTHREAD_LIBADD@
 
-ewf_test_bit_stream_SOURCES = \
-	ewf_test_bit_stream.c \
-	ewf_test_libcerror.h \
-	ewf_test_libewf.h \
-	ewf_test_macros.h \
-	ewf_test_memory.c ewf_test_memory.h \
-	ewf_test_unused.h
-
-ewf_test_bit_stream_LDADD = \
-	../libewf/libewf.la \
-	@LIBCERROR_LIBADD@
-
 ewf_test_case_data_SOURCES = \
 	ewf_test_case_data.c \
 	ewf_test_libcerror.h \
@@ -228,6 +216,28 @@ ewf_test_case_data_LDADD = \
 	@LIBFDATETIME_LIBADD@ \
 	@LIBUNA_LIBADD@ \
 	@LIBCNOTIFY_LIBADD@ \
+	@LIBCDATA_LIBADD@ \
+	../libewf/libewf.la \
+	@LIBCERROR_LIBADD@
+
+ewf_test_case_data_section_SOURCES = \
+	ewf_test_case_data_section.c \
+	ewf_test_functions.c ewf_test_functions.h \
+	ewf_test_libbfio.h \
+	ewf_test_libcerror.h \
+	ewf_test_libewf.h \
+	ewf_test_macros.h \
+	ewf_test_memory.c ewf_test_memory.h \
+	ewf_test_unused.h
+
+ewf_test_case_data_section_LDADD = \
+	@LIBBFIO_LIBADD@ \
+	@LIBCPATH_LIBADD@ \
+	@LIBCFILE_LIBADD@ \
+	@LIBUNA_LIBADD@ \
+	@LIBCSPLIT_LIBADD@ \
+	@LIBCNOTIFY_LIBADD@ \
+	@LIBCLOCALE_LIBADD@ \
 	@LIBCDATA_LIBADD@ \
 	../libewf/libewf.la \
 	@LIBCERROR_LIBADD@
@@ -379,6 +389,28 @@ ewf_test_device_information_LDADD = \
 	@LIBFDATETIME_LIBADD@ \
 	@LIBUNA_LIBADD@ \
 	@LIBCNOTIFY_LIBADD@ \
+	@LIBCDATA_LIBADD@ \
+	../libewf/libewf.la \
+	@LIBCERROR_LIBADD@
+
+ewf_test_device_information_section_SOURCES = \
+	ewf_test_device_information_section.c \
+	ewf_test_functions.c ewf_test_functions.h \
+	ewf_test_libbfio.h \
+	ewf_test_libcerror.h \
+	ewf_test_libewf.h \
+	ewf_test_macros.h \
+	ewf_test_memory.c ewf_test_memory.h \
+	ewf_test_unused.h
+
+ewf_test_device_information_section_LDADD = \
+	@LIBBFIO_LIBADD@ \
+	@LIBCPATH_LIBADD@ \
+	@LIBCFILE_LIBADD@ \
+	@LIBUNA_LIBADD@ \
+	@LIBCSPLIT_LIBADD@ \
+	@LIBCNOTIFY_LIBADD@ \
+	@LIBCLOCALE_LIBADD@ \
 	@LIBCDATA_LIBADD@ \
 	../libewf/libewf.la \
 	@LIBCERROR_LIBADD@
@@ -554,18 +586,6 @@ ewf_test_header_values_LDADD = \
 	@LIBUNA_LIBADD@ \
 	@LIBCNOTIFY_LIBADD@ \
 	@LIBCDATA_LIBADD@ \
-	../libewf/libewf.la \
-	@LIBCERROR_LIBADD@
-
-ewf_test_huffman_tree_SOURCES = \
-	ewf_test_huffman_tree.c \
-	ewf_test_libcerror.h \
-	ewf_test_libewf.h \
-	ewf_test_macros.h \
-	ewf_test_memory.c ewf_test_memory.h \
-	ewf_test_unused.h
-
-ewf_test_huffman_tree_LDADD = \
 	../libewf/libewf.la \
 	@LIBCERROR_LIBADD@
 

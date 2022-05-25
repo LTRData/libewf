@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="ewf_test_bit_stream"
-	ProjectGUID="{A220E732-C828-448C-9A8A-10DD5A7205AA}"
-	RootNamespace="ewf_test_bit_stream"
+	Name="ewf_test_device_information_section"
+	ProjectGUID="{7F80739A-6EC7-4429-9BD4-EA7049238CCC}"
+	RootNamespace="ewf_test_device_information_section"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="131072"
 	>
@@ -176,7 +176,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\tests\ewf_test_bit_stream.c"
+				RelativePath="..\..\tests\ewf_test_device_information_section.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\tests\ewf_test_functions.c"
 				>
 			</File>
 			<File
@@ -189,6 +193,14 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath="..\..\tests\ewf_test_functions.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\tests\ewf_test_libbfio.h"
+				>
+			</File>
 			<File
 				RelativePath="..\..\tests\ewf_test_libcerror.h"
 				>

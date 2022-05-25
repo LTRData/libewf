@@ -186,10 +186,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\libewf\libewf_bit_stream.c"
-				>
-			</File>
-			<File
 				RelativePath="..\..\libewf\libewf_case_data.c"
 				>
 			</File>
@@ -287,10 +283,6 @@
 			</File>
 			<File
 				RelativePath="..\..\libewf\libewf_header_values.c"
-				>
-			</File>
-			<File
-				RelativePath="..\..\libewf\libewf_huffman_tree.c"
 				>
 			</File>
 			<File
@@ -472,10 +464,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\libewf\libewf_bit_stream.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\libewf\libewf_case_data.h"
 				>
 			</File>
@@ -585,10 +573,6 @@
 			</File>
 			<File
 				RelativePath="..\..\libewf\libewf_header_values.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\libewf\libewf_huffman_tree.h"
 				>
 			</File>
 			<File

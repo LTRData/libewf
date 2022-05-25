@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="ewf_test_huffman_tree"
-	ProjectGUID="{79C30C18-9003-4585-8FA7-248ACD588FC1}"
-	RootNamespace="ewf_test_huffman_tree"
+	Name="ewf_test_case_data_section"
+	ProjectGUID="{AF5C533D-7F07-44CE-95EB-3BEDF6DC05BE}"
+	RootNamespace="ewf_test_case_data_section"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="131072"
 	>
@@ -176,7 +176,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\tests\ewf_test_huffman_tree.c"
+				RelativePath="..\..\tests\ewf_test_case_data_section.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\tests\ewf_test_functions.c"
 				>
 			</File>
 			<File
@@ -189,6 +193,14 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath="..\..\tests\ewf_test_functions.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\tests\ewf_test_libbfio.h"
+				>
+			</File>
 			<File
 				RelativePath="..\..\tests\ewf_test_libcerror.h"
 				>
