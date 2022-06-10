@@ -244,3 +244,4 @@ VSDebug/
 *.db
 *.ilk
 msvscpp/.vs/libewf/v16/.suo
+*.ilk
