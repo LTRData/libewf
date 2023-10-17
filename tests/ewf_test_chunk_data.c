@@ -1,7 +1,7 @@
 /*
  * Library chunk_data type test program
  *
- * Copyright (C) 2006-2022, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -1834,6 +1834,48 @@ int ewf_test_chunk_data_pack_with_compression(
 	EWF_TEST_ASSERT_IS_NULL(
 	 "error",
 	 error );
+
+	/* Clean up
+	 */
+	result = libewf_chunk_data_free(
+	          &chunk_data,
+	          &error );
+
+	EWF_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	EWF_TEST_ASSERT_IS_NULL(
+	 "chunk_data",
+	 chunk_data );
+
+	EWF_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	/* Initialize test
+	 */
+	result = libewf_chunk_data_initialize(
+	          &chunk_data,
+	          512,
+	          1,
+	          &error );
+
+	EWF_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	EWF_TEST_ASSERT_IS_NOT_NULL(
+	 "chunk_data",
+	 chunk_data );
+
+	EWF_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	chunk_data->data_size = 512;
 
 	/* Test error cases
 	 */

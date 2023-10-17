@@ -1,13 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Tests tools functions and types.
 #
-# Version: 20200705
+# Version: 20230410
 
 EXIT_SUCCESS=0;
 EXIT_FAILURE=1;
 EXIT_IGNORE=77;
 
-TOOLS_TESTS="byte_size_string device_handle digest_hash export_handle guid imaging_handle info_handle log_handle output platform signal storage_media_buffer system_string verification_handle";
+TOOLS_TESTS="bodyfile byte_size_string device_handle digest_hash export_handle guid imaging_handle info_handle log_handle mount_path_string output path_string platform signal storage_media_buffer system_string verification_handle";
 TOOLS_TESTS_WITH_INPUT="";
 OPTION_SETS="";
 

@@ -1,6 +1,6 @@
 dnl Checks for libcrypto required headers and functions
 dnl
-dnl Version: 20210623
+dnl Version: 20230701
 
 dnl Function to detect whether openssl/evp.h can be used in combination with zlib.h
 AC_DEFUN([AX_LIBCRYPTO_CHECK_OPENSSL_EVP_ZLIB_COMPATIBILE],
@@ -28,7 +28,8 @@ AC_DEFUN([AX_LIBCRYPTO_CHECK_XTS_DUPLICATE_KEYS_SUPPORT],
     LIBS="$LIBS $ac_cv_libcrypto_LIBADD"
     AC_RUN_IFELSE(
       [AC_LANG_PROGRAM(
-        [[#include <openssl/err.h>
+        [[#include <stdlib.h>
+#include <openssl/err.h>
 #include <openssl/evp.h>]],
         [[unsigned char key[ 16 ] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 int result = 0;
@@ -49,7 +50,9 @@ EVP_CIPHER_CTX_cleanup( &ctx );
 EVP_CIPHER_CTX_free( ctx );
 #endif
 
-return( result == 1 ); ]] )],
+if( result != 1 ) return( EXIT_FAILURE );
+
+return( EXIT_SUCCESS ); ]] )],
       [ac_cv_openssl_xts_duplicate_keys=yes],
       [ac_cv_openssl_xts_duplicate_keys=no])
     LIBS="$ac_cv_libcrypto_backup_LIBS"
@@ -115,9 +118,36 @@ AC_DEFUN([AX_LIBCRYPTO_CHECK_OPENSSL_EVP_MD],
 
   AC_CHECK_LIB(
     crypto,
-    EVP_DigestInit_ex,
+    EVP_DigestInit_ex2,
     [ac_cv_libcrypto_dummy=yes],
-    [ac_cv_libcrypto_evp_md=no])
+    [ac_cv_libcrypto_dummy=no])
+
+  AS_IF(
+    [test "x$ac_cv_lib_crypto_EVP_DigestInit_ex2" = xyes],
+    [dnl Check for OpenSSL 3 API functions
+    AC_CHECK_LIB(
+      crypto,
+      EVP_MD_CTX_reset,
+      [ac_cv_libcrypto_dummy=yes],
+      [ac_cv_libcrypto_evp_md=no])
+    AC_CHECK_LIB(
+      crypto,
+      EVP_MD_fetch,
+      [ac_cv_libcrypto_dummy=yes],
+      [ac_cv_libcrypto_evp_md=no])
+    AC_CHECK_LIB(
+      crypto,
+      EVP_MD_free,
+      [ac_cv_libcrypto_dummy=yes],
+      [ac_cv_libcrypto_evp_md=no])
+    ],
+    [AC_CHECK_LIB(
+      crypto,
+      EVP_DigestInit_ex,
+      [ac_cv_libcrypto_dummy=yes],
+      [ac_cv_libcrypto_evp_md=no])
+    ])
+
   AC_CHECK_LIB(
     crypto,
     EVP_DigestUpdate,
@@ -150,6 +180,14 @@ AC_DEFUN([AX_LIBCRYPTO_CHECK_OPENSSL_EVP_MD],
       [HAVE_EVP_MD_CTX_CLEANUP],
       [1],
       [Define to 1 if you have the `EVP_MD_CTX_cleanup' function".])
+    ])
+
+  AS_IF(
+    [test "x$ac_cv_lib_crypto_EVP_DigestInit_ex2" = xyes],
+    [AC_DEFINE(
+      [HAVE_EVP_DIGESTINIT_EX2],
+      [1],
+      [Define to 1 if you have the `EVP_DigestInit_ex2' function".])
     ])
   ])
 
@@ -434,15 +472,41 @@ AC_DEFUN([AX_LIBCRYPTO_CHECK_OPENSSL_EVP_CIPHER],
 
   AC_CHECK_LIB(
     crypto,
-    EVP_CIPHER_CTX_set_padding,
+    EVP_CipherInit_ex2,
     [ac_cv_libcrypto_dummy=yes],
-    [ac_cv_libcrypto_evp_cipher=no])
+    [ac_cv_libcrypto_dummy=no])
 
-  AC_CHECK_LIB(
-    crypto,
-    EVP_CipherInit_ex,
-    [ac_cv_libcrypto_dummy=yes],
-    [ac_cv_libcrypto_evp_cipher=no])
+  AS_IF(
+    [test "x$ac_cv_lib_crypto_EVP_CipherInit_ex2" = xyes],
+    [dnl Check for OpenSSL 3 API functions
+    AC_CHECK_LIB(
+      crypto,
+      EVP_CIPHER_CTX_reset,
+      [ac_cv_libcrypto_dummy=yes],
+      [ac_cv_libcrypto_evp_cipher=no])
+    AC_CHECK_LIB(
+      crypto,
+      EVP_CIPHER_fetch,
+      [ac_cv_libcrypto_dummy=yes],
+      [ac_cv_libcrypto_evp_cipher=no])
+    AC_CHECK_LIB(
+      crypto,
+      EVP_CIPHER_free,
+      [ac_cv_libcrypto_dummy=yes],
+      [ac_cv_libcrypto_evp_cipher=no])
+    ],
+    [AC_CHECK_LIB(
+      crypto,
+      EVP_CipherInit_ex,
+      [ac_cv_libcrypto_dummy=yes],
+      [ac_cv_libcrypto_evp_cipher=no])
+    AC_CHECK_LIB(
+      crypto,
+      EVP_CIPHER_CTX_set_padding,
+      [ac_cv_libcrypto_dummy=yes],
+      [ac_cv_libcrypto_evp_cipher=no])
+    ])
+
   AC_CHECK_LIB(
     crypto,
     EVP_CipherUpdate,
@@ -475,6 +539,14 @@ AC_DEFUN([AX_LIBCRYPTO_CHECK_OPENSSL_EVP_CIPHER],
       [HAVE_EVP_CIPHER_CTX_CLEANUP],
       [1],
       [Define to 1 if you have the `EVP_CIPHER_CTX_cleanup' function".])
+    ])
+
+  AS_IF(
+    [test "x$ac_cv_lib_crypto_EVP_CipherInit_ex2" = xyes],
+    [AC_DEFINE(
+      [HAVE_EVP_CIPHERINIT_EX2],
+      [1],
+      [Define to 1 if you have the `EVP_CipherInit_ex2' function".])
     ])
   ])
 
@@ -612,13 +684,14 @@ AC_DEFUN([AX_LIBCRYPTO_CHECK_LIB],
         [1],
         [Define to 1 if you have the 'crypto' library (-lcrypto).])
 
-      ac_cv_libcrypto_LIBADD="-lcrypto"
+      ac_cv_libcrypto_CPPFLAGS="$openssl_CFLAGS"
+      ac_cv_libcrypto_LIBADD="$openssl_LIBS"
 
       dnl On Cygwin also link zlib since libcrypto relies on it
       AS_CASE(
         [$host],
         [*cygwin*],
-        [ac_cv_libcrypto_LIBADD="-lcrypto -lz"])
+        [ac_cv_libcrypto_LIBADD="$ac_cv_libcrypto_LIBADD -lz"])
 
       dnl Enforce the dynamic loader library to be included if available
       AC_CHECK_LIB(

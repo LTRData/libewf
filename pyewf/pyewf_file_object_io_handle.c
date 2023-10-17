@@ -1,7 +1,7 @@
 /*
  * Python file object IO handle functions
  *
- * Copyright (C) 2008-2022, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2023, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -578,7 +578,7 @@ ssize_t pyewf_file_object_read_buffer(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_MEMORY,
 			 LIBCERROR_MEMORY_ERROR_COPY_FAILED,
-			 "%s: unable to data to buffer.",
+			 "%s: unable to copy data to buffer.",
 			 function );
 
 			goto on_error;
