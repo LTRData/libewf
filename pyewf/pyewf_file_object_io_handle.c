@@ -1,7 +1,7 @@
 /*
  * Python file object IO handle functions
  *
- * Copyright (C) 2008-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -205,7 +205,7 @@ on_error:
 }
 
 /* Frees a file object IO handle
- * Returns 1 if succesful or -1 on error
+ * Returns 1 if successful or -1 on error
  */
 int pyewf_file_object_io_handle_free(
      pyewf_file_object_io_handle_t **file_object_io_handle,
@@ -232,19 +232,19 @@ int pyewf_file_object_io_handle_free(
 		Py_DecRef(
 		 ( *file_object_io_handle )->file_object );
 
-		PyGILState_Release(
-		 gil_state );
-
 		PyMem_Free(
 		 *file_object_io_handle );
 
 		*file_object_io_handle = NULL;
+
+		PyGILState_Release(
+		 gil_state );
 	}
 	return( 1 );
 }
 
 /* Clones (duplicates) the file object IO handle and its attributes
- * Returns 1 if succesful or -1 on error
+ * Returns 1 if successful or -1 on error
  */
 int pyewf_file_object_io_handle_clone(
      pyewf_file_object_io_handle_t **destination_file_object_io_handle,

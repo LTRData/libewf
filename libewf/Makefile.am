@@ -1,6 +1,6 @@
 AM_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/common \
+	-I../include -I$(top_srcdir)/include \
+	-I../common -I$(top_srcdir)/common \
 	@LIBCERROR_CPPFLAGS@ \
 	@LIBCTHREADS_CPPFLAGS@ \
 	@LIBCDATA_CPPFLAGS@ \
@@ -64,6 +64,7 @@ libewf_la_SOURCES = \
 	libewf_digest_section.c libewf_digest_section.h \
 	libewf_error.c libewf_error.h \
 	libewf_error2_section.c libewf_error2_section.h \
+	libewf_extent.c libewf_extent.h \
 	libewf_extern.h \
 	libewf_filename.c libewf_filename.h \
 	libewf_file_entry.c libewf_file_entry.h \
@@ -88,6 +89,7 @@ libewf_la_SOURCES = \
 	libewf_libfvalue.h \
 	libewf_libuna.h \
 	libewf_lef_extended_attribute.c libewf_lef_extended_attribute.h \
+	libewf_lef_extent.c libewf_lef_extent.h \
 	libewf_lef_file_entry.c libewf_lef_file_entry.h \
 	libewf_lef_permission.c libewf_lef_permission.h \
 	libewf_lef_source.c libewf_lef_source.h \
@@ -153,15 +155,15 @@ EXTRA_DIST = \
 	libewf.rc \
 	libewf.rc.in
 
-MAINTAINERCLEANFILES = \
+DISTCLEANFILES = \
+	libewf_definitions.h \
+	libewf.rc \
+	Makefile \
 	Makefile.in
 
-distclean: clean
-	/bin/rm -f libewf_definitions.h
-	/bin/rm -f libewf.rc
-	/bin/rm -f Makefile
+sources-local: $(BUILT_SOURCES)
 
-splint:
+splint-local:
 	@echo "Running splint on libewf ..."
 	-splint -preproc -redef $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(libewf_la_SOURCES)
 

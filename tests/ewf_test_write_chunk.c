@@ -1,7 +1,7 @@
 /*
  * Expert Witness Compression Format (EWF) library write chunktesting program
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -368,7 +368,7 @@ int ewf_test_write_chunk(
 	 chunk_buffer );
 
 	chunk_buffer = NULL;
-	
+
 	if( libewf_data_chunk_free(
 	     &data_chunk,
 	     error ) != 1 )
@@ -492,7 +492,8 @@ int main( int argc, char * const argv[] )
 				break;
 		}
 	}
-	if( optind == argc )
+	if( ( optind == argc )
+	 || ( argv[ optind ] == NULL ) )
 	{
 		fprintf(
 		 stderr,

@@ -1,6 +1,6 @@
 # Script that synchronizes zlib.
 #
-# Version: 20221022
+# Version: 20260607
 
 Function ExtractZip($Filename)
 {
@@ -27,15 +27,16 @@ Function ExtractZip($Filename)
 	}
 }
 
-$Filename = "${pwd}\zlib1213.zip"
-$Url = "http://zlib.net/zlib1213.zip"
-$ExtractedPath = "zlib-1.2.13"
+$Filename = "${pwd}\zlib132.zip"
+$Url = "https://zlib.net/zlib132.zip"
+$ExtractedPath = "zlib-1.3.2"
 $DestinationPath = "..\zlib"
 
 If (Test-Path ${Filename})
 {
 	Remove-Item -Path ${Filename} -Force
 }
+$ProgressPreference = 'SilentlyContinue'
 Invoke-WebRequest -Uri ${Url} -OutFile ${Filename}
 
 If (Test-Path ${ExtractedPath})

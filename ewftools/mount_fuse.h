@@ -1,7 +1,7 @@
 /*
  * Mount tool fuse functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -25,17 +25,29 @@
 #include <common.h>
 #include <types.h>
 
-#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBOSXFUSE )
+#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE )
+
+#if !defined( FUSE_USE_VERSION ) && !defined( CYGFUSE )
+
+/* Ensure FUSE_USE_VERSION is defined before including fuse.h
+ */
+#if defined( HAVE_LIBFUSE3 )
+#define FUSE_USE_VERSION	30
+#else
 #define FUSE_USE_VERSION	26
+#endif
+
+#endif /* !defined( FUSE_USE_VERSION ) && !defined( CYGFUSE ) */
 
 #if defined( HAVE_LIBFUSE )
-#include <fuse.h>
-
+#include <fuse/fuse.h>
+#elif defined( HAVE_LIBFUSE3 )
+#include <fuse3/fuse.h>
 #elif defined( HAVE_LIBOSXFUSE )
 #include <osxfuse/fuse.h>
 #endif
 
-#endif /* defined( HAVE_LIBFUSE ) || defined( HAVE_LIBOSXFUSE ) */
+#endif /* defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE ) */
 
 #include "ewftools_libcerror.h"
 #include "ewftools_libewf.h"
@@ -46,10 +58,24 @@
 extern "C" {
 #endif
 
-#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBOSXFUSE )
+#if defined( _WIN32 ) || defined( WINFSP_VERSION )
+typedef struct fuse_stat mount_fuse_stat_t;
+#elif defined( __APPLE__ )
+typedef struct fuse_darwin_attr mount_fuse_stat_t;
+#else
+typedef struct stat mount_fuse_stat_t;
+#endif
+
+#if defined( __APPLE__ )
+#define mount_fuse_fill_dir_t fuse_darwin_fill_dir_t
+#else
+#define mount_fuse_fill_dir_t fuse_fill_dir_t
+#endif
+
+#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE )
 
 int mount_fuse_set_stat_info(
-     struct stat *stat_info,
+     mount_fuse_stat_t *stat_info,
      size64_t size,
      uint16_t file_mode,
      int64_t access_time,
@@ -59,9 +85,9 @@ int mount_fuse_set_stat_info(
 
 int mount_fuse_filldir(
      void *buffer,
-     fuse_fill_dir_t filler,
+     mount_fuse_fill_dir_t filler,
      const char *name,
-     struct stat *stat_info,
+     mount_fuse_stat_t *stat_info,
      mount_file_entry_t *file_entry,
      libcerror_error_t **error );
 
@@ -84,25 +110,42 @@ int mount_fuse_opendir(
      const char *path,
      struct fuse_file_info *file_info );
 
+#if defined( HAVE_LIBFUSE3 )
 int mount_fuse_readdir(
      const char *path,
      void *buffer,
-     fuse_fill_dir_t filler,
+     mount_fuse_fill_dir_t filler,
+     off_t offset,
+     struct fuse_file_info *file_info,
+     enum fuse_readdir_flags flags );
+#else
+int mount_fuse_readdir(
+     const char *path,
+     void *buffer,
+     mount_fuse_fill_dir_t filler,
      off_t offset,
      struct fuse_file_info *file_info );
+#endif
 
 int mount_fuse_releasedir(
      const char *path,
      struct fuse_file_info *file_info );
 
+#if defined( HAVE_LIBFUSE3 )
 int mount_fuse_getattr(
      const char *path,
-     struct stat *stat_info );
+     mount_fuse_stat_t *stat_info,
+     struct fuse_file_info *file_info );
+#else
+int mount_fuse_getattr(
+     const char *path,
+     mount_fuse_stat_t *stat_info );
+#endif
 
 void mount_fuse_destroy(
       void *private_data );
 
-#endif /* defined( HAVE_LIBFUSE ) || defined( HAVE_LIBOSXFUSE ) */
+#endif /* defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE ) */
 
 #if defined( __cplusplus )
 }

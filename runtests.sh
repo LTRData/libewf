@@ -1,517 +1,284 @@
 #!/usr/bin/env bash
-# Script that runs the tests
+# Script that runs tests.
 #
-# Version: 20230507
+# Version: 20260617
 
-EXIT_SUCCESS=0;
-EXIT_FAILURE=1;
+initialize_configure_options()
+{
+	CONFIGURE_HELP=`./configure --help`
+
+	echo "${CONFIGURE_HELP}" | grep -- '--enable-wide-character-type' > /dev/null
+	HAVE_ENABLE_WIDE_CHARACTER_TYPE=$?
+
+	echo "${CONFIGURE_HELP}" | grep -- '--enable-multi-threading-support' > /dev/null
+	HAVE_ENABLE_MULTI_THREADING_SUPPORT=$?
+
+	echo "${CONFIGURE_HELP}" | grep -- '--enable-verbose-output' > /dev/null
+	HAVE_ENABLE_VERBOSE_OUTPUT=$?
+
+	echo "${CONFIGURE_HELP}" | grep -- '--enable-debug-output' > /dev/null
+	HAVE_ENABLE_DEBUG_OUTPUT=$?
+
+	echo "${CONFIGURE_HELP}" | grep -- '--with-bzip2' > /dev/null
+	HAVE_WITH_BZIP2=$?
+
+	echo "${CONFIGURE_HELP}" | grep -- '--with-libfuse' > /dev/null
+	HAVE_WITH_LIBFUSE=$?
+
+	echo "${CONFIGURE_HELP}" | grep -- '--with-lzma' > /dev/null
+	HAVE_WITH_LZMA=$?
+
+	echo "${CONFIGURE_HELP}" | grep -- '--with-pthread' > /dev/null
+	HAVE_WITH_PTHREAD=$?
+
+	echo "${CONFIGURE_HELP}" | grep -- '--with-openssl' > /dev/null
+	HAVE_WITH_OPENSSL=$?
+
+	echo "${CONFIGURE_HELP}" | grep -- '--with-zlib' > /dev/null
+	HAVE_WITH_ZLIB=$?
+
+	echo "${CONFIGURE_HELP}" | grep -- '--enable-python' > /dev/null
+	HAVE_ENABLE_PYTHON=$?
+
+	echo "${CONFIGURE_HELP}" | grep -- '--enable-static-executables' > /dev/null
+	HAVE_ENABLE_STATIC_EXECUTABLES=$?
+}
 
 run_configure_make()
 {
-	local CONFIGURE_OPTIONS=$@;
+	local CONFIGURE_OPTIONS=$@
 
-	./configure ${CONFIGURE_OPTIONS[@]};
-	RESULT=$?;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		echo "Running: './configure' failed";
-
-		return ${RESULT};
-	fi
-
-	make clean > /dev/null;
-	RESULT=$?;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		echo "Running: 'make clean' failed";
-
-		return ${RESULT};
-	fi
-
-	make > /dev/null;
-	RESULT=$?;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		echo "Running: 'make' failed";
-
-		return ${RESULT};
-	fi
-	return ${EXIT_SUCCESS};
+	./configure ${CONFIGURE_OPTIONS[@]} | sed '1,/^configure:$/ d'
+	make clean > /dev/null
+	make "-j${NUMBER_OF_JOBS}" > /dev/null
 }
 
 run_configure_make_check()
 {
-	run_configure_make $@;
-	RESULT=$?;
+	run_configure_make $@
 
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		return ${RESULT};
-	fi
-
-	make check CHECK_WITH_STDERR=1;
-	RESULT=$?;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		echo "Running: 'make check' failed";
-
-		if test -f tests/test-suite.log;
-		then
-			cat tests/test-suite.log;
-		fi
-
-		return ${RESULT};
-	fi
-	return ${EXIT_SUCCESS};
+	./tests/runtests.sh ${MAKE_CHECK_OPTIONS} | sed -E '/Making check in / d'
 }
 
 run_configure_make_check_with_asan()
 {
-	local LDCONFIG=`which ldconfig 2> /dev/null`;
+	local LDCONFIG=`which ldconfig 2> /dev/null`
 
-	if test -z ${LDCONFIG} || test ! -x ${LDCONFIG};
+	if test -z ${LDCONFIG} || test ! -x ${LDCONFIG}
 	then
-		return ${EXIT_SUCCESS};
+		return
 	fi
-	local LIBASAN=`ldconfig -p | grep libasan | sed 's/^.* => //' | sort | tail -n 1`;
+	local LIBASAN=`ldconfig -p | grep libasan | sed 's/^.* => //' | sort | tail -n 1`
 
-	if test -z ${LIBASAN} || test ! -f ${LIBASAN};
+	if test -z ${LIBASAN} || test ! -f ${LIBASAN}
 	then
-		return ${EXIT_SUCCESS};
+		return
 	fi
+	CONFIGURE_OPTIONS="--enable-asan"
 
-	# Using libasan is platform dependent.
-	export CPPFLAGS="-DHAVE_ASAN";
-	export CFLAGS="-fno-omit-frame-pointer -fsanitize=address -g";
-	export LDFLAGS="-fsanitize=address -g";
-
-	if test -z ${CC} || test ${CC} != "clang";
+	if test ${HAVE_ENABLE_WIDE_CHARACTER_TYPE} -eq 0
 	then
-		LDFLAGS="${LDFLAGS} -lasan";
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --enable-wide-character-type"
 	fi
-
-	run_configure_make $@;
-	RESULT=$?;
-
-	export CPPFLAGS=;
-	export CFLAGS=;
-	export LDFLAGS=;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
+	if test ${HAVE_WITH_BZIP2} -eq 0
 	then
-		return ${RESULT};
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-bzip2=no"
 	fi
-
-	make check CHECK_WITH_ASAN=1 CHECK_WITH_STDERR=1;
-	RESULT=$?;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
+	if test ${HAVE_WITH_LZMA} -eq 0
 	then
-		echo "Running: 'make check' failed";
-
-		if test -f tests/test-suite.log;
-		then
-			cat tests/test-suite.log;
-		fi
-
-		return ${RESULT};
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-lzma=no"
 	fi
-	return ${RESULT};
+	if test ${HAVE_WITH_OPENSSL} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-openssl=no"
+	fi
+	if test ${HAVE_WITH_ZLIB} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-zlib=no"
+	fi
+	if test ${HAVE_ENABLE_PYTHON} -eq 0 && test -n "${PYTHON_CONFIG}"
+	then
+		# Issue with running the python bindings with asan disabled for now.
+		# CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --enable-python"
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS}"
+	fi
+	run_configure_make ${CONFIGURE_OPTIONS}
+
+	./tests/runtests.sh ${MAKE_CHECK_OPTIONS} | sed -E '/Making check in / d'
 }
 
-run_configure_make_check_with_coverage()
+run_configure_make_check_with_code_coverage()
 {
-	# Disable optimization so we can hook malloc and realloc.
-	export CPPFLAGS="-DOPTIMIZATION_DISABLED";
-	export CFLAGS="--coverage -O0";
-	export LDFLAGS="--coverage";
+	CONFIGURE_OPTIONS="--disable-shared --enable-code-coverage"
 
-	# Disable creating a shared library so we can hook memset.
-	run_configure_make_check $@;
-	RESULT=$?;
+	if test ${HAVE_ENABLE_WIDE_CHARACTER_TYPE} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --enable-wide-character-type"
+	fi
+	if test ${HAVE_WITH_BZIP2} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-bzip2=no"
+	fi
+	if test ${HAVE_WITH_LZMA} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-lzma=no"
+	fi
+	if test ${HAVE_WITH_OPENSSL} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-openssl=no"
+	fi
+	if test ${HAVE_WITH_ZLIB} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-zlib=no"
+	fi
+	run_configure_make_check CPPFLAGS="-DHAVE_MEMORY_TEST"
+}
 
-	export CPPFLAGS=;
-	export CFLAGS=;
-	export LDFLAGS=;
+run_configure_make_check_with_ubsan()
+{
+	local LDCONFIG=`which ldconfig 2> /dev/null`
 
-	return ${RESULT};
+	if test -z ${LDCONFIG} || test ! -x ${LDCONFIG}
+	then
+		return
+	fi
+	local LIBASAN=`ldconfig -p | grep libubsan | sed 's/^.* => //' | sort | tail -n 1`
+
+	if test -z ${LIBASAN} || test ! -f ${LIBASAN}
+	then
+		return
+	fi
+	CONFIGURE_OPTIONS="--enable-ubsan"
+
+	if test ${HAVE_ENABLE_WIDE_CHARACTER_TYPE} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --enable-wide-character-type"
+	fi
+	if test ${HAVE_WITH_BZIP2} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-bzip2=no"
+	fi
+	if test ${HAVE_WITH_LZMA} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-lzma=no"
+	fi
+	if test ${HAVE_WITH_OPENSSL} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-openssl=no"
+	fi
+	if test ${HAVE_WITH_ZLIB} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-zlib=no"
+	fi
+	if test ${HAVE_ENABLE_PYTHON} -eq 0 && test -n "${PYTHON_CONFIG}"
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --enable-python"
+	fi
+	run_configure_make ${CONFIGURE_OPTIONS}
+
+	./tests/runtests.sh ${MAKE_CHECK_OPTIONS} | sed -E '/Making check in / d'
 }
 
 run_configure_make_check_python()
 {
-	run_configure_make $@;
-	RESULT=$?;
+	run_configure_make $@
 
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		return ${RESULT};
-	fi
-
-	make check CHECK_WITH_STDERR=1 SKIP_LIBRARY_TESTS=1 SKIP_TOOLS_TESTS=1;
-	RESULT=$?;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		echo "Running: 'make check' failed";
-
-		if test -f tests/test-suite.log;
-		then
-			cat tests/test-suite.log;
-		fi
-
-		return ${RESULT};
-	fi
-	return ${EXIT_SUCCESS};
+	./tests/runtests.sh ${MAKE_CHECK_OPTIONS} SKIP_LIBRARY_TESTS=1 SKIP_TOOLS_TESTS=1 | sed -E '/Making check in / d'
 }
 
-run_setup_py_tests()
+run_configure_make_check_static_executables()
 {
-	# Skip this test when running Cygwin on AppVeyor.
-	if test -n "${APPVEYOR}" && test ${TARGET} = "cygwin";
+	CONFIGURE_OPTIONS="--enable-static-executables"
+
+	if test ${HAVE_ENABLE_MULTI_THREADING_SUPPORT} -eq 0
 	then
-		echo "Running: 'setup.py build' skipped";
-
-		return ${EXIT_SUCCESS};
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --disable-multi-threading-support"
 	fi
-	PYTHON=$1;
-
-	${PYTHON} setup.py build;
-	RESULT=$?;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
+	if test ${HAVE_WITH_BZIP2} -eq 0
 	then
-		echo "Running: 'setup.py build' failed";
-
-		return ${RESULT};
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-bzip2=no"
 	fi
-	return ${EXIT_SUCCESS};
+	if test ${HAVE_WITH_LIBFUSE} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-libfuse=no"
+	fi
+	if test ${HAVE_WITH_LZMA} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-lzma=no"
+	fi
+	if test ${HAVE_WITH_OPENSSL} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-openssl=no"
+	fi
+	if test ${HAVE_WITH_ZLIB} -eq 0
+	then
+		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-zlib=no"
+	fi
+	run_configure_make_check ${CONFIGURE_OPTIONS}
 }
 
-PROJECT_NAME=`basename $PWD`;
+PROJECT_NAME=`basename $PWD`
 
-CONFIGURE_HELP=`./configure --help`;
+initialize_configure_options
 
-echo "${CONFIGURE_HELP}" | grep -- '--enable-wide-character-type' > /dev/null;
+PYTHON_CONFIG=""
 
-HAVE_ENABLE_WIDE_CHARACTER_TYPE=$?;
-
-echo "${CONFIGURE_HELP}" | grep -- '--enable-verbose-output' > /dev/null;
-
-HAVE_ENABLE_VERBOSE_OUTPUT=$?;
-
-echo "${CONFIGURE_HELP}" | grep -- '--enable-debug-output' > /dev/null;
-
-HAVE_ENABLE_DEBUG_OUTPUT=$?;
-
-echo "${CONFIGURE_HELP}" | grep -- '--with-bzip2' > /dev/null;
-
-HAVE_WITH_BZIP2=$?;
-
-echo "${CONFIGURE_HELP}" | grep -- '--with-libfuse' > /dev/null;
-
-HAVE_WITH_LIBFUSE=$?;
-
-echo "${CONFIGURE_HELP}" | grep -- '--with-lzma' > /dev/null;
-
-HAVE_WITH_LZMA=$?;
-
-echo "${CONFIGURE_HELP}" | grep -- '--with-pthread' > /dev/null;
-
-HAVE_WITH_PTHREAD=$?;
-
-echo "${CONFIGURE_HELP}" | grep -- '--with-openssl' > /dev/null;
-
-HAVE_WITH_OPENSSL=$?;
-
-echo "${CONFIGURE_HELP}" | grep -- '--with-zlib' > /dev/null;
-
-HAVE_WITH_ZLIB=$?;
-
-echo "${CONFIGURE_HELP}" | grep -- '--enable-python' > /dev/null;
-
-HAVE_ENABLE_PYTHON=$?;
-
-echo "${CONFIGURE_HELP}" | grep -- '--enable-static-executables' > /dev/null;
-
-HAVE_ENABLE_STATIC_EXECUTABLES=$?;
-
-PYTHON_CONFIG="";
-
-if test -x /usr/bin/whereis;
+if test -x /usr/bin/whereis
 then
-	PYTHON_CONFIG=`/usr/bin/whereis python-config | sed 's/^.*:[ ]*//' 2> /dev/null`;
+	PYTHON_CONFIG=`/usr/bin/whereis python-config | sed 's/^.*:[ ]*//' 2> /dev/null`
 fi
 
-# Test "./configure && make && make check" without options.
+set -e
+set -o pipefail
 
-run_configure_make_check;
-RESULT=$?;
+NUMBER_OF_JOBS=4
+MAKE_CHECK_OPTIONS="-j${NUMBER_OF_JOBS} --no-print-directory --quiet TESTSUITEFLAGS=--color=always V=0 VERBOSE=1"
 
-if test ${RESULT} -ne ${EXIT_SUCCESS};
+echo -e "\033[1mTesting without options.\033[0m"
+run_configure_make_check
+
+if test ${HAVE_ENABLE_VERBOSE_OUTPUT} -eq 0 && test ${HAVE_ENABLE_DEBUG_OUTPUT} -eq 0
 then
-	exit ${EXIT_FAILURE};
+	echo -e "\033[1mTesting with verbose and debug output.\033[0m"
+	run_configure_make_check "--enable-verbose-output --enable-debug-output"
+fi
+if test ${HAVE_WITH_PTHREAD} -eq 0 && test ${PROJECT_NAME} != "libcthreads"
+then
+	echo -e "\033[1mTesting with without multi-threading support.\033[0m"
+	run_configure_make_check "--with-pthread=no"
+fi
+if test ${HAVE_WITH_ZLIB} -eq 0
+then
+	echo -e "\033[1mTesting without zlib support.\033[0m"
+	run_configure_make_check "--with-zlib=no"
+fi
+if test ${HAVE_WITH_OPENSSL} -eq 0
+then
+	echo -e "\033[1mTesting without OpenSSL support.\033[0m"
+	run_configure_make_check "--with-openssl=no"
+
+	echo -e "\033[1mTesting without OpenSSL EVP support.\033[0m"
+	run_configure_make_check "--disable-openssl-evp-cipher --disable-openssl-evp-md"
+
+	echo -e "\033[1mTesting with OpenSSL EVP support.\033[0m"
+	run_configure_make_check "--enable-openssl-evp-cipher --enable-openssl-evp-md"
+fi
+if test ${HAVE_ENABLE_PYTHON} -eq 0 && test -n "${PYTHON_CONFIG}"
+then
+	echo -e "\033[1mTesting with Python support.\033[0m"
+	run_configure_make_check_python "--enable-python"
+fi
+if test ${HAVE_ENABLE_STATIC_EXECUTABLES} -eq 0
+then
+	echo -e "\033[1mTesting with static executables.\033[0m"
+	run_configure_make_check_static_executables
 fi
 
-if test ${HAVE_ENABLE_VERBOSE_OUTPUT} -eq 0 && test ${HAVE_ENABLE_DEBUG_OUTPUT} -eq 0;
-then
-	# Test "./configure && make && make check" with verbose and debug output.
+echo -e "\033[1mTesting with asan.\033[0m"
+run_configure_make_check_with_asan
 
-	run_configure_make_check "--enable-verbose-output --enable-debug-output";
-	RESULT=$?;
+echo -e "\033[1mTesting with ubsan.\033[0m"
+run_configure_make_check_with_ubsan
 
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		exit ${EXIT_FAILURE};
-	fi
-fi
-
-if test ${HAVE_WITH_PTHREAD} -eq 0 && test ${PROJECT_NAME} != "libcthreads";
-then
-	# Test "./configure && make && make check" without multi-threading support.
-
-	run_configure_make_check "--with-pthread=no";
-	RESULT=$?;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		exit ${EXIT_FAILURE};
-	fi
-fi
-
-if test ${HAVE_WITH_ZLIB} -eq 0;
-then
-	# Test "./configure && make && make check" with fallback zlib implementation.
-
-	run_configure_make_check "--with-zlib=no";
-	RESULT=$?;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		exit ${EXIT_FAILURE};
-	fi
-fi
-
-if test ${HAVE_WITH_OPENSSL} -eq 0;
-then
-	# Test "./configure && make && make check" with fallback crypto implementation.
-
-	run_configure_make_check "--with-openssl=no";
-	RESULT=$?;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		exit ${EXIT_FAILURE};
-	fi
-
-	# Test "./configure && make && make check" with OpenSSL non-EVP implementation.
-
-	run_configure_make_check "--enable-openssl-evp-cipher=no --enable-openssl-evp-md=no";
-	RESULT=$?;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		exit ${EXIT_FAILURE};
-	fi
-
-	# Test "./configure && make && make check" with OpenSSL EVP implementation.
-
-	run_configure_make_check "--enable-openssl-evp-cipher=yes --enable-openssl-evp-md=yes";
-	RESULT=$?;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		exit ${EXIT_FAILURE};
-	fi
-fi
-
-if test ${HAVE_ENABLE_PYTHON} -eq 0 && test -n "${PYTHON_CONFIG}";
-then
-	# Test with Python 2.
-	PYTHON2=`which python2 2> /dev/null`;
-
-        # Note that "test -x" on Mac OS X will succeed if the argument is not set.
-	if test -n "${PYTHON2}" && test -x ${PYTHON2};
-	then
-		export PYTHON_VERSION=2;
-
-		run_configure_make_check_python "--enable-python";
-		RESULT=$?;
-
-		export PYTHON_VERSION=;
-
-		if test ${RESULT} -ne ${EXIT_SUCCESS};
-		then
-			exit ${EXIT_FAILURE};
-		fi
-		export PYTHON_VERSION=2;
-
-		run_configure_make_check_python "--enable-python2";
-		RESULT=$?;
-
-		export PYTHON_VERSION=;
-
-		if test ${RESULT} -ne ${EXIT_SUCCESS};
-		then
-			exit ${EXIT_FAILURE};
-		fi
-	fi
-
-	# Test with Python 3.
-	PYTHON3=`which python3 2> /dev/null`;
-
-        # Note that "test -x" on Mac OS X will succeed if the argument is not set.
-	if test -n "${PYTHON3}" && test -x ${PYTHON3};
-	then
-		export PYTHON_VERSION=3;
-
-		run_configure_make_check_python "--enable-python";
-		RESULT=$?;
-
-		export PYTHON_VERSION=;
-
-		if test ${RESULT} -ne ${EXIT_SUCCESS};
-		then
-			exit ${EXIT_FAILURE};
-		fi
-		export PYTHON_VERSION=3;
-
-		run_configure_make_check_python "--enable-python3";
-		RESULT=$?;
-
-		export PYTHON_VERSION=;
-
-		if test ${RESULT} -ne ${EXIT_SUCCESS};
-		then
-			exit ${EXIT_FAILURE};
-		fi
-	fi
-
-	# Test with the default Python version.
-	if test -z ${PYTHON2} && test -z ${PYTHON3};
-	then
-		run_configure_make_check_python "--enable-python";
-		RESULT=$?;
-
-		if test ${RESULT} -ne ${EXIT_SUCCESS};
-		then
-			exit ${EXIT_FAILURE};
-		fi
-
-		PYTHON=`which python 2> /dev/null`;
-
-		if test -f "setup.py" && ! run_setup_py_tests ${PYTHON};
-		then
-			exit ${EXIT_FAILURE};
-		fi
-	fi
-fi
-
-if test ${HAVE_ENABLE_STATIC_EXECUTABLES} -eq 0;
-then
-	CONFIGURE_OPTIONS="--enable-static-executables --enable-multi-threading-support=no";
-
-	if test ${HAVE_WITH_BZIP2} -eq 0;
-	then
-		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-bzip2=no";
-	fi
-	if test ${HAVE_WITH_LIBFUSE} -eq 0;
-	then
-		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-libfuse=no";
-	fi
-	if test ${HAVE_WITH_LZMA} -eq 0;
-	then
-		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-lzma=no";
-	fi
-	if test ${HAVE_WITH_OPENSSL} -eq 0;
-	then
-		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-openssl=no";
-	fi
-	if test ${HAVE_WITH_ZLIB} -eq 0;
-	then
-		CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-zlib=no";
-	fi
-	run_configure_make_check ${CONFIGURE_OPTIONS};
-	RESULT=$?;
-
-	if test ${RESULT} -ne ${EXIT_SUCCESS};
-	then
-		exit ${EXIT_FAILURE};
-	fi
-fi
-
-# Run tests with asan.
-CONFIGURE_OPTIONS="";
-
-if test ${HAVE_ENABLE_WIDE_CHARACTER_TYPE} -eq 0;
-then
-	CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --enable-wide-character-type";
-fi
-if test ${HAVE_WITH_BZIP2} -eq 0;
-then
-	CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-bzip2=no";
-fi
-if test ${HAVE_WITH_LZMA} -eq 0;
-then
-	CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-lzma=no";
-fi
-if test ${HAVE_WITH_OPENSSL} -eq 0;
-then
-	CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-openssl=no";
-fi
-if test ${HAVE_WITH_ZLIB} -eq 0;
-then
-	CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-zlib=no";
-fi
-if test ${HAVE_ENABLE_PYTHON} -eq 0 && test -n "${PYTHON_CONFIG}";
-then
-	# Issue with running the python bindings with asan disabled for now.
-	# CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --enable-python";
-	CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS}";
-fi
-
-run_configure_make_check_with_asan ${CONFIGURE_OPTIONS};
-RESULT=$?;
-
-if test ${RESULT} -ne ${EXIT_SUCCESS};
-then
-	exit ${EXIT_FAILURE};
-fi
-
-# Run tests with coverage.
-CONFIGURE_OPTIONS="--enable-shared=no";
-
-if test ${HAVE_ENABLE_WIDE_CHARACTER_TYPE} -eq 0;
-then
-	CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --enable-wide-character-type";
-fi
-if test ${HAVE_WITH_BZIP2} -eq 0;
-then
-	CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-bzip2=no";
-fi
-if test ${HAVE_WITH_LZMA} -eq 0;
-then
-	CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-lzma=no";
-fi
-if test ${HAVE_WITH_OPENSSL} -eq 0;
-then
-	CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-openssl=no";
-fi
-if test ${HAVE_WITH_ZLIB} -eq 0;
-then
-	CONFIGURE_OPTIONS="${CONFIGURE_OPTIONS} --with-zlib=no";
-fi
-
-run_configure_make_check_with_coverage ${CONFIGURE_OPTIONS};
-RESULT=$?;
-
-if test ${RESULT} -ne ${EXIT_SUCCESS};
-then
-	exit ${EXIT_FAILURE};
-fi
-
-exit ${EXIT_SUCCESS};
-
+echo -e "\033[1mTesting with code coverage.\033[0m"
+run_configure_make_check_with_code_coverage

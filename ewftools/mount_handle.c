@@ -1,7 +1,7 @@
 /*
  * Mount handle
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -516,7 +516,7 @@ on_error:
 }
 
 /* Closes the mount handle
- * Returns the 0 if succesful or -1 on error
+ * Returns the 0 if successful or -1 on error
  */
 int mount_handle_close(
      mount_handle_t *mount_handle,

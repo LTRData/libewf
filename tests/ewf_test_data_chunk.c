@@ -1,7 +1,7 @@
 /*
  * Library data_chunk type test program
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -56,7 +56,7 @@ int ewf_test_data_chunk_initialize(
 	int test_number                 = 0;
 #endif
 
-#if defined( HAVE_EWF_TEST_MEMORY ) && defined( HAVE_EWF_TEST_RWLOCK )
+#if defined( HAVE_EWF_TEST_MEMORY ) && defined( HAVE_EWF_TEST_RWLOCK_HOOK )
 	number_of_malloc_fail_tests += 1;
 #endif
 

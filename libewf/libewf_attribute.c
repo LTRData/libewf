@@ -1,7 +1,7 @@
 /*
  * Attribute functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -29,7 +29,7 @@
 #include "libewf_libcthreads.h"
 #include "libewf_types.h"
 
-/* Creates a attribute
+/* Creates an attribute
  * Make sure the value attribute is referencing, is set to NULL
  * Returns 1 if successful or -1 on error
  */
@@ -135,7 +135,7 @@ on_error:
 	return( -1 );
 }
 
-/* Frees a attribute
+/* Frees an attribute
  * Returns 1 if successful or -1 on error
  */
 int libewf_attribute_free(
@@ -143,8 +143,8 @@ int libewf_attribute_free(
      libcerror_error_t **error )
 {
 	libewf_internal_attribute_t *internal_attribute = NULL;
-	static char *function                                             = "libewf_attribute_free";
-	int result                                                        = 1;
+	static char *function                           = "libewf_attribute_free";
+	int result                                      = 1;
 
 	if( attribute == NULL )
 	{
@@ -714,7 +714,7 @@ int libewf_attribute_get_utf16_value_size(
 	return( result );
 }
 
-/* Retrieves the UTF-16 encoded 
+/* Retrieves the UTF-16 encoded value
  * The size should include the end of string character
  * Returns 1 if successful, 0 if not set or -1 on error
  */

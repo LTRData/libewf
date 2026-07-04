@@ -1,7 +1,7 @@
 /*
  * Device handle
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -914,7 +914,7 @@ on_error:
 }
 
 /* Closes the device handle
- * Returns the 0 if succesful or -1 on error
+ * Returns the 0 if successful or -1 on error
  */
 int device_handle_close(
      device_handle_t *device_handle,
@@ -2936,7 +2936,7 @@ int device_handle_read_errors_fprint(
 		 stream,
 		 "\ttotal number: %d\n",
 		 number_of_read_errors );
-		
+
 		for( read_error_index = 0;
 		     read_error_index < number_of_read_errors;
 		     read_error_index++ )
@@ -3034,7 +3034,7 @@ int device_handle_sessions_fprint(
 		fprintf(
 		 stream,
 		 "Sessions:\n" );
-		
+
 		fprintf(
 		 stream,
 		 "\ttotal number: %d\n",
@@ -3142,7 +3142,7 @@ int device_handle_tracks_fprint(
 		fprintf(
 		 stream,
 		 "Tracks:\n" );
-		
+
 		fprintf(
 		 stream,
 		 "\ttotal number: %d\n",

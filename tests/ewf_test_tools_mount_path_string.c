@@ -1,7 +1,7 @@
 /*
  * Tools mount_path_string functions test program
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -35,7 +35,7 @@
 
 #include "../ewftools/mount_path_string.h"
 
-#if defined( WINAPI )
+#if defined( WINAPI ) || defined( __MINGW32__ )
 #define ESCAPE_CHARACTER (system_character_t) '^'
 #else
 #define ESCAPE_CHARACTER (system_character_t) '\\'
@@ -198,7 +198,7 @@ int ewf_test_tools_mount_path_string_copy_from_file_entry_path(
 	system_character_t file_entry_path5[ 5 ] = { 't', 'e', ESCAPE_CHARACTER, 't', 0 };
 	system_character_t expected_path2[ 8 ]   = { 't', 'e', ESCAPE_CHARACTER, 'x', '0', '3', 't', 0 };
 	system_character_t expected_path3[ 14 ]  = { 't', 'e', ESCAPE_CHARACTER, 'U', '0', '0', '0', '0', '2', '0', '2', '8', 't', 0 };
-#if defined( WINAPI )
+#if defined( WINAPI ) || defined( __MINGW32__ )
 	system_character_t expected_path4[ 8 ]   = { 't', 'e', ESCAPE_CHARACTER, 'x', '5', 'c', 't', 0 };
 #else
 	system_character_t expected_path4[ 8 ]   = { 't', 'e', ESCAPE_CHARACTER, 'x', '2', 'f', 't', 0 };

@@ -1,7 +1,7 @@
 /*
  * Output functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -118,11 +118,9 @@ void ewftools_output_copyright_fprint(
 	{
 		return;
 	}
-	/* TRANSLATORS: This is a proper name.
-	 */
 	fprintf(
 	 stream,
-	 _( "Copyright (C) 2006-2023, %s.\n" ),
+	 _( "Copyright (C) 2006-2026, %s.\n" ),
 	 _( "Joachim Metz" ) );
 
 	fprintf(
@@ -130,14 +128,9 @@ void ewftools_output_copyright_fprint(
 	 _( "This is free software; see the source for copying conditions. There is NO\n"
 	    "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n" ) );
 
-	/* TRANSLATORS: The placeholder indicates the bug-reporting address
-	 * for this package.  Please add _another line_ saying
-	 * "Report translation bugs to <...>\n" with the address for translation
-	 * bugs (typically your translation team's web or email address).
-	 */
 	fprintf(
 	 stream,
-	 _( "Report bugs to <%s>.\n" ),
+	 _( "Report issues via: %s\n" ),
 	 PACKAGE_BUGREPORT );
 }
 
@@ -274,6 +267,12 @@ void ewftools_output_version_detailed_fprint(
 	 stream,
 	 ", libsmraw %s",
 	 LIBSMRAW_VERSION_STRING );
+#endif
+
+#if defined( HAVE_LIBRPCRT4 )
+	fprintf(
+	 stream,
+	 ", librpcrt4" );
 #endif
 
 #if defined( HAVE_LIBUUID )

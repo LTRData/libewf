@@ -1,7 +1,7 @@
 /*
  * Verification handle
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -168,6 +168,10 @@ struct verification_handle
 	/* The libewf input handle
 	 */
 	libewf_handle_t *input_handle;
+
+	/* The format
+	 */
+	uint8_t format;
 
 	/* The media size
 	 */

@@ -1,7 +1,7 @@
 /*
- * Mounts an Expert Witness Compression Format (EWF) image file
+ * Mounts an Expert Witness Compression Format (EWF) image file.
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -25,7 +25,19 @@
 #include <system_string.h>
 #include <types.h>
 
+#if defined( HAVE_SYS_RESOURCE_H )
+#include <sys/resource.h>
+#endif
+
 #include <stdio.h>
+
+#if defined( HAVE_FCNTL_H ) || defined( WINAPI )
+#include <fcntl.h>
+#endif
+
+#if defined( HAVE_GLOB_H )
+#include <glob.h>
+#endif
 
 #if defined( HAVE_IO_H ) || defined( WINAPI )
 #include <io.h>
@@ -37,10 +49,6 @@
 
 #if defined( HAVE_UNISTD_H )
 #include <unistd.h>
-#endif
-
-#if defined( HAVE_SYS_RESOURCE_H )
-#include <sys/resource.h>
 #endif
 
 #include "ewftools_getopt.h"
@@ -59,31 +67,6 @@
 
 mount_handle_t *ewfmount_mount_handle = NULL;
 int ewfmount_abort                    = 0;
-
-/* Prints usage information
- */
-void usage_fprint(
-      FILE *stream )
-{
-	if( stream == NULL )
-	{
-		return;
-	}
-	fprintf( stream, "Use ewfmount to mount an Expert Witness Compression Format (EWF) image file\n\n" );
-
-	fprintf( stream, "Usage: ewfmount [ -f format ] [ -X extended_options ] [ -hvV ] image mount_point\n\n" );
-
-	fprintf( stream, "\timage:       an Expert Witness Compression Format (EWF) image file\n\n" );
-	fprintf( stream, "\tmount_point: the directory to serve as mount point\n\n" );
-
-	fprintf( stream, "\t-f:          specify the input format, options: raw (default), files (restricted to\n"
-	                 "\t             logical volume files)\n" );
-	fprintf( stream, "\t-h:          shows this help\n" );
-	fprintf( stream, "\t-v:          verbose output to stderr, while ewfmount will remain running in the\n"
-	                 "\t             foreground\n" );
-	fprintf( stream, "\t-V:          print version\n" );
-	fprintf( stream, "\t-X:          extended options to pass to sub system\n" );
-}
 
 /* Signal handler for ewfmount
  */
@@ -141,14 +124,29 @@ int main( int argc, char * const argv[] )
 	struct rlimit limit_data;
 #endif
 
+	const char *description = \
+		"Use ewfmount to mount an Expert Witness Compression Format (EWF) image.";
+
+	ewftools_option_t options[ ] = {
+		{ 'f', "format", "specify the input format, options: raw (default), files (restricted to logical volume files)" },
+		{ 'h', NULL, "shows this help" },
+		{ 'v', NULL, "verbose output to stderr, while ewfmount will remain running in the foreground" },
+		{ 'V', NULL, "print version" },
+#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE )
+		{ 'X', "extended_options", "extended options to pass to sub system" },
+#endif
+		{ 0, "sources", "first or all files of a set of EWF segment files" },
+		{ 0, "mount_point", "the directory to serve as mount point" },
+	};
+	system_character_t options_string[ 32 ];
+
 	system_character_t * const *sources         = NULL;
 	libewf_error_t *error                       = NULL;
-	system_character_t *mount_point             = NULL;
-	system_character_t *option_extended_options = NULL;
 	system_character_t *option_format           = NULL;
 	const system_character_t *path_prefix       = NULL;
-	system_character_t *program                 = _SYSTEM_STRING( "ewfmount" );
+	char *program                               = "ewfmount";
 	system_integer_t option                     = 0;
+	int number_of_options                       = (int) ( sizeof( options ) / sizeof( ewftools_option_t ) );
 	size_t path_prefix_size                     = 0;
 	int number_of_sources                       = 0;
 	int result                                  = 0;
@@ -158,16 +156,35 @@ int main( int argc, char * const argv[] )
 	ewftools_glob_t *glob                       = NULL;
 #endif
 
-#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBOSXFUSE )
+#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE ) || defined( HAVE_LIBDOKAN )
+	system_character_t *mount_point             = NULL;
+#endif
+
+#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE )
 	struct fuse_operations ewfmount_fuse_operations;
 
-	struct fuse_args ewfmount_fuse_arguments    = FUSE_ARGS_INIT(0, NULL);
-	struct fuse_chan *ewfmount_fuse_channel     = NULL;
-	struct fuse *ewfmount_fuse_handle           = NULL;
+	system_character_t *option_extended_options = NULL;
+
+#if defined( HAVE_LIBFUSE3 )
+	/* Need to set this to 1 even if there no arguments, otherwise this causes
+	 * fuse: empty argv passed to fuse_session_new()
+	 */
+	char *fuse_argv[ 2 ]                         = { program, NULL };
+	struct fuse_args ewfmount_fuse_arguments     = FUSE_ARGS_INIT(1, fuse_argv);
+#else
+	struct fuse_args ewfmount_fuse_arguments     = FUSE_ARGS_INIT(0, NULL);
+	struct fuse_chan *ewfmount_fuse_channel      = NULL;
+#endif
+	struct fuse *ewfmount_fuse_handle            = NULL;
 
 #elif defined( HAVE_LIBDOKAN )
 	DOKAN_OPERATIONS ewfmount_dokan_operations;
 	DOKAN_OPTIONS ewfmount_dokan_options;
+#endif
+
+#if defined( __MINGW32__ ) && defined( HAVE_MINGW_BINMODE )
+	_setmode( _fileno( stdout ), _O_BINARY );
+	_setmode( _fileno( stderr ), _O_BINARY );
 #endif
 
 	libcnotify_stream_set(
@@ -200,10 +217,22 @@ int main( int argc, char * const argv[] )
 	 stdout,
 	 program );
 
+	if( ewftools_getopt_get_options_string(
+	     options,
+	     number_of_options,
+	     options_string,
+	     32 ) != 1 )
+	{
+		fprintf(
+		 stderr,
+		 "Unable to determine options string.\n" );
+
+		goto on_error;
+	}
 	while( ( option = ewftools_getopt(
 	                   argc,
 	                   argv,
-	                   _SYSTEM_STRING( "f:hvVX:" ) ) ) != (system_integer_t) -1 )
+	                   options_string ) ) != (system_integer_t) -1 )
 	{
 		switch( option )
 		{
@@ -214,8 +243,12 @@ int main( int argc, char * const argv[] )
 				 "Invalid argument: %" PRIs_SYSTEM "\n",
 				 argv[ optind - 1 ] );
 
-				usage_fprint(
-				 stdout );
+				ewftools_getopt_usage_fprint(
+				 stdout,
+				 program,
+				 description,
+				 options,
+				 number_of_options );
 
 				return( EXIT_FAILURE );
 
@@ -225,8 +258,12 @@ int main( int argc, char * const argv[] )
 				break;
 
 			case (system_integer_t) 'h':
-				usage_fprint(
-				 stdout );
+				ewftools_getopt_usage_fprint(
+				 stdout,
+				 program,
+				 description,
+				 options,
+				 number_of_options );
 
 				return( EXIT_SUCCESS );
 
@@ -241,10 +278,12 @@ int main( int argc, char * const argv[] )
 
 				return( EXIT_SUCCESS );
 
+#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE )
 			case (system_integer_t) 'X':
 				option_extended_options = optarg;
 
 				break;
+#endif
 		}
 	}
 	if( optind == argc )
@@ -253,8 +292,12 @@ int main( int argc, char * const argv[] )
 		 stderr,
 		 "Missing source image(s).\n" );
 
-		usage_fprint(
-		 stdout );
+		ewftools_getopt_usage_fprint(
+		 stdout,
+		 program,
+		 description,
+		 options,
+		 number_of_options );
 
 		return( EXIT_FAILURE );
 	}
@@ -264,13 +307,18 @@ int main( int argc, char * const argv[] )
 		 stderr,
 		 "Missing mount point.\n" );
 
-		usage_fprint(
-		 stdout );
+		ewftools_getopt_usage_fprint(
+		 stdout,
+		 program,
+		 description,
+		 options,
+		 number_of_options );
 
 		return( EXIT_FAILURE );
 	}
+#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE ) || defined( HAVE_LIBDOKAN )
 	mount_point = argv[ argc - 1 ];
-
+#endif
 	libcnotify_verbose_set(
 	 verbose );
 	libewf_notify_set_stream(
@@ -425,9 +473,14 @@ int main( int argc, char * const argv[] )
 		goto on_error;
 	}
 #endif
-#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBOSXFUSE )
+#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE )
 	if( option_extended_options != NULL )
 	{
+#if defined( HAVE_LIBFUSE3 )
+		// fuse_opt_add_arg: Assertion `!args->argv || args->allocated' failed.
+		ewfmount_fuse_arguments.argc = 0;
+		ewfmount_fuse_arguments.argv = NULL;
+#endif
 		/* This argument is required but ignored
 		 */
 		if( fuse_opt_add_arg(
@@ -481,6 +534,34 @@ int main( int argc, char * const argv[] )
 	ewfmount_fuse_operations.getattr    = &mount_fuse_getattr;
 	ewfmount_fuse_operations.destroy    = &mount_fuse_destroy;
 
+#if defined( HAVE_LIBFUSE3 )
+	ewfmount_fuse_handle = fuse_new(
+	                        &ewfmount_fuse_arguments,
+	                        &ewfmount_fuse_operations,
+	                        sizeof( struct fuse_operations ),
+	                        ewfmount_mount_handle );
+
+	if( ewfmount_fuse_handle == NULL )
+	{
+		fprintf(
+		 stderr,
+		 "Unable to create fuse handle.\n" );
+
+		goto on_error;
+	}
+	result = fuse_mount(
+	          ewfmount_fuse_handle,
+	          mount_point );
+
+	if( result != 0 )
+	{
+		fprintf(
+		 stderr,
+		 "Unable to fuse mount file system.\n" );
+
+		goto on_error;
+	}
+#else
 	ewfmount_fuse_channel = fuse_mount(
 	                         mount_point,
 	                         &ewfmount_fuse_arguments );
@@ -508,6 +589,8 @@ int main( int argc, char * const argv[] )
 
 		goto on_error;
 	}
+#endif /* defined( HAVE_LIBFUSE3 ) */
+
 	if( verbose == 0 )
 	{
 		if( fuse_daemonize(
@@ -702,11 +785,11 @@ int main( int argc, char * const argv[] )
 #else
 	fprintf(
 	 stderr,
-	 "No sub system to mount EWF format.\n" );
+	 "No sub system to mount Expert Witness Compression Format (EWF) format.\n" );
 
 	return( EXIT_FAILURE );
 
-#endif /* defined( HAVE_LIBFUSE ) || defined( HAVE_LIBOSXFUSE ) */
+#endif /* defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE ) */
 
 on_error:
 	if( error != NULL )
@@ -716,7 +799,7 @@ on_error:
 		libcerror_error_free(
 		 &error );
 	}
-#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBOSXFUSE )
+#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE )
 	if( ewfmount_fuse_handle != NULL )
 	{
 		fuse_destroy(

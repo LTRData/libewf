@@ -1,7 +1,7 @@
 /*
  * Support functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -544,7 +544,7 @@ int libewf_glob_determine_format(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 				 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
-				 "%s: invalid filename - unsupported extension: %s.",
+				 "%s: invalid filename - unsupported extension: %s",
 				 function,
 				 &( filename[ filename_length - 4 ] ) );
 
@@ -569,7 +569,7 @@ int libewf_glob_determine_format(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 				 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
-				 "%s: invalid filename - unsupported extension: %s.",
+				 "%s: invalid filename - unsupported extension: %s",
 				 function,
 				 &( filename[ filename_length - 5 ] ) );
 
@@ -581,7 +581,7 @@ int libewf_glob_determine_format(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 			 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
-			 "%s: invalid filename - unsupported extension: %s.",
+			 "%s: invalid filename - unsupported extension: %s",
 			 function,
 			 &( filename[ filename_length - 5 ] ) );
 
@@ -977,13 +977,13 @@ int libewf_glob(
 			memory_free(
 			 segment_filename );
 
+			segment_filename = NULL;
+
 			break;
 		}
-		safe_number_of_filenames += 1;
-
 		reallocation = memory_reallocate(
 		                safe_filenames,
-		                sizeof( char * ) * safe_number_of_filenames );
+		                sizeof( char * ) * ( safe_number_of_filenames + 1 ) );
 
 		if( reallocation == NULL )
 		{
@@ -998,7 +998,7 @@ int libewf_glob(
 		}
 		safe_filenames = (char **) reallocation;
 
-		safe_filenames[ safe_number_of_filenames - 1 ] = segment_filename;
+		safe_filenames[ safe_number_of_filenames++ ] = segment_filename;
 
 		segment_filename = NULL;
 	}
@@ -1150,7 +1150,7 @@ int libewf_glob_wide_determine_format(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 				 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
-				 "%s: invalid filename - unsupported extension: %s.",
+				 "%s: invalid filename - unsupported extension: %ls",
 				 function,
 				 &( filename[ filename_length - 4 ] ) );
 
@@ -1175,7 +1175,7 @@ int libewf_glob_wide_determine_format(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 				 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
-				 "%s: invalid filename - unsupported extension: %s.",
+				 "%s: invalid filename - unsupported extension: %ls",
 				 function,
 				 &( filename[ filename_length - 5 ] ) );
 
@@ -1187,7 +1187,7 @@ int libewf_glob_wide_determine_format(
 			 error,
 			 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
 			 LIBCERROR_ARGUMENT_ERROR_UNSUPPORTED_VALUE,
-			 "%s: invalid filename - unsupported extension: %s.",
+			 "%s: invalid filename - unsupported extension: %ls",
 			 function,
 			 &( filename[ filename_length - 5 ] ) );
 
@@ -1583,13 +1583,13 @@ int libewf_glob_wide(
 			memory_free(
 			 segment_filename );
 
+			segment_filename = NULL;
+
 			break;
 		}
-		safe_number_of_filenames += 1;
-
 		reallocation = memory_reallocate(
 		                safe_filenames,
-		                sizeof( wchar_t * ) * safe_number_of_filenames );
+		                sizeof( wchar_t * ) * ( safe_number_of_filenames + 1 ) );
 
 		if( reallocation == NULL )
 		{
@@ -1604,7 +1604,7 @@ int libewf_glob_wide(
 		}
 		safe_filenames = (wchar_t **) reallocation;
 
-		safe_filenames[ safe_number_of_filenames - 1 ] = segment_filename;
+		safe_filenames[ safe_number_of_filenames++ ] = segment_filename;
 
 		segment_filename = NULL;
 	}

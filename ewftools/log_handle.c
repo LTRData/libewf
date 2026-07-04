@@ -1,7 +1,7 @@
 /*
  * Log handle
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -187,7 +187,7 @@ int log_handle_open(
 }
 
 /* Closes the log handle
- * Returns the 0 if succesful or -1 on error
+ * Returns the 0 if successful or -1 on error
  */
 int log_handle_close(
      log_handle_t *log_handle,

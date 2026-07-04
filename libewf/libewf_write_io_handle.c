@@ -1,7 +1,7 @@
 /*
  * Low level writing functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -757,7 +757,7 @@ int libewf_write_io_handle_initialize_values(
 			                                     sizeof( uint8_t ) * (size_t) media_values->chunk_size );
 
 			if( zero_byte_empty_block == NULL )
-			{	
+			{
 				libcerror_error_set(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_MEMORY,
@@ -787,7 +787,7 @@ int libewf_write_io_handle_initialize_values(
 			                                                sizeof( uint8_t ) * write_io_handle->compressed_zero_byte_empty_block_size );
 
 			if( compressed_zero_byte_empty_block == NULL )
-			{	
+			{
 				libcerror_error_set(
 				 error,
 				 LIBCERROR_ERROR_DOMAIN_MEMORY,
@@ -855,7 +855,7 @@ int libewf_write_io_handle_initialize_values(
 					 "%s: unable to resize compressed zero byte empty block.",
 					 function );
 
-					return( -1 );
+					goto on_error;
 				}
 				compressed_zero_byte_empty_block = (uint8_t *) reallocation;
 
@@ -1109,7 +1109,7 @@ int libewf_write_io_handle_initialize_resume(
 		goto on_error;
 	}
 	section_index = number_of_sections - 1;
-	
+
 	if( libewf_segment_file_get_section_by_index(
 	     segment_file,
 	     section_index,
@@ -2512,13 +2512,13 @@ int libewf_write_io_handle_create_segment_file(
 	if( libbfio_file_set_name_wide(
 	     file_io_handle,
 	     filename,
-	     filename_size,
+	     filename_size - 1,
 	     error ) != 1 )
 #else
 	if( libbfio_file_set_name(
 	     file_io_handle,
 	     filename,
-	     filename_size,
+	     filename_size - 1,
 	     error ) != 1 )
 #endif
 	{
@@ -2828,6 +2828,11 @@ int libewf_write_io_handle_generate_table_entries_data(
 			{
 				libcnotify_printf(
 				 "\tHas checksum\n" );
+			}
+			if( ( chunk_descriptor->range_flags & LIBEWF_RANGE_FLAG_USES_PATTERN_FILL ) != 0 )
+			{
+				libcnotify_printf(
+				 "\tUses pattern fill\n" );
 			}
 			libcnotify_printf(
 			 "\n" );
@@ -3567,6 +3572,23 @@ ssize_t libewf_write_io_handle_write_new_chunk_create_chunk(
 	chunk_descriptor->data_size   = (size64_t) write_count - chunk_data->padding_size;
 	chunk_descriptor->range_flags = chunk_data->range_flags;
 
+	if( ( chunk_data->range_flags & LIBEWF_RANGE_FLAG_USES_PATTERN_FILL ) != 0 )
+	{
+		if( memory_copy(
+		     chunk_descriptor->pattern_fill,
+		     chunk_data->data,
+		     8 ) == NULL )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_MEMORY,
+			 LIBCERROR_MEMORY_ERROR_COPY_FAILED,
+			 "%s: unable to copy pattern fill.",
+			 function );
+
+			goto on_error;
+		}
+	}
 	if( libcdata_array_append_entry(
 	     write_io_handle->chunks_section,
 	     &entry_index,

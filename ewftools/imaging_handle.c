@@ -1,7 +1,7 @@
 /*
  * Imaging handle
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -54,7 +54,7 @@
 #define IMAGING_HANDLE_INPUT_BUFFER_SIZE		64
 #define IMAGING_HANDLE_STRING_SIZE			1024
 #define IMAGING_HANDLE_NOTIFY_STREAM			stdout
-#define IMAGING_HANDLE_MAXIMUM_PROCESS_BUFFERS_SIZE	64 * 1024 * 1024
+#define IMAGING_HANDLE_MAXIMUM_PROCESS_BUFFERS_SIZE	256 * 1024 * 1024
 
 /* Creates an imaging handle
  * Make sure the value imaging_handle is referencing, is set to NULL
@@ -418,7 +418,7 @@ int imaging_handle_signal_abort(
 		return( -1 );
 	}
 	if( imaging_handle->secondary_output_handle != NULL )
-	{	
+	{
 		if( libewf_handle_signal_abort(
 		     imaging_handle->output_handle,
 		     error ) != 1 )
@@ -959,7 +959,7 @@ on_error:
 }
 
 /* Closes the imaging handle
- * Returns the 0 if succesful or -1 on error
+ * Returns the 0 if successful or -1 on error
  */
 int imaging_handle_close(
      imaging_handle_t *imaging_handle,
@@ -1949,7 +1949,7 @@ int imaging_handle_output_storage_media_buffer_callback(
 		 "%s: invalid imaging handle.",
 		 function );
 
-		goto on_error;
+		return( -1 );
 	}
 	if( storage_media_buffer == NULL )
 	{
@@ -1960,7 +1960,7 @@ int imaging_handle_output_storage_media_buffer_callback(
 		 "%s: invalid storage media buffer.",
 		 function );
 
-		goto on_error;
+		return( -1 );
 	}
 	if( imaging_handle->abort != 0 )
 	{
@@ -2122,31 +2122,34 @@ int imaging_handle_output_storage_media_buffer_callback(
 		}
 		storage_media_buffer = NULL;
 
-		if( imaging_handle->acquiry_size == 0 )
+		if( imaging_handle->process_status != NULL )
 		{
-			result = process_status_update_unknown_total(
-			          imaging_handle->process_status,
-			          imaging_handle->last_offset_written,
-			          &error );
-		}
-		else
-		{
-			result = process_status_update(
-			          imaging_handle->process_status,
-			          imaging_handle->last_offset_written,
-			          imaging_handle->acquiry_size,
-			          &error );
-		}
-		if( result != 1 )
-		{
-			libcerror_error_set(
-			 &error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-			 "%s: unable to update process status.",
-			 function );
+			if( imaging_handle->acquiry_size == 0 )
+			{
+				result = process_status_update_unknown_total(
+				          imaging_handle->process_status,
+				          imaging_handle->last_offset_written,
+				          &error );
+			}
+			else
+			{
+				result = process_status_update(
+				          imaging_handle->process_status,
+				          imaging_handle->last_offset_written,
+				          imaging_handle->acquiry_size,
+				          &error );
+			}
+			if( result != 1 )
+			{
+				libcerror_error_set(
+				 &error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
+				 "%s: unable to update process status.",
+				 function );
 
-			goto on_error;
+				goto on_error;
+			}
 		}
 	}
 	return( 1 );
@@ -3749,8 +3752,6 @@ int imaging_handle_set_compression_values(
 			if( imaging_handle->compression_method != LIBEWF_COMPRESSION_METHOD_DEFLATE )
 			{
 				imaging_handle->compression_method = LIBEWF_COMPRESSION_METHOD_DEFLATE;
-
-				result = 0;
 			}
 		}
 		segment_index++;
@@ -4444,9 +4445,6 @@ int imaging_handle_set_number_of_threads(
 
 		return( -1 );
 	}
-	string_length = system_string_length(
-	                 string );
-
 	if( string[ 0 ] != (system_character_t) '-' )
 	{
 		string_length = system_string_length(
@@ -4797,7 +4795,7 @@ int imaging_handle_set_output_values(
 {
 	system_character_t acquiry_operating_system[ 32 ];
 
-#if defined( HAVE_GUID_SUPPORT ) || defined( WINAPI )
+#if defined( HAVE_GUID_SUPPORT )
 	uint8_t guid[ GUID_SIZE ];
 
 	uint8_t guid_type     = 0;
@@ -5359,7 +5357,7 @@ int imaging_handle_set_output_values(
 			return( -1 );
 		}
 	}
-#if defined( HAVE_GUID_SUPPORT ) || defined( WINAPI )
+#if defined( HAVE_GUID_SUPPORT )
 	if( ( imaging_handle->ewf_format == LIBEWF_FORMAT_ENCASE5 )
 	 || ( imaging_handle->ewf_format == LIBEWF_FORMAT_ENCASE6 )
 	 || ( imaging_handle->ewf_format == LIBEWF_FORMAT_ENCASE7 )
@@ -5427,7 +5425,8 @@ int imaging_handle_set_output_values(
 			}
 		}
 	}
-#endif
+#endif /* defined( HAVE_GUID_SUPPORT ) */
+
 	return( 1 );
 }
 

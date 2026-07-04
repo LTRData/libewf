@@ -1,7 +1,7 @@
 #!/bin/sh
 # Script that synchronizes the local library dependencies
 #
-# Version: 20230510
+# Version: 20260602
 
 EXIT_SUCCESS=0;
 EXIT_FAILURE=1;
@@ -28,7 +28,7 @@ do
 	fi
 	(cd ${LOCAL_LIB}-$$ && git fetch --quiet --all --tags --prune)
 
-	LATEST_TAG=`cd ${LOCAL_LIB}-$$ && git describe --tags --abbrev=0`;
+	LATEST_TAG=`cd ${LOCAL_LIB}-$$ && git tag --sort=-v:refname | head -n 1`;
 
 	if test -n ${LATEST_TAG} && test "$1" != "--use-head";
 	then
@@ -95,10 +95,11 @@ endif
 	d
 }
 
-/distclean: clean/ {
+/DISTCLEANFILES = / {
 	n
-	N
-	d
+	/${LOCAL_LIB}_definitions.h/ {
+		d
+	}
 }";
 	echo "${SED_SCRIPT}" >> ${LOCAL_LIB}-$$.sed;
 	sed -i'~' -f ${LOCAL_LIB}-$$.sed ${LOCAL_LIB_MAKEFILE_AM};
@@ -111,12 +112,12 @@ endif
 	if test ${LOCAL_LIB} = "libfplist";
 	then
 		# TODO: make this more generic to strip the last \\
-		sed -i'~' 's/libfplist_xml_scanner.c \\/libfplist_xml_scanner.c/' ${LOCAL_LIB_MAKEFILE_AM};
+		sed -i'~' '/EXTRA_DIST = /,/^$/s/libfplist_xml_scanner.c \\/libfplist_xml_scanner.c/' ${LOCAL_LIB_MAKEFILE_AM};
 
 	elif test ${LOCAL_LIB} = "libodraw";
 	then
 		# TODO: make this more generic to strip the last \\
-		sed -i'~' 's/libodraw_cue_scanner.c \\/libodraw_cue_scanner.c/' ${LOCAL_LIB_MAKEFILE_AM};
+		sed -i'~' '/EXTRA_DIST = /,/^$/s/libodraw_cue_scanner.c \\/libodraw_cue_scanner.c/' ${LOCAL_LIB_MAKEFILE_AM};
 
 	else
 		sed -i'~' '/EXTRA_DIST = /,/^$/d' ${LOCAL_LIB_MAKEFILE_AM};
@@ -140,7 +141,7 @@ SED_SCRIPT="/^$/ {
 	then
 		if ! test -f "m4/libuna.m4";
 		then
-			sed -i'~' 's?@LIBUNA_CPPFLAGS@?-I$(top_srcdir)/libuna?' ${LOCAL_LIB_MAKEFILE_AM};
+			sed -i'~' 's?@LIBUNA_CPPFLAGS@?-I../libuna -I$(top_srcdir)/libuna?' ${LOCAL_LIB_MAKEFILE_AM};
 		fi
 	fi
 

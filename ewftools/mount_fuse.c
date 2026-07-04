@@ -1,7 +1,7 @@
 /*
  * Mount tool fuse functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -27,6 +27,10 @@
 #include <errno.h>
 #endif
 
+#if defined( HAVE_FCNTL_H ) || defined( WINAPI )
+#include <fcntl.h>
+#endif
+
 #if defined( HAVE_STDLIB_H ) || defined( WINAPI )
 #include <stdlib.h>
 #endif
@@ -44,7 +48,7 @@
 
 extern mount_handle_t *ewfmount_mount_handle;
 
-#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBOSXFUSE )
+#if defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE )
 
 #if ( SIZEOF_OFF_T != 8 ) && ( SIZEOF_OFF_T != 4 )
 #error Size of off_t not supported
@@ -55,7 +59,7 @@ extern mount_handle_t *ewfmount_mount_handle;
  * Returns 1 if successful or -1 on error
  */
 int mount_fuse_set_stat_info(
-     struct stat *stat_info,
+     mount_fuse_stat_t *stat_info,
      size64_t size,
      uint16_t file_mode,
      int64_t access_time,
@@ -64,6 +68,9 @@ int mount_fuse_set_stat_info(
      libcerror_error_t **error )
 {
 	static char *function = "mount_fuse_set_stat_info";
+	int group_identifier  = 0;
+	int number_of_links   = 0;
+	int owner_identifier  = 0;
 
 	if( stat_info == NULL )
 	{
@@ -91,23 +98,41 @@ int mount_fuse_set_stat_info(
 
 		return( -1 );
 	}
-	stat_info->st_size  = (off_t) size;
-	stat_info->st_mode  = file_mode;
-
 	if( ( file_mode & 0x4000 ) != 0 )
 	{
-		stat_info->st_nlink = 2;
+		number_of_links = 2;
 	}
 	else
 	{
-		stat_info->st_nlink = 1;
+		number_of_links = 1;
 	}
 #if defined( HAVE_GETEUID )
-	stat_info->st_uid = geteuid();
+	owner_identifier = geteuid();
 #endif
 #if defined( HAVE_GETEGID )
-	stat_info->st_gid = getegid();
+	group_identifier = getegid();
 #endif
+#if defined( __APPLE__ )
+	stat_info->size  = (off_t) size;
+	stat_info->mode  = file_mode;
+	stat_info->nlink = number_of_links;
+	stat_info->uid   = owner_identifier;
+	stat_info->gid   = group_identifier;
+
+	stat_info->atimespec.tv_sec  = access_time / 1000000000;
+	stat_info->atimespec.tv_nsec = access_time % 1000000000;
+
+	stat_info->ctimespec.tv_sec  = inode_change_time / 1000000000;
+	stat_info->ctimespec.tv_nsec = inode_change_time % 1000000000;
+
+	stat_info->mtimespec.tv_sec  = modification_time / 1000000000;
+	stat_info->mtimespec.tv_nsec = modification_time % 1000000000;
+#else
+	stat_info->st_size  = (off_t) size;
+	stat_info->st_mode  = file_mode;
+	stat_info->st_nlink = number_of_links;
+	stat_info->st_uid   = owner_identifier;
+	stat_info->st_gid   = group_identifier;
 
 	stat_info->st_atime = access_time / 1000000000;
 	stat_info->st_ctime = inode_change_time / 1000000000;
@@ -118,6 +143,8 @@ int mount_fuse_set_stat_info(
 	stat_info->st_ctime_nsec = inode_change_time % 1000000000;
 	stat_info->st_mtime_nsec = modification_time % 1000000000;
 #endif
+#endif /* defined( __APPLE__ ) */
+
 	return( 1 );
 }
 
@@ -126,9 +153,9 @@ int mount_fuse_set_stat_info(
  */
 int mount_fuse_filldir(
      void *buffer,
-     fuse_fill_dir_t filler,
+     mount_fuse_fill_dir_t filler,
      const char *name,
-     struct stat *stat_info,
+     mount_fuse_stat_t *stat_info,
      mount_file_entry_t *file_entry,
      libcerror_error_t **error )
 {
@@ -226,7 +253,7 @@ int mount_fuse_filldir(
 	if( memory_set(
 	     stat_info,
 	     0,
-	     sizeof( struct stat ) ) == NULL )
+	     sizeof( mount_fuse_stat_t ) ) == NULL )
 	{
 		libcerror_error_set(
 		 error,
@@ -255,11 +282,20 @@ int mount_fuse_filldir(
 
 		return( -1 );
 	}
+#if defined( HAVE_LIBFUSE3 )
+	if( filler(
+	     buffer,
+	     name,
+	     stat_info,
+	     0,
+	     0 ) == 1 )
+#else
 	if( filler(
 	     buffer,
 	     name,
 	     stat_info,
 	     0 ) == 1 )
+#endif
 	{
 		libcerror_error_set(
 		 error,
@@ -332,7 +368,7 @@ int mount_fuse_open(
 
 		goto on_error;
 	}
-	if( ( file_info->flags & 0x03 ) != O_RDONLY )
+	if( ( file_info->flags & O_ACCMODE ) != O_RDONLY )
 	{
 		libcerror_error_set(
 		 &error,
@@ -655,14 +691,24 @@ on_error:
 /* Reads a directory
  * Returns 0 if successful or a negative errno value otherwise
  */
+#if defined( HAVE_LIBFUSE3 )
 int mount_fuse_readdir(
      const char *path,
      void *buffer,
-     fuse_fill_dir_t filler,
+     mount_fuse_fill_dir_t filler,
+     off_t offset EWFTOOLS_ATTRIBUTE_UNUSED,
+     struct fuse_file_info *file_info EWFTOOLS_ATTRIBUTE_UNUSED,
+     enum fuse_readdir_flags flags EWFTOOLS_ATTRIBUTE_UNUSED )
+#else
+int mount_fuse_readdir(
+     const char *path,
+     void *buffer,
+     mount_fuse_fill_dir_t filler,
      off_t offset EWFTOOLS_ATTRIBUTE_UNUSED,
      struct fuse_file_info *file_info EWFTOOLS_ATTRIBUTE_UNUSED )
+#endif
 {
-	struct stat *stat_info                = NULL;
+	mount_fuse_stat_t *stat_info          = NULL;
 	libcerror_error_t *error              = NULL;
 	mount_file_entry_t *parent_file_entry = NULL;
 	mount_file_entry_t *sub_file_entry    = NULL;
@@ -674,6 +720,10 @@ int mount_fuse_readdir(
 	int sub_file_entry_index              = 0;
 
 	EWFTOOLS_UNREFERENCED_PARAMETER( offset )
+
+#if defined( HAVE_LIBFUSE3 )
+	EWFTOOLS_UNREFERENCED_PARAMETER( flags )
+#endif
 
 #if defined( HAVE_DEBUG_OUTPUT )
 	if( libcnotify_verbose != 0 )
@@ -724,7 +774,7 @@ int mount_fuse_readdir(
 		goto on_error;
 	}
 	stat_info = memory_allocate_structure(
-	             struct stat );
+	             mount_fuse_stat_t );
 
 	if( stat_info == NULL )
 	{
@@ -1044,9 +1094,16 @@ on_error:
 /* Retrieves the file stat info
  * Returns 0 if successful or a negative errno value otherwise
  */
+#if defined( HAVE_LIBFUSE3 )
 int mount_fuse_getattr(
      const char *path,
-     struct stat *stat_info )
+     mount_fuse_stat_t *stat_info,
+     struct fuse_file_info *file_info EWFTOOLS_ATTRIBUTE_UNUSED )
+#else
+int mount_fuse_getattr(
+     const char *path,
+     mount_fuse_stat_t *stat_info )
+#endif
 {
 	libcerror_error_t *error       = NULL;
 	mount_file_entry_t *file_entry = NULL;
@@ -1057,6 +1114,10 @@ int mount_fuse_getattr(
 	uint64_t modification_time     = 0;
 	uint16_t file_mode             = 0;
 	int result                     = 0;
+
+#if defined( HAVE_LIBFUSE3 )
+	EWFTOOLS_UNREFERENCED_PARAMETER( file_info )
+#endif
 
 #if defined( HAVE_DEBUG_OUTPUT )
 	if( libcnotify_verbose != 0 )
@@ -1096,7 +1157,7 @@ int mount_fuse_getattr(
 	if( memory_set(
 	     stat_info,
 	     0,
-	     sizeof( struct stat ) ) == NULL )
+	     sizeof( mount_fuse_stat_t ) ) == NULL )
 	{
 		libcerror_error_set(
 		 &error,
@@ -1314,5 +1375,5 @@ on_error:
 	return;
 }
 
-#endif /* defined( HAVE_LIBFUSE ) || defined( HAVE_LIBOSXFUSE ) */
+#endif /* defined( HAVE_LIBFUSE ) || defined( HAVE_LIBFUSE3 ) || defined( HAVE_LIBOSXFUSE ) */
 

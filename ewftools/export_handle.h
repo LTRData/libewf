@@ -1,7 +1,7 @@
 /*
  * Export handle
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -202,6 +202,10 @@ struct export_handle
 	/* The libewf output handle
 	 */
 	libewf_handle_t *ewf_output_handle;
+
+	/* The input format
+	 */
+	uint8_t input_format;
 
 	/* The input chunk size
 	 */

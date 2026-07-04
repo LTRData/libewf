@@ -1,7 +1,7 @@
 /*
  * Storage media buffer
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -90,11 +90,21 @@ int storage_media_buffer_free(
      storage_media_buffer_t **buffer,
      libcerror_error_t **error );
 
+int storage_media_buffer_empty(
+     storage_media_buffer_t *buffer,
+     libcerror_error_t **error );
+
 int storage_media_buffer_get_data(
      storage_media_buffer_t *buffer,
      uint8_t **data,
      size_t *data_size,
      libcerror_error_t **error );
+
+ssize_t storage_media_buffer_add_data(
+         storage_media_buffer_t *buffer,
+         const uint8_t *data,
+         size_t data_size,
+         libcerror_error_t **error );
 
 int storage_media_buffer_compare(
      storage_media_buffer_t *first_buffer,

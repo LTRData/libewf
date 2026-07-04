@@ -1,7 +1,7 @@
 /*
  * Logical Evidence File (LEF) extended attribute functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -407,7 +407,9 @@ ssize_t libewf_lef_extended_attribute_read_data(
 		}
 		value_size *= 2;
 
+#if defined( HAVE_DEBUG_OUTPUT )
 		data_offset += value_size;
+#endif
 	}
 #if defined( HAVE_DEBUG_OUTPUT )
 	if( libcnotify_verbose != 0 )

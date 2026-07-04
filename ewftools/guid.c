@@ -1,7 +1,7 @@
 /*
  * GUID functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -26,17 +26,18 @@
 #include <types.h>
 #include <wide_string.h>
 
-#if defined( WINAPI )
+#if defined( HAVE_RPCDCE_H ) && ( defined( HAVE_LIBRPCRT4 ) || defined( WINAPI ) )
 #include <rpcdce.h>
+#endif
 
-#elif defined( HAVE_UUID_UUID_H )
+#if defined( HAVE_UUID_UUID_H ) || defined( HAVE_LIBUUID )
 #include <uuid/uuid.h>
 #endif
 
 #include "ewftools_libcerror.h"
 #include "guid.h"
 
-#if defined( HAVE_GUID_SUPPORT ) || defined( WINAPI )
+#if defined( HAVE_GUID_SUPPORT )
 
 /* Determines the GUID
  * Returns 1 if successful or -1 on error
@@ -47,10 +48,9 @@ int guid_generate(
      uint8_t guid_type,
      libcerror_error_t **error )
 {
-#if defined( WINAPI )
+#if defined( HAVE_LIBRPCRT4 ) || defined( WINAPI )
 	UUID uuid             = { 0, 0, 0, { 0, 0, 0, 0, 0, 0, 0, 0 } };
 #endif
-
 	static char *function = "guid_generate";
 
 	if( guid == NULL )
@@ -90,7 +90,7 @@ int guid_generate(
 	}
 	if( guid_type == GUID_TYPE_RANDOM )
 	{
-#if defined( WINAPI )
+#if defined( HAVE_LIBRPCRT4 ) || defined( WINAPI )
 		UuidCreate(
 		 &uuid );
 
@@ -101,10 +101,7 @@ int guid_generate(
 	}
 	else if( guid_type == GUID_TYPE_TIME )
 	{
-#if defined( __BORLANDC__ ) && __BORLANDC__ <= 0x0520
-		/* No support for the time type GUID */
-
-#elif defined( WINAPI ) && _WIN32_WINNT >= 0x0500
+#if defined( HAVE_LIBRPCRT4_UUID_CREATE_SEQUENTIAL ) || ( defined( _MSC_VER ) && _WIN32_WINNT >= 0x0500 )
 		UuidCreateSequential(
 		 &uuid );
 
@@ -113,7 +110,7 @@ int guid_generate(
 		 guid );
 #endif
 	}
-#if defined( WINAPI )
+#if defined( HAVE_LIBRPCRT4 ) || defined( WINAPI )
 	byte_stream_copy_from_uint32_little_endian(
 	 guid,
 	 uuid.Data1 );
@@ -141,12 +138,12 @@ int guid_generate(
 	guid[ 6 ] = uuid.Data4[ 6 ];
 	guid[ 7 ] = uuid.Data4[ 7 ];
 
-#endif /* defined( WINAPI ) */
+#endif /* defined( HAVE_LIBRPCRT4 ) || defined( WINAPI ) */
 
 	return( 1 );
 }
 
-#endif /* defined( HAVE_GUID_SUPPORT ) || defined( WINAPI ) */
+#endif /* defined( HAVE_GUID_SUPPORT ) */
 
 /* Converts the GUID into a string
  * Returns 1 if successful or -1 on error

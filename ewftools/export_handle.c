@@ -1,7 +1,7 @@
 /*
  * Export handle
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -664,6 +664,20 @@ int export_handle_open_input(
 
 		return( -1 );
 	}
+	if( libewf_handle_get_format(
+	     export_handle->input_handle,
+	     &( export_handle->input_format ),
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+		 "%s: unable to retrieve format.",
+		 function );
+
+		return( -1 );
+	}
 	if( libewf_handle_get_chunk_size(
 	     export_handle->input_handle,
 	     &( export_handle->input_chunk_size ),
@@ -995,7 +1009,7 @@ int export_handle_open_output(
 }
 
 /* Closes the export handle
- * Returns the 0 if succesful or -1 on error
+ * Returns the 0 if successful or -1 on error
  */
 int export_handle_close(
      export_handle_t *export_handle,
@@ -2641,8 +2655,6 @@ int export_handle_set_compression_values(
 			if( export_handle->compression_method != LIBEWF_COMPRESSION_METHOD_DEFLATE )
 			{
 				export_handle->compression_method = LIBEWF_COMPRESSION_METHOD_DEFLATE;
-
-				result = 0;
 			}
 		}
 		segment_index++;
@@ -3170,9 +3182,6 @@ int export_handle_set_number_of_threads(
 
 		return( -1 );
 	}
-	string_length = system_string_length(
-	                 string );
-
 	if( string[ 0 ] != (system_character_t) '-' )
 	{
 		string_length = system_string_length(
@@ -3517,12 +3526,11 @@ int export_handle_set_output_values(
      uint8_t copy_input_values,
      libcerror_error_t **error )
 {
-#if defined( HAVE_GUID_SUPPORT ) || defined( WINAPI )
+#if defined( HAVE_GUID_SUPPORT )
 	uint8_t guid[ GUID_SIZE ];
 
 	uint8_t guid_type          = 0;
 #endif
-
 	static char *function      = "export_handle_set_output_values";
 	size_t value_string_length = 0;
 	int result                 = 0;
@@ -3893,7 +3901,7 @@ int export_handle_set_output_values(
 
 				return( -1 );
 			}
-#if defined( HAVE_GUID_SUPPORT ) || defined( WINAPI )
+#if defined( HAVE_GUID_SUPPORT )
 			if( ( export_handle->ewf_format == LIBEWF_FORMAT_ENCASE5 )
 			 || ( export_handle->ewf_format == LIBEWF_FORMAT_ENCASE6 )
 			 || ( export_handle->ewf_format == LIBEWF_FORMAT_EWFX ) )
@@ -3940,7 +3948,7 @@ int export_handle_set_output_values(
 					return( -1 );
 				}
 			}
-#endif
+#endif /* defined( HAVE_GUID_SUPPORT ) */
 		}
 	}
 	else if( ( export_handle->output_format == EXPORT_HANDLE_OUTPUT_FORMAT_RAW )
@@ -4150,7 +4158,6 @@ ssize_t export_handle_write(
          size_t input_size,
          libcerror_error_t **error )
 {
-	uint8_t *input_buffer = NULL;
 	static char *function = "export_handle_write";
 	size_t write_size     = 0;
 	ssize_t process_count = 0;
@@ -4178,20 +4185,6 @@ ssize_t export_handle_write(
 
 		return( -1 );
 	}
-	if( input_storage_media_buffer->mode == STORAGE_MEDIA_BUFFER_MODE_CHUNK_DATA )
-	{
-		if( output_storage_media_buffer == NULL )
-		{
-			libcerror_error_set(
-			 error,
-			 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
-			 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
-			 "%s: invalid output storage media buffer.",
-			 function );
-
-			return( -1 );
-		}
-	}
 	while( input_size > 0 )
 	{
 		if( input_storage_media_buffer->mode == STORAGE_MEDIA_BUFFER_MODE_CHUNK_DATA )
@@ -4204,28 +4197,32 @@ ssize_t export_handle_write(
 			{
 				write_size = (size_t) input_size;
 			}
-			if( ( output_storage_media_buffer->raw_buffer_data_size + write_size ) > export_handle->output_chunk_size )
-			{
-				write_size = export_handle->output_chunk_size - output_storage_media_buffer->raw_buffer_data_size;
-			}
-			input_buffer = input_storage_media_buffer->raw_buffer;
-
-			if( memory_copy(
-			     &( output_storage_media_buffer->raw_buffer[ output_storage_media_buffer->raw_buffer_data_size ] ),
-			     input_buffer,
-			     write_size ) == NULL )
+			if( storage_media_buffer_add_data(
+			     output_storage_media_buffer,
+			     input_storage_media_buffer->raw_buffer,
+			     write_size,
+			     error ) == -1 )
 			{
 				libcerror_error_set(
 				 error,
-				 LIBCERROR_ERROR_DOMAIN_MEMORY,
-				 LIBCERROR_MEMORY_ERROR_COPY_FAILED,
-				 "%s: unable to copy data from input buffer to output raw buffer.",
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_COPY_FAILED,
+				 "%s: unable to add data from input buffer to storage media buffer.",
 				 function );
 
 				return( -1 );
 			}
-			output_storage_media_buffer->raw_buffer_data_size += write_size;
+			if( output_storage_media_buffer == NULL )
+			{
+				libcerror_error_set(
+				 error,
+				 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+				 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+				 "%s: invalid output storage media buffer.",
+				 function );
 
+				return( -1 );
+			}
 			/* Make sure the output chunk is filled upto the output chunk size
 			 */
 			if( ( export_handle->last_offset_hashed < (off64_t) export_handle->export_size )
@@ -4295,7 +4292,19 @@ ssize_t export_handle_write(
 
 		if( input_storage_media_buffer->mode == STORAGE_MEDIA_BUFFER_MODE_CHUNK_DATA )
 		{
-			output_storage_media_buffer->raw_buffer_data_size = 0;
+			if( storage_media_buffer_empty(
+			     output_storage_media_buffer,
+			     error ) == -1 )
+			{
+				libcerror_error_set(
+				 error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
+				 "%s: unable to empty storage media buffer.",
+				 function );
+
+				return( -1 );
+			}
 		}
 	}
 	return( write_count );
@@ -4523,7 +4532,7 @@ int export_handle_output_storage_media_buffer_callback(
         libcerror_error_t *error                            = NULL;
 	storage_media_buffer_t *output_storage_media_buffer = NULL;
 	uint8_t *data                                       = NULL;
-        static char *function                               = "export_handle_process_storage_media_buffer_callback";
+        static char *function                               = "export_handle_output_storage_media_buffer_callback";
 	size_t data_size                                    = 0;
 	ssize_t write_count                                 = 0;
 	int result                                          = 0;
@@ -4537,7 +4546,7 @@ int export_handle_output_storage_media_buffer_callback(
 		 "%s: invalid export handle.",
 		 function );
 
-		goto on_error;
+		return( -1 );
 	}
 	if( storage_media_buffer == NULL )
 	{
@@ -4548,7 +4557,7 @@ int export_handle_output_storage_media_buffer_callback(
 		 "%s: invalid storage media buffer.",
 		 function );
 
-		goto on_error;
+		return( -1 );
 	}
 	if( export_handle->abort != 0 )
 	{
@@ -4847,20 +4856,23 @@ int export_handle_output_storage_media_buffer_callback(
 		}
 		element = next_element;
 
-		if( process_status_update(
-		     export_handle->process_status,
-		     export_handle->last_offset_hashed,
-		     export_handle->input_media_size,
-		     &error ) != 1 )
+		if( export_handle->process_status != NULL )
 		{
-			libcerror_error_set(
-			 &error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-			 "%s: unable to update process status.",
-			 function );
+			if( process_status_update(
+			     export_handle->process_status,
+			     export_handle->last_offset_hashed,
+			     export_handle->input_media_size,
+			     &error ) != 1 )
+			{
+				libcerror_error_set(
+				 &error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
+				 "%s: unable to update process status.",
+				 function );
 
-			goto on_error;
+				goto on_error;
+			}
 		}
 	}
 	return( 1 );
@@ -5067,9 +5079,12 @@ int export_handle_export_input(
 	ssize_t write_count                                 = 0;
 	off64_t input_storage_media_offset                  = 0;
 	uint8_t storage_media_buffer_mode                   = 0;
-	int maximum_number_of_queued_items                  = 0;
 	int result                                          = 0;
 	int status                                          = PROCESS_STATUS_COMPLETED;
+
+#if defined( HAVE_MULTI_THREAD_SUPPORT )
+	int maximum_number_of_queued_items                  = 0;
+#endif
 
 	if( export_handle == NULL )
 	{
@@ -5189,6 +5204,14 @@ int export_handle_export_input(
 		}
 		process_buffer_size       = (size_t) export_handle->input_chunk_size;
 		storage_media_buffer_mode = STORAGE_MEDIA_BUFFER_MODE_CHUNK_DATA;
+
+		if( ( export_handle->input_format == LIBEWF_FORMAT_SMART )
+		 || ( export_handle->input_format == LIBEWF_FORMAT_FTK_IMAGER ) )
+		{
+			/* In EWF-S01 (SMART) the size of a stored chunk can be larger than the chunk size
+			 */
+			process_buffer_size *= 2;
+		}
 	}
 	else
 	{
@@ -7046,7 +7069,7 @@ int export_handle_checksum_errors_fprint(
 		 stream,
 		 "\ttotal number: %" PRIu32 "\n",
 		 number_of_errors );
-		
+
 		for( error_index = 0;
 		     error_index < number_of_errors;
 		     error_index++ )
@@ -7200,6 +7223,7 @@ int export_handle_checksum_errors_fprint(
 						memory_free(
 						 filename );
 					}
+					filename = NULL;
 				}
 				start_sector += export_handle->input_chunk_size;
 			}

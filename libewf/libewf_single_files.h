@@ -1,7 +1,7 @@
 /*
  * Single files functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -158,6 +158,11 @@ int libewf_single_files_read_data_stream(
 int libewf_single_files_get_file_entry_tree_root_node(
      libewf_single_files_t *single_files,
      libcdata_tree_node_t **root_node,
+     libcerror_error_t **error );
+
+int libewf_single_files_get_number_of_permission_groups(
+     libewf_single_files_t *single_files,
+     int *number_of_permission_groups,
      libcerror_error_t **error );
 
 int libewf_single_files_get_permission_group_by_index(

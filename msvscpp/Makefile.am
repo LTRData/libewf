@@ -121,9 +121,7 @@ MSVSCPP_FILES = \
 EXTRA_DIST = \
 	$(MSVSCPP_FILES)
 
-MAINTAINERCLEANFILES = \
+DISTCLEANFILES = \
+	Makefile \
 	Makefile.in
-
-distclean: clean
-	/bin/rm -f Makefile
 

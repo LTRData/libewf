@@ -1,7 +1,7 @@
 /*
  * SHA1 hash section functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -376,9 +376,9 @@ int libewf_sha1_hash_section_write_data(
 	 ( (ewf_sha1_hash_t *) data )->checksum,
 	 calculated_checksum );
 
+#if defined( HAVE_DEBUG_OUTPUT )
 	data_size += 8;
 
-#if defined( HAVE_DEBUG_OUTPUT )
 	if( libcnotify_verbose != 0 )
 	{
 		libcnotify_printf(

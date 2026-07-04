@@ -1,7 +1,7 @@
 /*
  * Expert Witness Compression Format (EWF) library write testing program
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -391,7 +391,7 @@ int ewf_test_write(
 	 buffer );
 
 	buffer = NULL;
-	
+
 	if( libewf_handle_close(
 	     handle,
 	     error ) != 0 )
@@ -496,7 +496,8 @@ int main( int argc, char * const argv[] )
 				break;
 		}
 	}
-	if( optind == argc )
+	if( ( optind == argc )
+	 || ( argv[ optind ] == NULL ) )
 	{
 		fprintf(
 		 stderr,

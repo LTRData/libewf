@@ -1,7 +1,7 @@
 /*
  * Verification handle
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -129,23 +129,6 @@ int verification_handle_initialize(
 
 		goto on_error;
 	}
-#ifdef TODO
-	/* TODO: have application determine limit value and set to value - 4 */
-	if( libewf_handle_set_maximum_number_of_open_handles(
-	     ( *verification_handle )->input_handle,
-	     1000,
-	     error ) != 1 )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-		 "%s: unable to set maximum number of open handles.",
-		 function );
-
-		goto on_error;
-	}
-#endif
 	( *verification_handle )->stored_md5_hash_string = narrow_string_allocate(
 							    33 );
 
@@ -202,11 +185,6 @@ int verification_handle_initialize(
 on_error:
 	if( *verification_handle != NULL )
 	{
-		if( ( *verification_handle )->stored_sha1_hash_string != NULL )
-		{
-			memory_free(
-			 ( *verification_handle )->stored_sha1_hash_string );
-		}
 		if( ( *verification_handle )->stored_sha1_hash_string != NULL )
 		{
 			memory_free(
@@ -580,6 +558,20 @@ int verification_handle_open_input(
 		}
 		libewf_filenames = NULL;
 	}
+	if( libewf_handle_get_format(
+	     verification_handle->input_handle,
+	     &( verification_handle->format ),
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+		 "%s: unable to retrieve format.",
+		 function );
+
+		goto on_error;
+	}
 	if( libewf_handle_get_chunk_size(
 	     verification_handle->input_handle,
 	     &( verification_handle->chunk_size ),
@@ -630,7 +622,7 @@ on_error:
 }
 
 /* Closes the verification handle
- * Returns the 0 if succesful or -1 on error
+ * Returns the 0 if successful or -1 on error
  */
 int verification_handle_close(
      verification_handle_t *verification_handle,
@@ -892,41 +884,13 @@ int verification_handle_finalize_integrity_hash(
 
 		return( -1 );
 	}
-	if( verification_handle->calculated_md5_hash_string != NULL )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_VALUE_ALREADY_SET,
-		 "%s: invalid verification handle - calculated MD5 digest hash string value already set.",
-		 function );
-
-		return( -1 );
-	}
-	if( verification_handle->calculated_sha1_hash_string != NULL )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_VALUE_ALREADY_SET,
-		 "%s: invalid verification handle - calculated SHA1 digest hash string value already set.",
-		 function );
-
-		return( -1 );
-	}
-	if( verification_handle->calculated_sha256_hash_string != NULL )
-	{
-		libcerror_error_set(
-		 error,
-		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-		 LIBCERROR_RUNTIME_ERROR_VALUE_ALREADY_SET,
-		 "%s: invalid verification handle - calculated SHA256 digest hash string value already set.",
-		 function );
-
-		return( -1 );
-	}
 	if( verification_handle->calculate_md5 != 0 )
 	{
+		if( verification_handle->calculated_md5_hash_string != NULL )
+		{
+			memory_free(
+			 verification_handle->calculated_md5_hash_string );
+		}
 		verification_handle->calculated_md5_hash_string = narrow_string_allocate(
 		                                                   33 );
 
@@ -988,6 +952,11 @@ int verification_handle_finalize_integrity_hash(
 	}
 	if( verification_handle->calculate_sha1 != 0 )
 	{
+		if( verification_handle->calculated_sha1_hash_string != NULL )
+		{
+			memory_free(
+			 verification_handle->calculated_sha1_hash_string );
+		}
 		verification_handle->calculated_sha1_hash_string = narrow_string_allocate(
 		                                                    41 );
 
@@ -1049,6 +1018,11 @@ int verification_handle_finalize_integrity_hash(
 	}
 	if( verification_handle->calculate_sha256 != 0 )
 	{
+		if( verification_handle->calculated_sha256_hash_string != NULL )
+		{
+			memory_free(
+			 verification_handle->calculated_sha256_hash_string );
+		}
 		verification_handle->calculated_sha256_hash_string = narrow_string_allocate(
 		                                                      65 );
 
@@ -1181,8 +1155,6 @@ int verification_handle_process_storage_media_buffer_callback(
 		libcerror_error_free(
 		 &error );
 
-		process_count = verification_handle->chunk_size;
-
 		storage_media_buffer->is_corrupted = 1;
 	}
 	if( libcthreads_thread_pool_push(
@@ -1256,7 +1228,7 @@ int verification_handle_output_storage_media_buffer_callback(
 	libcdata_list_element_t *next_element = NULL;
         libcerror_error_t *error              = NULL;
 	uint8_t *data                         = NULL;
-        static char *function                 = "verification_handle_process_storage_media_buffer_callback";
+        static char *function                 = "verification_handle_output_storage_media_buffer_callback";
 	size_t data_size                      = 0;
 	int result                            = 0;
 
@@ -1269,7 +1241,7 @@ int verification_handle_output_storage_media_buffer_callback(
 		 "%s: invalid verification handle.",
 		 function );
 
-		goto on_error;
+		return( -1 );
 	}
 	if( storage_media_buffer == NULL )
 	{
@@ -1280,7 +1252,7 @@ int verification_handle_output_storage_media_buffer_callback(
 		 "%s: invalid storage media buffer.",
 		 function );
 
-		goto on_error;
+		return( -1 );
 	}
 	if( verification_handle->abort != 0 )
 	{
@@ -1496,20 +1468,23 @@ int verification_handle_output_storage_media_buffer_callback(
 		}
 		storage_media_buffer = NULL;
 
-		if( process_status_update(
-		     verification_handle->process_status,
-		     verification_handle->last_offset_hashed,
-		     verification_handle->media_size,
-		     &error ) != 1 )
+		if( verification_handle->process_status != NULL )
 		{
-			libcerror_error_set(
-			 &error,
-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
-			 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
-			 "%s: unable to update process status.",
-			 function );
+			if( process_status_update(
+			     verification_handle->process_status,
+			     verification_handle->last_offset_hashed,
+			     verification_handle->media_size,
+			     &error ) != 1 )
+			{
+				libcerror_error_set(
+				 &error,
+				 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+				 LIBCERROR_RUNTIME_ERROR_SET_FAILED,
+				 "%s: unable to update process status.",
+				 function );
 
-			goto on_error;
+				goto on_error;
+			}
 		}
 	}
 	return( 1 );
@@ -1708,12 +1683,15 @@ int verification_handle_verify_input(
 	uint32_t number_of_checksum_errors           = 0;
 	uint8_t storage_media_buffer_mode            = 0;
 	int is_corrupted                             = 0;
-	int maximum_number_of_queued_items           = 0;
 	int md5_hash_compare                         = 0;
 	int result                                   = 0;
 	int sha1_hash_compare                        = 0;
 	int sha256_hash_compare                      = 0;
 	int status                                   = PROCESS_STATUS_COMPLETED;
+
+#if defined( HAVE_MULTI_THREAD_SUPPORT )
+	int maximum_number_of_queued_items           = 0;
+#endif
 
 	if( verification_handle == NULL )
 	{
@@ -1790,6 +1768,14 @@ int verification_handle_verify_input(
 	{
 		process_buffer_size       = verification_handle->chunk_size;
 		storage_media_buffer_mode = STORAGE_MEDIA_BUFFER_MODE_CHUNK_DATA;
+
+		if( ( verification_handle->format == LIBEWF_FORMAT_SMART )
+		 || ( verification_handle->format == LIBEWF_FORMAT_FTK_IMAGER ) )
+		{
+			/* In EWF-S01 (SMART) the size of a stored chunk can be larger than the chunk size
+			 */
+			process_buffer_size *= 2;
+		}
 	}
 	else
 	{
@@ -2305,10 +2291,12 @@ int verification_handle_verify_input(
 	}
 	if( verification_handle->abort == 0 )
 	{
-		fprintf(
-		 verification_handle->notify_stream,
-		 "\n" );
-
+		if( print_status_information != 0 )
+		{
+			fprintf(
+			 verification_handle->notify_stream,
+			 "\n" );
+		}
 		if( verification_handle_checksum_errors_fprint(
 		     verification_handle,
 		     verification_handle->notify_stream,
@@ -3707,9 +3695,6 @@ int verification_handle_set_number_of_threads(
 
 		return( -1 );
 	}
-	string_length = system_string_length(
-	                 string );
-
 	if( string[ 0 ] != (system_character_t) '-' )
 	{
 		string_length = system_string_length(

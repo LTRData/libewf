@@ -1,16 +1,19 @@
 AC_PREREQ([2.71])
 
 AC_INIT(
- [libewf],
- [20230818],
- [joachim.metz@gmail.com])
+  [libewf],
+  [20260627],
+  [https://github.com/libyal/libewf/issues])
 
 AC_CONFIG_SRCDIR(
- [include/libewf.h.in])
+  [include/libewf.h.in])
 
 AM_INIT_AUTOMAKE([gnu 1.6 tar-ustar])
+AM_EXTRA_RECURSIVE_TARGETS([sources splint])
 
 AC_CONFIG_MACRO_DIR([m4])
+
+AC_CONFIG_TESTDIR([tests])
 
 dnl Check for host type
 AC_CANONICAL_HOST
@@ -20,7 +23,6 @@ LT_INIT([win32-dll])
 
 dnl Checks for programs
 AC_PROG_CC
-AC_PROG_GCC_TRADITIONAL
 AC_PROG_CXX
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
@@ -44,6 +46,15 @@ AC_SYS_LARGEFILE
 
 dnl Check if shared library support should be disabled
 AX_COMMON_CHECK_DISABLE_SHARED_LIBS
+
+dnl Check if asan support should be enabled
+AX_TESTS_CHECK_ENABLE_ASAN
+
+dnl Check if ubsan support should be enabled
+AX_TESTS_CHECK_ENABLE_UBSAN
+
+dnl Check if code coverage support should be enabled
+AX_TESTS_CHECK_ENABLE_CODE_COVERAGE
 
 dnl Check if tools should be build as static executables
 AX_COMMON_CHECK_ENABLE_STATIC_EXECUTABLES
@@ -160,7 +171,7 @@ dnl Check if libewf Python bindings (pyewf) required headers and functions are a
 AX_PYTHON_CHECK_ENABLE
 
 AS_IF(
-  [test "x${ac_cv_enable_python}" != xno || test "x${ac_cv_enable_python2}" != xno || test "x${ac_cv_enable_python3}" != xno],
+  [test "x${ac_cv_enable_python}" != xno],
   [dnl Headers included in pyewf/pyewf_error.c
   AC_CHECK_HEADERS([stdarg.h varargs.h])
 
@@ -202,28 +213,28 @@ CFLAGS="$CFLAGS -Wall";
 
 dnl Check if requires and build requires should be set in spec file
 AS_IF(
- [test "x$ac_cv_libcerror" = xyes || test "x$ac_cv_libcthreads" = xyes || test "x$ac_cv_libcdata" = xyes || test "x$ac_cv_libcdatetime" = xyes || test "x$ac_cv_libclocale" = xyes || test "x$ac_cv_libcnotify" = xyes || test "x$ac_cv_libcsplit" = xyes || test "x$ac_cv_libuna" = xyes || test "x$ac_cv_libcfile" = xyes || test "x$ac_cv_libcpath" = xyes || test "x$ac_cv_libbfio" = xyes || test "x$ac_cv_libfcache" = xyes || test "x$ac_cv_libfdata" = xyes || test "x$ac_cv_libfdatetime" = xyes || test "x$ac_cv_libfguid" = xyes || test "x$ac_cv_libfvalue" = xyes || test "x$ac_cv_zlib" != xno || test "x$ac_cv_libhmac" = xyes || test "x$ac_cv_libcaes" = xyes || test "x$ac_cv_libcrypto" != xno],
- [AC_SUBST(
-  [libewf_spec_requires],
-  [Requires:])
- ])
+  [test "x$ac_cv_libcerror" = xyes || test "x$ac_cv_libcthreads" = xyes || test "x$ac_cv_libcdata" = xyes || test "x$ac_cv_libcdatetime" = xyes || test "x$ac_cv_libclocale" = xyes || test "x$ac_cv_libcnotify" = xyes || test "x$ac_cv_libcsplit" = xyes || test "x$ac_cv_libuna" = xyes || test "x$ac_cv_libcfile" = xyes || test "x$ac_cv_libcpath" = xyes || test "x$ac_cv_libbfio" = xyes || test "x$ac_cv_libfcache" = xyes || test "x$ac_cv_libfdata" = xyes || test "x$ac_cv_libfdatetime" = xyes || test "x$ac_cv_libfguid" = xyes || test "x$ac_cv_libfvalue" = xyes || test "x$ac_cv_zlib" != xno || test "x$ac_cv_libhmac" = xyes || test "x$ac_cv_libcaes" = xyes || test "x$ac_cv_libcrypto" != xno],
+  [AC_SUBST(
+    [libewf_spec_requires],
+    [Requires:])
+  ])
 
 AS_IF(
- [test "x$ac_cv_libodraw" = xyes || test "x$ac_cv_libsmdev" = xyes || test "x$ac_cv_libsmraw" = xyes || test "x$ac_cv_libfuse" != xno || test "x$ac_cv_libuuid" = xyes],
- [AC_SUBST(
-  [libewf_spec_tools_build_requires],
-  [BuildRequires:])
- ])
+  [test "x$ac_cv_libodraw" = xyes || test "x$ac_cv_libsmdev" = xyes || test "x$ac_cv_libsmraw" = xyes || test "x$ac_cv_libfuse" != xno || test "x$ac_cv_libuuid" = xyes],
+  [AC_SUBST(
+    [libewf_spec_tools_build_requires],
+    [BuildRequires:])
+  ])
 
 dnl Set the date for the dpkg files
 AC_SUBST(
- [DPKG_DATE],
- [`date -R 2> /dev/null`])
+  [DPKG_DATE],
+  [`date -R 2> /dev/null`])
 
 dnl Set the date for the spec file
 AC_SUBST(
- [SPEC_DATE],
- [`date +"%a %b %e %Y" 2> /dev/null`])
+  [SPEC_DATE],
+  [`date +"%a %b %e %Y" 2> /dev/null`])
 
 dnl Generate Makefiles
 AC_CONFIG_FILES([Makefile])
@@ -249,8 +260,6 @@ AC_CONFIG_FILES([libhmac/Makefile])
 AC_CONFIG_FILES([libcaes/Makefile])
 AC_CONFIG_FILES([libewf/Makefile])
 AC_CONFIG_FILES([pyewf/Makefile])
-AC_CONFIG_FILES([pyewf-python2/Makefile])
-AC_CONFIG_FILES([pyewf-python3/Makefile])
 AC_CONFIG_FILES([ewf.net/Makefile])
 AC_CONFIG_FILES([libodraw/Makefile])
 AC_CONFIG_FILES([libsmdev/Makefile])
@@ -275,6 +284,9 @@ AC_CONFIG_FILES([libewf/libewf.rc])
 AC_CONFIG_FILES([ewf.net/ewf.net.rc])
 AC_CONFIG_FILES([libewf.pc])
 AC_CONFIG_FILES([libewf.spec])
+AC_CONFIG_FILES([pyproject.toml])
+dnl Generate test configuration files
+AC_CONFIG_FILES([tests/atlocal])
 dnl Generate a source configuration file
 AC_CONFIG_HEADERS([common/config.h])
 

@@ -1,7 +1,7 @@
 /*
  * The internal type definitions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -37,6 +37,7 @@
 typedef struct libewf_access_control_entry {}	libewf_access_control_entry_t;
 typedef struct libewf_attribute {}		libewf_attribute_t;
 typedef struct libewf_data_chunk {}		libewf_data_chunk_t;
+typedef struct libewf_extent {}			libewf_extent_t;
 typedef struct libewf_file_entry {}		libewf_file_entry_t;
 typedef struct libewf_handle {}			libewf_handle_t;
 typedef struct libewf_source {}			libewf_source_t;
@@ -46,6 +47,7 @@ typedef struct libewf_subject {}		libewf_subject_t;
 typedef intptr_t libewf_access_control_entry_t;
 typedef intptr_t libewf_attribute_t;
 typedef intptr_t libewf_data_chunk_t;
+typedef intptr_t libewf_extent_t;
 typedef intptr_t libewf_file_entry_t;
 typedef intptr_t libewf_handle_t;
 typedef intptr_t libewf_source_t;

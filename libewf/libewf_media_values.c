@@ -1,7 +1,7 @@
 /*
  * Media values functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -276,7 +276,7 @@ int libewf_media_values_calculate_chunk_size(
 		 function );
 
 		return( -1 );
-	}	
+	}
 	if( ( media_values->sectors_per_chunk == 0 )
 	 || ( media_values->sectors_per_chunk > (uint32_t) INT32_MAX ) )
 	{

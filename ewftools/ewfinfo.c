@@ -1,7 +1,7 @@
 /*
- * Shows information stored in an EWF file
+ * Shows information obtained from an Expert Witness Compression Format (EWF) image.
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -28,16 +28,20 @@
 #include <sys/resource.h>
 #endif
 
-#if defined( HAVE_STDLIB_H ) || defined( WINAPI )
-#include <stdlib.h>
+#if defined( HAVE_FCNTL_H ) || defined( WINAPI )
+#include <fcntl.h>
+#endif
+
+#if defined( HAVE_GLOB_H )
+#include <glob.h>
 #endif
 
 #if defined( HAVE_IO_H ) || defined( WINAPI )
 #include <io.h>
 #endif
 
-#if defined( HAVE_GLOB_H )
-#include <glob.h>
+#if defined( HAVE_STDLIB_H ) || defined( WINAPI )
+#include <stdlib.h>
 #endif
 
 #if defined( HAVE_IO_H )
@@ -67,45 +71,6 @@ enum EWFINFO_MODES
 
 info_handle_t *ewfinfo_info_handle = NULL;
 int ewfinfo_abort                  = 0;
-
-/* Prints the executable usage information
- */
-void usage_fprint(
-      FILE *stream )
-{
-	if( stream == NULL )
-	{
-		return;
-	}
-	fprintf( stream, "Use ewfinfo to determine information about the EWF format (Expert Witness\n"
-	                 " Compression Format).\n\n" );
-
-	fprintf( stream, "Usage: ewfinfo [ -A codepage ] [ -B bodyfile ] [ -d date_format ]\n"
-	                 "               [ -f format ] [ -F path ] [ -s separator ] [ -ehHimvVx ]\n"
-	                 "               ewf_files\n\n" );
-
-	fprintf( stream, "\tewf_files: the first or the entire set of EWF segment files\n\n" );
-
-	fprintf( stream, "\t-A:        codepage of header section, options: ascii (default),\n"
-	                 "\t           windows-874, windows-932, windows-936, windows-949,\n"
-	                 "\t           windows-950, windows-1250, windows-1251, windows-1252,\n"
-	                 "\t           windows-1253, windows-1254, windows-1255, windows-1256,\n"
-	                 "\t           windows-1257 or windows-1258\n" );
-	fprintf( stream, "\t-B:        output logical files information as a bodyfile\n" );
-	fprintf( stream, "\t-d:        specify the date format, options: ctime (default),\n"
-	                 "\t           dm (day/month), md (month/day), iso8601\n" );
-	fprintf( stream, "\t-e:        only show EWF read error information\n" );
-	fprintf( stream, "\t-f:        specify the output format, options: text (default),\n"
-	                 "\t           dfxml\n" );
-	fprintf( stream, "\t-F:        show information about a specific file entry path.\n" );
-	fprintf( stream, "\t-h:        shows this help\n" );
-	fprintf( stream, "\t-H:        shows the logical files hierarchy\n" );
-	fprintf( stream, "\t-i:        only show EWF acquiry information\n" );
-	fprintf( stream, "\t-m:        only show EWF media information\n" );
-	fprintf( stream, "\t-s:        path segment separator, options: / (default), \\\n" );
-	fprintf( stream, "\t-v:        verbose output to stderr\n" );
-	fprintf( stream, "\t-V:        print version\n" );
-}
 
 /* Signal handler for ewfinfo
  */
@@ -161,6 +126,27 @@ int main( int argc, char * const argv[] )
 	struct rlimit limit_data;
 #endif
 
+	const char *description    = \
+		"Use ewfinfo to determine information about an Expert Witness Compression Format (EWF) image.";
+
+	ewftools_option_t options[ ] = {
+		{ 'A', "codepage", "codepage of header section strings, options: ascii (default), windows-874, windows-932, windows-936, windows-949, windows-950, windows-1250, windows-1251, windows-1252 (default), windows-1253, windows-1254, windows-1255, windows-1256, windows-1257 or windows-1258" },
+		{ 'B', "bodyfile", "output key and value hierarchy as a bodyfile" },
+		{ 'd', "date_format", "specify the date format, options: ctime (default), dm (day/month), md (month/day), iso8601" },
+		{ 'e', NULL, "only show EWF read error information" },
+		{ 'f', "format", "specify the output format, options: text (default), dfxml" },
+		{ 'F', "path", "show information about a specific file entry path" },
+		{ 'h', NULL, "shows this help" },
+		{ 'H', NULL, "shows the logical files hierarchy" },
+		{ 'i', NULL, "only show EWF acquiry information" },
+		{ 'm', NULL, "only show EWF media information" },
+		{ 's', "separator", "path segment separator, options: / (default), \\" },
+		{ 'v', NULL, "verbose output to stderr" },
+		{ 'V', NULL, "print version" },
+		{ 0, "sources", "first or all files of a set of EWF segment files" },
+	};
+	system_character_t options_string[ 32 ];
+
 	system_character_t * const *source_filenames      = NULL;
 	libcerror_error_t *error                          = NULL;
 	system_character_t *option_bodyfile               = NULL;
@@ -169,10 +155,11 @@ int main( int argc, char * const argv[] )
 	system_character_t *option_header_codepage        = NULL;
 	system_character_t *option_output_format          = NULL;
 	system_character_t *option_path_segment_separator = NULL;
-	system_character_t *program                       = _SYSTEM_STRING( "ewfinfo" );
+	char *program                                     = "ewfinfo";
 	system_integer_t option                           = 0;
 	uint8_t verbose                                   = 0;
 	int number_of_filenames                           = 0;
+	int number_of_options                             = (int) ( sizeof( options ) / sizeof( ewftools_option_t ) );
 	int option_mode                                   = EWFINFO_MODE_IMAGE;
 	int print_header                                  = 1;
 	int result                                        = 0;
@@ -180,6 +167,11 @@ int main( int argc, char * const argv[] )
 
 #if !defined( HAVE_GLOB_H )
 	ewftools_glob_t *glob                             = NULL;
+#endif
+
+#if defined( __MINGW32__ ) && defined( HAVE_MINGW_BINMODE )
+	_setmode( _fileno( stdout ), _O_BINARY );
+	_setmode( _fileno( stderr ), _O_BINARY );
 #endif
 
 	libcnotify_stream_set(
@@ -212,10 +204,22 @@ int main( int argc, char * const argv[] )
 
 		goto on_error;
 	}
+	if( ewftools_getopt_get_options_string(
+	     options,
+	     number_of_options,
+	     options_string,
+	     32 ) != 1 )
+	{
+		fprintf(
+		 stderr,
+		 "Unable to determine options string.\n" );
+
+		goto on_error;
+	}
 	while( ( option = ewftools_getopt(
 	                   argc,
 	                   argv,
-	                   _SYSTEM_STRING( "A:B:d:ef:F:hHims:vV" ) ) ) != (system_integer_t) -1 )
+	                   options_string ) ) != (system_integer_t) -1 )
 	{
 		switch( option )
 		{
@@ -230,8 +234,12 @@ int main( int argc, char * const argv[] )
 				 "Invalid argument: %" PRIs_SYSTEM "\n",
 				 argv[ optind ] );
 
-				usage_fprint(
-				 stdout );
+				ewftools_getopt_usage_fprint(
+				 stdout,
+				 program,
+				 description,
+				 options,
+				 number_of_options );
 
 				goto on_error;
 
@@ -263,8 +271,12 @@ int main( int argc, char * const argv[] )
 					 option,
 					 info_option );
 
-					usage_fprint(
-					 stdout );
+					ewftools_getopt_usage_fprint(
+					 stdout,
+					 program,
+					 description,
+					 options,
+					 number_of_options );
 
 					goto on_error;
 				}
@@ -288,8 +300,12 @@ int main( int argc, char * const argv[] )
 				 stdout,
 				 program );
 
-				usage_fprint(
-				 stdout );
+				ewftools_getopt_usage_fprint(
+				 stdout,
+				 program,
+				 description,
+				 options,
+				 number_of_options );
 
 				return( EXIT_SUCCESS );
 
@@ -311,8 +327,12 @@ int main( int argc, char * const argv[] )
 					 option,
 					 info_option );
 
-					usage_fprint(
-					 stdout );
+					ewftools_getopt_usage_fprint(
+					 stdout,
+					 program,
+					 description,
+					 options,
+					 number_of_options );
 
 					goto on_error;
 				}
@@ -333,8 +353,12 @@ int main( int argc, char * const argv[] )
 					 option,
 					 info_option );
 
-					usage_fprint(
-					 stdout );
+					ewftools_getopt_usage_fprint(
+					 stdout,
+					 program,
+					 description,
+					 options,
+					 number_of_options );
 
 					goto on_error;
 				}
@@ -373,8 +397,12 @@ int main( int argc, char * const argv[] )
 		 stderr,
 		 "Missing EWF image file(s).\n" );
 
-		usage_fprint(
-		 stdout );
+		ewftools_getopt_usage_fprint(
+		 stdout,
+		 program,
+		 description,
+		 options,
+		 number_of_options );
 
 		goto on_error;
 	}
@@ -403,6 +431,9 @@ int main( int argc, char * const argv[] )
 
 		goto on_error;
 	}
+#if defined( __clang_analyzer__ )
+	__builtin_assume( ewfinfo_info_handle != NULL );
+#endif
 	if( option_bodyfile != NULL )
 	{
 		if( info_handle_set_bodyfile(
@@ -472,8 +503,6 @@ int main( int argc, char * const argv[] )
 				ewftools_output_version_fprint(
 				 stderr,
 				 program );
-
-				print_header = 0;
 			}
 			fprintf(
 			 stderr,
@@ -510,8 +539,6 @@ int main( int argc, char * const argv[] )
 				ewftools_output_version_fprint(
 				 stderr,
 				 program );
-
-				print_header = 0;
 			}
 			fprintf(
 			 stderr,
@@ -576,8 +603,6 @@ int main( int argc, char * const argv[] )
 			ewftools_output_version_fprint(
 			 stderr,
 			 program );
-
-			print_header = 0;
 		}
 		fprintf(
 		 stderr,
@@ -596,8 +621,6 @@ int main( int argc, char * const argv[] )
 			ewftools_output_version_fprint(
 			 stderr,
 			 program );
-
-			print_header = 0;
 		}
 		fprintf(
 		 stderr,
@@ -661,8 +684,6 @@ int main( int argc, char * const argv[] )
 			ewftools_output_version_fprint(
 			 stderr,
 			 program );
-
-			print_header = 0;
 		}
 		fprintf(
 		 stderr,
@@ -687,8 +708,6 @@ int main( int argc, char * const argv[] )
 			ewftools_output_version_fprint(
 			 stderr,
 			 program );
-
-			print_header = 0;
 		}
 		fprintf(
 		 stderr,
@@ -706,8 +725,6 @@ int main( int argc, char * const argv[] )
 			ewftools_output_version_fprint(
 			 stderr,
 			 program );
-
-			print_header = 0;
 		}
 		fprintf(
 		 stderr,
@@ -729,8 +746,6 @@ int main( int argc, char * const argv[] )
 					ewftools_output_version_fprint(
 					 stderr,
 					 program );
-
-					print_header = 0;
 				}
 				fprintf(
 				 stderr,
@@ -750,8 +765,6 @@ int main( int argc, char * const argv[] )
 					ewftools_output_version_fprint(
 					 stderr,
 					 program );
-
-					print_header = 0;
 				}
 				fprintf(
 				 stderr,
@@ -772,8 +785,6 @@ int main( int argc, char * const argv[] )
 					ewftools_output_version_fprint(
 					 stderr,
 					 program );
-
-					print_header = 0;
 				}
 				fprintf(
 				 stderr,
@@ -793,8 +804,6 @@ on_abort:
 			ewftools_output_version_fprint(
 			 stderr,
 			 program );
-
-			print_header = 0;
 		}
 		fprintf(
 		 stderr,
@@ -810,8 +819,6 @@ on_abort:
 			ewftools_output_version_fprint(
 			 stderr,
 			 program );
-
-			print_header = 0;
 		}
 		fprintf(
 		 stderr,
@@ -828,8 +835,6 @@ on_abort:
 			ewftools_output_version_fprint(
 			 stderr,
 			 program );
-
-			print_header = 0;
 		}
 		fprintf(
 		 stderr,
@@ -844,8 +849,6 @@ on_abort:
 			ewftools_output_version_fprint(
 			 stderr,
 			 program );
-
-			print_header = 0;
 		}
 		fprintf(
 		 stdout,

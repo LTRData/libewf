@@ -1,7 +1,7 @@
 /*
  * GUID functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -31,6 +31,10 @@
 extern "C" {
 #endif
 
+#if defined( HAVE_LIBRPCRT4 ) || defined( HAVE_LIBUUID ) || defined( __BORLANDC__ ) || defined( _MSC_VER )
+#define HAVE_GUID_SUPPORT	1
+#endif
+
 #define GUID_SIZE		16
 
 enum GUID_TYPES
@@ -39,7 +43,7 @@ enum GUID_TYPES
 	GUID_TYPE_TIME		= (uint8_t) 't'
 };
 
-#if defined( HAVE_GUID_SUPPORT ) || defined( WINAPI )
+#if defined( HAVE_GUID_SUPPORT )
 
 int guid_generate(
      uint8_t *guid,
@@ -47,7 +51,7 @@ int guid_generate(
      uint8_t guid_type,
      libcerror_error_t **error );
 
-#endif /* defined( HAVE_GUID_SUPPORT ) || defined( WINAPI ) */
+#endif /* defined( HAVE_GUID_SUPPORT ) */
 
 int guid_to_string(
      uint8_t *guid,

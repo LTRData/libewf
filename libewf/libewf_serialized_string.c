@@ -1,7 +1,7 @@
 /*
  * Serialized (file) object functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -562,6 +562,17 @@ int libewf_serialized_string_read_hexadecimal_data(
 				goto on_error;
 			}
 			internal_data_offset++;
+		}
+		if( internal_data_offset >= serialized_string->data_size )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
+			 "%s: invalid internal data offset value out of bounds.",
+			 function );
+
+			goto on_error;
 		}
 		serialized_string->data[ internal_data_offset ] = 0;
 	}

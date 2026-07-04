@@ -1,6 +1,6 @@
 AM_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/common \
+	-I../include -I$(top_srcdir)/include \
+	-I../common -I$(top_srcdir)/common \
 	@LIBCERROR_CPPFLAGS@ \
 	@LIBCTHREADS_CPPFLAGS@ \
 	@LIBCDATA_CPPFLAGS@ \
@@ -457,13 +457,14 @@ ewfverify_LDADD = \
 	@LIBINTL@ \
 	@PTHREAD_LIBADD@
 
-MAINTAINERCLEANFILES = \
+CLEANFILES = \
+	*.exe
+
+DISTCLEANFILES = \
+	Makefile \
 	Makefile.in
 
-distclean: clean
-	/bin/rm -f Makefile
-
-splint:
+splint-local:
 	@echo "Running splint on ewfacquire ..."
 	-splint -preproc -redef $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(ewfacquire_SOURCES)
 	@echo "Running splint on ewfacquirestream ..."

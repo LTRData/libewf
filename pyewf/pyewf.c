@@ -2,7 +2,7 @@
  * Python bindings module for libewf (pyewf)
  *
  * Copyright (c) 2008, David Collett <david.collett@gmail.com>
- * Copyright (C) 2008-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -151,7 +151,7 @@ PyObject *pyewf_check_file_signature(
 	int result                   = 0;
 
 #if defined( HAVE_WIDE_SYSTEM_CHARACTER )
-	const wchar_t *filename_wide = NULL;
+	wchar_t *filename_wide       = NULL;
 #else
 	PyObject *utf8_string_object = NULL;
 #endif
@@ -465,7 +465,7 @@ PyObject *pyewf_glob(
 
 #if defined( HAVE_WIDE_SYSTEM_CHARACTER )
 	wchar_t **filenames_wide         = NULL;
-	const wchar_t *filename_wide     = NULL;
+	wchar_t *filename_wide           = NULL;
 #else
 	PyObject *utf8_string_object     = NULL;
 #endif
@@ -506,12 +506,17 @@ PyObject *pyewf_glob(
 		PyErr_Clear();
 
 #if defined( HAVE_WIDE_SYSTEM_CHARACTER )
+#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
+		filename_wide = (wchar_t *) PyUnicode_AsWideCharString(
+		                             string_object,
+		                             &filename_length );
+#else
 		filename_wide = (wchar_t *) PyUnicode_AsUnicode(
 		                             string_object );
 
 		filename_length = wide_string_length(
 		                   filename_wide );
-
+#endif
 		Py_BEGIN_ALLOW_THREADS
 
 		result = libewf_glob_wide(
@@ -523,6 +528,11 @@ PyObject *pyewf_glob(
 			  &error );
 
 		Py_END_ALLOW_THREADS
+
+#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
+		PyMem_Free(
+		 filename_wide );
+#endif
 #else
 		utf8_string_object = PyUnicode_AsUTF8String(
 		                      string_object );

@@ -1,7 +1,7 @@
 /*
  * Handle functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -875,7 +875,7 @@ int libewf_handle_signal_abort(
 
 /* Opens a set of EWF file(s)
  * For reading files should contain all filenames that make up an EWF image
- * For writing files should contain the base of the filename, extentions like .e01 will be automatically added
+ * For writing files should contain the base of the filename, extensions like .e01 will be automatically added
  * Returns 1 if successful or -1 on error
  */
 int libewf_handle_open(
@@ -1242,7 +1242,7 @@ on_error:
 
 /* Opens a set of EWF file(s)
  * For reading files should contain all filenames that make up an EWF image
- * For writing files should contain the base of the filename, extentions like .e01 will be automatically added
+ * For writing files should contain the base of the filename, extensions like .e01 will be automatically added
  * Returns 1 if successful or -1 on error
  */
 int libewf_handle_open_wide(
@@ -2632,7 +2632,7 @@ int libewf_internal_handle_open_read_segment_file_section_data(
 /* TODO refactor */
 			internal_handle->io_handle->chunk_size = internal_handle->media_values->chunk_size;
 
-			/* Do a preliminary dection of the EWF format for reading the sector table section
+			/* Do a preliminary detection of the EWF format for reading the sector table section
 			 */
 			if( internal_handle->io_handle->segment_file_type == LIBEWF_SEGMENT_FILE_TYPE_EWF1 )
 			{
@@ -6527,11 +6527,11 @@ off64_t libewf_internal_handle_seek_offset(
 		return( -1 );
 	}
 	if( whence == SEEK_CUR )
-	{	
+	{
 		offset += internal_handle->current_offset;
 	}
 	else if( whence == SEEK_END )
-	{	
+	{
 		offset += (off64_t) internal_handle->media_values->media_size;
 	}
 #if defined( HAVE_DEBUG_OUTPUT )
@@ -10378,7 +10378,7 @@ int libewf_handle_set_compression_values(
 		goto on_error;
 	}
 	if( ( internal_handle->io_handle->segment_file_type == LIBEWF_SEGMENT_FILE_TYPE_EWF2 )
-	 && ( internal_handle->io_handle->segment_file_type == LIBEWF_SEGMENT_FILE_TYPE_EWF2_LOGICAL ) )
+	 || ( internal_handle->io_handle->segment_file_type == LIBEWF_SEGMENT_FILE_TYPE_EWF2_LOGICAL ) )
 	{
 		compression_flags |= LIBEWF_COMPRESS_FLAG_USE_PATTERN_FILL_COMPRESSION;
 	}

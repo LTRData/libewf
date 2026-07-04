@@ -2,7 +2,7 @@
  * Python object wrapper of libewf_handle_t
  *
  * Copyright (c) 2008, David Collett <david.collett@gmail.com>
- * Copyright (C) 2008-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2008-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -636,7 +636,6 @@ PyObject *pyewf_handle_open(
 {
 #if defined( HAVE_WIDE_SYSTEM_CHARACTER )
 	PyObject *filename_string_object = NULL;
-	const wchar_t *filename_wide     = NULL;
 	wchar_t *filename                = NULL;
 	wchar_t **filenames              = NULL;
 	char *narrow_string              = NULL;
@@ -659,6 +658,12 @@ PyObject *pyewf_handle_open(
 	int filename_index               = 0;
 	int number_of_filenames          = 0;
 	int result                       = 0;
+
+#if defined( HAVE_WIDE_SYSTEM_CHARACTER )
+#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
+	wchar_t *filename_wide           = NULL;
+#endif
+#endif
 
 	if( pyewf_handle == NULL )
 	{
@@ -905,8 +910,16 @@ PyObject *pyewf_handle_open(
 
 				goto on_error;
 			}
+#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
+			filename_wide = (wchar_t *) PyUnicode_AsWideCharString(
+			                             filename_string_object,
+			                             NULL );
+
+			filename = filename_wide;
+#else
 			filename = (wchar_t *) PyUnicode_AsUnicode(
 			                        filename_string_object );
+#endif
 		}
 		filename_length = wide_string_length(
 		                   filename );
@@ -1064,6 +1077,12 @@ on_error:
 	{
 		PyMem_Free(
 		 filename_wide );
+	}
+#else
+	if( utf8_string_object != NULL )
+	{
+		Py_DecRef(
+		 utf8_string_object );
 	}
 #endif
 	if( string_object != NULL )

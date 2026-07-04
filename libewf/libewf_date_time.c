@@ -1,7 +1,7 @@
 /*
  * Date and time functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -39,7 +39,7 @@ int libewf_date_time_localtime(
      struct tm *time_elements,
      libcerror_error_t **error )
 {
-#if ( defined( HAVE_LOCALTIME ) && !defined( HAVE_LOCALTIME_R ) ) || ( defined( WINAPI ) && (!defined( _MSC_VER ) || _MSC_VER <= 1900) )
+#if !defined( _MSC_VER ) && !defined( HAVE_LOCALTIME_R ) && ( defined( HAVE_LOCALTIME ) || defined( WINAPI ) )
 	struct tm *static_time_elements = NULL;
 #endif
 	static char *function           = "libewf_date_time_localtime";

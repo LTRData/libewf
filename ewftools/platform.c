@@ -1,7 +1,7 @@
 /*
  * Platform functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -245,7 +245,7 @@ int platform_get_operating_system(
 		 function );
 
 		return( -1 );
-	}	
+	}
 #if defined( HAVE_WIDE_SYSTEM_CHARACTER )
 #if SIZEOF_WCHAR_T == 4
 	if( libuna_utf32_string_copy_from_utf8(

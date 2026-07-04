@@ -1,7 +1,7 @@
 /*
  * File entry functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -331,6 +331,19 @@ int libewf_file_entry_get_sub_file_entry_by_utf16_path(
      const uint16_t *utf16_string,
      size_t utf16_string_length,
      libewf_file_entry_t **sub_file_entry,
+     libcerror_error_t **error );
+
+LIBEWF_EXTERN \
+int libewf_file_entry_get_number_of_extents(
+     libewf_file_entry_t *file_entry,
+     int *number_of_extents,
+     libcerror_error_t **error );
+
+LIBEWF_EXTERN \
+int libewf_file_entry_get_extent(
+     libewf_file_entry_t *file_entry,
+     int extent_index,
+     libewf_extent_t **extent,
      libcerror_error_t **error );
 
 LIBEWF_EXTERN \

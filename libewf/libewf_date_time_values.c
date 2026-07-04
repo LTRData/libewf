@@ -1,7 +1,7 @@
 /*
  * Date and time values functions
  *
- * Copyright (C) 2006-2023, Joachim Metz <joachim.metz@gmail.com>
+ * Copyright (C) 2006-2026, Joachim Metz <joachim.metz@gmail.com>
  *
  * Refer to AUTHORS for acknowledgements.
  *
@@ -796,7 +796,7 @@ int libewf_utf8_string_day_of_week_copy_from_time_elements(
 		return( -1 );
 	}
 	string_index = *utf8_string_index;
-	
+
 	switch( time_elements->tm_wday )
 	{
 		case 0:

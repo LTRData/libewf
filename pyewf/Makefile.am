@@ -1,7 +1,7 @@
 if HAVE_PYTHON
-AM_CFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/common \
+AM_CPPFLAGS = \
+	-I../include -I$(top_srcdir)/include \
+	-I../common -I$(top_srcdir)/common \
 	@LIBCERROR_CPPFLAGS@ \
 	@LIBCDATA_CPPFLAGS@ \
 	@LIBCLOCALE_CPPFLAGS@ \
@@ -46,14 +46,12 @@ pyewf_la_LIBADD = \
 	@LIBCPATH_LIBADD@ \
 	@LIBBFIO_LIBADD@
 
-pyewf_la_CPPFLAGS = $(PYTHON_CPPFLAGS)
+pyewf_la_CPPFLAGS = $(AM_CPPFLAGS) $(PYTHON_CPPFLAGS)
 pyewf_la_LDFLAGS  = -module -avoid-version $(PYTHON_LDFLAGS)
 
 endif
 
-MAINTAINERCLEANFILES = \
+DISTCLEANFILES = \
+	Makefile \
 	Makefile.in
-
-distclean: clean
-	/bin/rm -f Makefile
 
