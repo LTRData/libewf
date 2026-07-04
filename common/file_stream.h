@@ -55,9 +55,15 @@ extern "C" {
 
 #endif
 
+#if defined( WINAPI ) && ( defined( _UNICODE ) || defined( UNICODE ) )
+#define FILE_STREAM_OPEN_APPEND			L"a"
+#define FILE_STREAM_OPEN_READ			L"r"
+#define FILE_STREAM_OPEN_WRITE			L"w"
+#else
 #define FILE_STREAM_OPEN_APPEND			"a"
 #define FILE_STREAM_OPEN_READ			"r"
 #define FILE_STREAM_OPEN_WRITE			"w"
+#endif
 
 #if defined( WINAPI )
 #define FILE_STREAM_BINARY_OPEN_APPEND		"ab"

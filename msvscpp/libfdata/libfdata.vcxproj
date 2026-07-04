@@ -318,8 +318,6 @@
     <ClCompile Include="..\..\libfdata\libfdata_segments_array.c" />
     <ClCompile Include="..\..\libfdata\libfdata_stream.c" />
     <ClCompile Include="..\..\libfdata\libfdata_support.c" />
-    <ClCompile Include="..\..\libfdata\libfdata_tree.c" />
-    <ClCompile Include="..\..\libfdata\libfdata_tree_node.c" />
     <ClCompile Include="..\..\libfdata\libfdata_vector.c" />
   </ItemGroup>
   <ItemGroup>
