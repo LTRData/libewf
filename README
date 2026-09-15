@@ -1,3 +1,60 @@
+LTRData fork of libewf
+=====================
+
+libewf provides access to Expert Witness Compression Format (EWF) forensic
+images. This repository is an LTRData fork of libyal/libewf:
+https://github.com/libyal/libewf
+
+Branches and scope
+------------------
+
+The default branch is not the branch containing the recent LTRData work:
+
+* master: historical upstream snapshot, version 20200216 (February 2020).
+  The original README below describes that snapshot.
+
+* msvcrt-compat: LTRData's Windows/MSVC compatibility work, with periodic
+  upstream merges, including a merge in July 2026.
+  https://github.com/LTRData/libewf/tree/msvcrt-compat
+
+* LTRData.libewf-initial: earlier compatibility work, last updated in
+  March 2020.
+  https://github.com/LTRData/libewf/tree/LTRData.libewf-initial
+
+The msvcrt-compat branch contains Visual C++ project/property-sheet changes
+for legacy msvcrt.dll compatibility, Win32/x64 runtime-linking settings,
+and Windows source adjustments. Its shared property sheet enables write
+support. The compatibility project/property-sheet changes are not present
+on master.
+
+For LTRData compatibility changes, inspect msvcrt-compat. For upstream
+development and documentation, use libyal/libewf. The inherited status,
+format-support and "work in progress" lists below are historical upstream
+information, not a current roadmap for all branches of this fork.
+
+Build and documentation
+-----------------------
+
+Select the intended branch before following build instructions. The source
+includes dependency-synchronization scripts, Autotools configuration,
+Windows build scripts and Visual C++ projects under msvscpp.
+
+On msvcrt-compat, requirements vary by Visual C++ configuration. Some
+property sheets contain machine-specific WDK 7 paths and legacy runtime
+objects; inspect and adapt those settings for the build environment.
+The branch name does not imply support for every Windows version.
+
+Upstream build documentation:
+https://github.com/libyal/libewf/wiki/Building
+
+Format documentation and command-line manuals are retained in the
+documentation and manuals directories. Attribution and license texts are
+in AUTHORS, COPYING and COPYING.LESSER; see individual source headers for
+the terms applicable to each component.
+
+Original upstream README for the master snapshot
+================================================
+
 libewf is a library to access the Expert Witness Compression Format (EWF).
 
 Project information:
